@@ -16,4 +16,4 @@
 - Symptom: Tab works to enter the option group, but Arrow Up/Down no longer moves between checkboxes.
 - Cause: Native browser arrow nav is only provided for radio groups, not checkbox groups. Conversion to multi-select removed it.
 - Fix: Implemented roving tabindex pattern with manual focus management.
-- Commit: (not yet committed -- included in current working changes)
+- Commit: c2044c3
