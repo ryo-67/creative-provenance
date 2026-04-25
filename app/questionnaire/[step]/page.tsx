@@ -14,7 +14,6 @@ import AIHelpersQuestion from '@/components/questions/AIHelpersQuestion';
 import AIGeneratorQuestion from '@/components/questions/AIGeneratorQuestion';
 import PositionDot from '@/components/questions/PositionDot';
 import CollaboratorsQuestion from '@/components/questions/CollaboratorsQuestion';
-import VerdictQuestion from '@/components/questions/VerdictQuestion';
 
 export default function StepPage() {
   const params = useParams();
@@ -122,9 +121,10 @@ export default function StepPage() {
           )}
           {stepNum === 8 && (
             <PositionDot
-              label="Q8 — Direction vs. execution"
-              leftLabel="I directed"
-              rightLabel="I made"
+              title="Direction vs. execution"
+              prompt="Across the whole process, my role felt closer to..."
+              leftLabel="Director (deciding)"
+              rightLabel="Maker (marking)"
               value={response.directionExecution?.x}
               onChange={(x) =>
                 updateResponse({ directionExecution: { x, y: 0.5 } })
@@ -138,9 +138,28 @@ export default function StepPage() {
             />
           )}
           {stepNum === 10 && (
-            <VerdictQuestion
-              data={response.ownership}
-              onUpdate={(ownership) => updateResponse({ ownership })}
+            <PositionDot
+              title="The verdict"
+              prompt="This piece feels..."
+              leftLabel="Not really mine"
+              rightLabel="Completely mine"
+              value={response.ownership?.feltOwnership}
+              onChange={(feltOwnership) =>
+                updateResponse({
+                  ownership: { feltOwnership, why: response.ownership?.why },
+                })
+              }
+              optionalText={{
+                label: 'Why? (optional)',
+                value: response.ownership?.why,
+                onChange: (why) =>
+                  updateResponse({
+                    ownership: {
+                      feltOwnership: response.ownership?.feltOwnership ?? 0.5,
+                      why: why || undefined,
+                    },
+                  }),
+              }}
             />
           )}
         </div>

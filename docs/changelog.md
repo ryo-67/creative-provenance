@@ -1,5 +1,15 @@
 # Changelog
 
+## Session 8 -- 2026-04-25 -- PositionDot for Q8 and Q10
+- Built real PositionDot component with Pointer Events drag, click-on-track, and keyboard nav (arrow keys, Home/End)
+- Dot renders at 50% with reduced opacity when unset; first interaction sets the value and enables Next
+- setPointerCapture for smooth drag even when pointer leaves the dot
+- touch-none on track to prevent mobile scroll interception
+- role="slider" with aria-valuenow/aria-valuetext for qualitative position descriptions
+- Wired Q8 (Direction vs. execution) and Q10 (The verdict) to the new component
+- Q10 includes optional "Why?" textarea via optionalText prop
+- Deleted VerdictQuestion.tsx (replaced by PositionDot with optionalText)
+
 ## Deploy -- 2026-04-25 -- First production deploy
 - Vercel project linked to GitHub repo
 - Production URL: https://creative-provenance.vercel.app/
