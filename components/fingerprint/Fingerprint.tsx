@@ -1,0 +1,1 @@
+// Master SVG fingerprint composition
