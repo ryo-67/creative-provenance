@@ -1,5 +1,14 @@
 # Changelog
 
+## Session 9 -- 2026-04-25 -- PositionDot subtitle fix, Q1 sub-step refactor, shared StepNav
+- Fixed PositionDot subtitle: always visible now, no layout jump on first interaction
+- Refactored Q1 into sub-step flow matching Q7's pattern (sub-step 0: description, sub-step 1: medium)
+- Q1 renders its own internal Back/Next via shared StepNav; layout nav hidden on step 1
+- Extracted StepNav into components/shared/StepNav.tsx, used by both Q1 and Q7
+- Removed Q7's internal Q7Nav in favor of shared StepNav
+- Sub-step derived from data on mount (if medium is set, start on sub-step 1)
+- Updated requirements.md Q1 format to describe sub-step flow
+
 ## Session 8 -- 2026-04-25 -- PositionDot for Q8 and Q10
 - Built real PositionDot component with Pointer Events drag, click-on-track, and keyboard nav (arrow keys, Home/End)
 - Dot renders at 50% with reduced opacity when unset; first interaction sets the value and enables Next

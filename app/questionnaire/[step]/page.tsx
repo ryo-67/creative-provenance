@@ -78,6 +78,8 @@ export default function StepPage() {
             <PieceQuestion
               data={response.piece}
               onUpdate={(piece) => updateResponse({ piece })}
+              onBack={() => router.push('/')}
+              onAdvance={() => router.push('/questionnaire/2')}
             />
           )}
           {stepNum === 2 && (
@@ -165,7 +167,7 @@ export default function StepPage() {
         </div>
 
         {/* Navigation — hidden on step 7 (Q7 renders its own) */}
-        {stepNum !== 7 && (
+        {stepNum !== 1 && stepNum !== 7 && (
           <div className="mt-8 flex justify-between">
             <button
               onClick={goBack}

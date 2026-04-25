@@ -118,11 +118,9 @@ export default function PositionDot({
         <p className="mt-2 text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
           {prompt}
         </p>
-        {!hasBeenSet && (
-          <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
-            Drag the dot or click anywhere on the line.
-          </p>
-        )}
+        <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
+          Drag the dot or click anywhere on the line.
+        </p>
       </div>
 
       {/* Track container */}

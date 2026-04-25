@@ -8,6 +8,7 @@ import type {
   TrainingDataAwareness,
 } from '@/lib/schema';
 import { useRovingTabIndex } from '@/lib/hooks/useRovingTabIndex';
+import StepNav from '@/components/shared/StepNav';
 
 type Props = {
   data: Partial<ProvenanceResponse>['aiGenerator'];
@@ -93,15 +94,6 @@ const cardSelected =
 const cardUnselected =
   'border-zinc-200 bg-white hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800';
 
-const btnBack =
-  'rounded-full border border-zinc-300 px-6 py-2 text-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800';
-
-const btnNextEnabled =
-  'rounded-full px-6 py-2 text-sm transition-colors bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200';
-
-const btnNextDisabled =
-  'rounded-full px-6 py-2 text-sm cursor-not-allowed bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600';
-
 // --- Derive initial sub-step from data ---
 
 function deriveSubStep(
@@ -112,35 +104,6 @@ function deriveSubStep(
   if (!data.stage) return 2;
   if (!data.trainingDataAwareness) return 3;
   return 3; // all filled — show last
-}
-
-// --- Nav bar ---
-
-function Q7Nav({
-  onBack,
-  onNext,
-  nextDisabled,
-  nextLabel = 'Next',
-}: {
-  onBack: () => void;
-  onNext: () => void;
-  nextDisabled: boolean;
-  nextLabel?: string;
-}) {
-  return (
-    <div className="mt-8 flex justify-between">
-      <button onClick={onBack} className={btnBack}>
-        Back
-      </button>
-      <button
-        onClick={() => { if (!nextDisabled) onNext(); }}
-        disabled={nextDisabled}
-        className={nextDisabled ? btnNextDisabled : btnNextEnabled}
-      >
-        {nextLabel}
-      </button>
-    </div>
-  );
 }
 
 // --- Component ---
@@ -284,7 +247,7 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          <Q7Nav
+          <StepNav
             onBack={onBack}
             onNext={handleGateNext}
             nextDisabled={!gateValid}
@@ -367,7 +330,7 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          <Q7Nav
+          <StepNav
             onBack={() => setSubStep(0)}
             onNext={() => setSubStep(2)}
             nextDisabled={!kindsValid}
@@ -410,7 +373,7 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          <Q7Nav
+          <StepNav
             onBack={() => setSubStep(1)}
             onNext={() => setSubStep(3)}
             nextDisabled={!data?.stage}
@@ -453,7 +416,7 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          <Q7Nav
+          <StepNav
             onBack={() => setSubStep(2)}
             onNext={onAdvance}
             nextDisabled={!data?.trainingDataAwareness}

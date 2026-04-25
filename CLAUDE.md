@@ -101,6 +101,8 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   /share
     ShareSheet.tsx              # Native share + download
     DownloadButton.tsx
+  /shared
+    StepNav.tsx                 # Reusable Back/Next nav for sub-step flows (Q1, Q7)
 /lib
   schema.ts                     # ProvenanceResponse type + Zod schema
   fingerprint-config.ts         # Mapping of answers to visual primitives

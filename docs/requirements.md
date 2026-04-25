@@ -26,7 +26,7 @@ All questions anchor to one specific recent piece the user picks at Q1.
 The questionnaire moves through three time horizons: the moment of starting (Q2), the period of making (Q3), and the years of training that shaped how the artist works (Q4). Each asks about different scales of contribution.
 
 ### Q1 — The piece
-- **Format**: open text (1 sentence) + medium tag
+- **Format**: sub-step flow (sub-step 0: description text input, sub-step 1: medium selection). Each sub-step is one screen. URL stays at /questionnaire/1; Q1 renders its own Back/Next buttons.
 - **Required**: yes
 - **Schema**: `piece: { description: string, medium: MediumType, mediumOther?: string }`
 
