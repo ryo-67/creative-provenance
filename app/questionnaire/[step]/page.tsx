@@ -103,6 +103,7 @@ export default function StepPage() {
             <GhostQuestion
               data={response.ghost}
               onUpdate={(ghost) => updateResponse({ ghost })}
+              onSkip={() => router.push(`/questionnaire/${stepNum + 1}`)}
             />
           )}
           {stepNum === 6 && (

@@ -146,7 +146,7 @@ export const ProvenanceResponseSchema = z.object({
   }),
 
   seed: z.object({
-    type: SeedType,
+    types: z.array(SeedType).min(1),
     other: z.string().optional(),
   }),
 

@@ -1,55 +1,190 @@
 'use client';
 
-import type { ProvenanceResponse } from '@/lib/schema';
+import { useEffect, useRef } from 'react';
+import type { MediumType, ProvenanceResponse } from '@/lib/schema';
 
 type Props = {
   data: Partial<ProvenanceResponse>['piece'];
   onUpdate: (piece: ProvenanceResponse['piece']) => void;
 };
 
+const MEDIUM_OPTIONS: { value: MediumType; label: string }[] = [
+  {
+    value: 'painted',
+    label:
+      'Something drawn or painted on paper or canvas (illustration, watercolor, oil, acrylic, ink, gouache)',
+  },
+  {
+    value: 'digital-2d',
+    label:
+      'Something digital and 2D (digital illustration, photo manipulation, design)',
+  },
+  {
+    value: '3d-digital',
+    label: 'Something rendered in 3D (CGI, modeling, digital sculpture, VR/AR)',
+  },
+  {
+    value: 'sculpted',
+    label:
+      'Something carved, sculpted, or built (clay, wood, metal, stone, found objects)',
+  },
+  {
+    value: 'printed',
+    label:
+      'Something printed or pressed (printmaking, risograph, screen print, letterpress, photography in print)',
+  },
+  {
+    value: 'fiber',
+    label:
+      'Something woven, sewn, or made of fiber (textile art, embroidery, weaving, soft sculpture)',
+  },
+  {
+    value: 'motion',
+    label:
+      'Something that moves (animation, video, motion graphics, GIFs, interactive)',
+  },
+  {
+    value: 'mixed-media',
+    label:
+      'Something layered or hybrid (mixed-media, collage, assemblage)',
+  },
+  { value: 'other', label: 'Something else' },
+];
+
 export default function PieceQuestion({ data, onUpdate }: Props) {
+  const otherInputRef = useRef<HTMLInputElement>(null);
+  const selected = data?.medium;
+  const hasDescription = (data?.description ?? '').trim().length > 0;
+  const otherWasSelected = useRef(selected === 'other');
+
+  const handleDescriptionChange = (value: string) => {
+    onUpdate({
+      description: value,
+      medium: data?.medium ?? ('' as MediumType),
+      mediumOther: data?.mediumOther,
+    });
+  };
+
+  const handleMediumChange = (value: MediumType) => {
+    if (value === 'other') {
+      onUpdate({
+        description: data?.description ?? '',
+        medium: 'other',
+        mediumOther: data?.mediumOther ?? '',
+      });
+    } else {
+      onUpdate({
+        description: data?.description ?? '',
+        medium: value,
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (selected === 'other' && !otherWasSelected.current) {
+      otherInputRef.current?.focus();
+    }
+    otherWasSelected.current = selected === 'other';
+  }, [selected]);
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Q1 — The piece</h2>
-      <p className="text-sm text-zinc-500">Placeholder: describe your piece and pick a medium.</p>
-      <input
-        type="text"
-        placeholder="Describe your piece in one sentence"
-        value={data?.description ?? ''}
-        onChange={(e) =>
-          onUpdate({
-            description: e.target.value,
-            medium: data?.medium ?? 'painted',
-            mediumOther: data?.mediumOther,
-          })
-        }
-        className="w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
-      />
-      <select
-        value={data?.medium ?? ''}
-        onChange={(e) =>
-          onUpdate({
-            description: data?.description ?? '',
-            medium: e.target.value as ProvenanceResponse['piece']['medium'],
-            mediumOther: data?.mediumOther,
-          })
-        }
-        className="w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight">The piece</h2>
+          <p className="mt-2 text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
+            The piece I&rsquo;m thinking about is...
+          </p>
+          <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
+            One sentence. Pick a recent piece of visual art that felt
+            meaningfully yours.
+          </p>
+        </div>
+
+        <label htmlFor="piece-description" className="sr-only">
+          Describe your piece in one sentence
+        </label>
+        <input
+          id="piece-description"
+          type="text"
+          placeholder="A watercolor of the view from my fire escape at dusk"
+          value={data?.description ?? ''}
+          onChange={(e) => handleDescriptionChange(e.target.value)}
+          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-[15px] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-white dark:border-zinc-600 dark:bg-zinc-900 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400 dark:focus:ring-offset-zinc-950"
+        />
+      </div>
+
+      <div
+        className={`space-y-4 transition-all duration-300 ease-out ${
+          hasDescription
+            ? 'translate-y-0 opacity-100'
+            : 'pointer-events-none max-h-0 translate-y-2 overflow-hidden opacity-0'
+        }`}
+        aria-hidden={!hasDescription}
       >
-        <option value="">Select medium</option>
-        <option value="painted">Painted / drawn</option>
-        <option value="digital-2d">Digital 2D</option>
-        <option value="3d-digital">3D digital</option>
-        <option value="sculpted">Sculpted</option>
-        <option value="printed">Printed</option>
-        <option value="fiber">Fiber</option>
-        <option value="motion">Motion</option>
-        <option value="mixed-media">Mixed media</option>
-        <option value="other">Other</option>
-      </select>
-      <pre className="mt-4 rounded bg-zinc-100 p-3 text-xs dark:bg-zinc-800">
-        {JSON.stringify(data, null, 2) ?? 'null'}
-      </pre>
+        <p className="text-base leading-relaxed text-zinc-600 dark:text-zinc-400">
+          It lives in the world as...
+        </p>
+
+        <fieldset>
+          <legend className="sr-only">
+            What medium is this piece? Choose one of 9 options.
+          </legend>
+
+          <div className="space-y-2">
+            {MEDIUM_OPTIONS.map(({ value, label }) => {
+              const isSelected = selected === value;
+
+              return (
+                <div key={value}>
+                  <label
+                    className={`flex min-h-[44px] cursor-pointer items-center rounded-lg border px-4 py-3 text-[15px] leading-snug transition-colors
+                      ${
+                        isSelected
+                          ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
+                          : 'border-zinc-200 bg-white hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800'
+                      }
+                      has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-zinc-500 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-white dark:has-[:focus-visible]:ring-zinc-400 dark:has-[:focus-visible]:ring-offset-zinc-950`}
+                  >
+                    <input
+                      type="radio"
+                      name="piece-medium"
+                      value={value}
+                      checked={isSelected}
+                      onChange={() => handleMediumChange(value)}
+                      className="sr-only"
+                    />
+                    <span>{label}</span>
+                  </label>
+
+                  {value === 'other' && isSelected && (
+                    <div className="ml-4 mt-1">
+                      <label htmlFor="medium-other" className="sr-only">
+                        Describe your medium
+                      </label>
+                      <input
+                        ref={otherInputRef}
+                        id="medium-other"
+                        type="text"
+                        placeholder="Tell us what"
+                        value={data?.mediumOther ?? ''}
+                        onChange={(e) =>
+                          onUpdate({
+                            description: data?.description ?? '',
+                            medium: 'other',
+                            mediumOther: e.target.value,
+                          })
+                        }
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-[15px] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-white dark:border-zinc-600 dark:bg-zinc-900 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400 dark:focus:ring-offset-zinc-950"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </fieldset>
+      </div>
     </div>
   );
 }

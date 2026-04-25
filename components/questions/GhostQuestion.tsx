@@ -5,47 +5,63 @@ import type { ProvenanceResponse } from '@/lib/schema';
 type Props = {
   data: Partial<ProvenanceResponse>['ghost'];
   onUpdate: (ghost: ProvenanceResponse['ghost']) => void;
+  onSkip: () => void;
 };
 
-export default function GhostQuestion({ data, onUpdate }: Props) {
+export default function GhostQuestion({ data, onUpdate, onSkip }: Props) {
+  const description = data?.description ?? '';
+
+  const handleTextChange = (value: string) => {
+    // Only set present = true when there's actual content
+    onUpdate({
+      present: value.trim().length > 0,
+      description: value,
+    });
+  };
+
+  const handleSkip = () => {
+    onUpdate({ present: false });
+    onSkip();
+  };
+
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">Q5 — The ghost</h2>
-      <p className="text-sm text-zinc-500">Placeholder: is there an unintended presence in this piece?</p>
-      <div className="flex gap-4">
-        <button
-          onClick={() => onUpdate({ present: true, description: data?.description })}
-          className={`rounded px-4 py-2 text-sm ${
-            data?.present === true
-              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-              : 'bg-zinc-100 dark:bg-zinc-800'
-          }`}
-        >
-          Yes
-        </button>
-        <button
-          onClick={() => onUpdate({ present: false })}
-          className={`rounded px-4 py-2 text-sm ${
-            data?.present === false
-              ? 'bg-zinc-900 text-white dark:bg-white dark:text-zinc-900'
-              : 'bg-zinc-100 dark:bg-zinc-800'
-          }`}
-        >
-          No
-        </button>
+    <div className="space-y-8">
+      <div className="space-y-4">
+        <h2 className="text-2xl font-semibold tracking-tight">
+          The ghost
+        </h2>
+        <p className="mt-2 text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
+          Sometimes a piece holds something we didn&rsquo;t put there on
+          purpose — someone we were missing, something we were grieving, an
+          argument that hadn&rsquo;t ended, a place we couldn&rsquo;t go back
+          to. The work absorbs it without asking.
+        </p>
+        <p className="text-base leading-relaxed text-zinc-700 dark:text-zinc-300">
+          Is there a ghost in this piece? If yes, who or what is it?
+        </p>
       </div>
-      {data?.present && (
-        <input
-          type="text"
-          placeholder="Describe the ghost"
-          value={data.description ?? ''}
-          onChange={(e) => onUpdate({ present: true, description: e.target.value })}
-          className="w-full rounded border border-zinc-300 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-900"
+
+      <div>
+        <label htmlFor="ghost-description" className="sr-only">
+          Describe the ghost in this piece
+        </label>
+        <textarea
+          id="ghost-description"
+          rows={4}
+          placeholder="A person, a place, a feeling that found its way in..."
+          value={description}
+          onChange={(e) => handleTextChange(e.target.value)}
+          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-4 text-base leading-relaxed placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-white dark:border-zinc-600 dark:bg-zinc-900 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400 dark:focus:ring-offset-zinc-950"
         />
-      )}
-      <pre className="mt-4 rounded bg-zinc-100 p-3 text-xs dark:bg-zinc-800">
-        {JSON.stringify(data, null, 2) ?? 'null'}
-      </pre>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleSkip}
+        className="text-sm text-zinc-400 underline underline-offset-2 transition-colors hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
+      >
+        Skip — there isn&rsquo;t one
+      </button>
     </div>
   );
 }

@@ -42,9 +42,9 @@ Medium categories cover materially distinct ways of making:
 - `other` — fallback with open text
 
 ### Q2 — The seed
-- **Format**: single-select with open fallback
-- **Required**: yes
-- **Schema**: `seed: { type: SeedType, other?: string }`
+- **Format**: multi-select with open fallback
+- **Required**: yes (at least one)
+- **Schema**: `seed: { types: SeedType[], other?: string }`
 
 Twelve seed categories covering inner, structural, and external origins:
 - `body` — something I needed to get out of my body
@@ -304,7 +304,7 @@ type ProvenanceResponse = {
 
   // Q2
   seed: {
-    type: SeedType;
+    types: SeedType[];
     other?: string;
   };
 

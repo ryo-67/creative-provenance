@@ -10,6 +10,31 @@ The project is built for the F(r)ictions: Creative Work in an Age of AI symposiu
 
 The project is being built by Shoro Roy, Paola Machuca Hernández, and Yash Pawar as part of an Ethics of AI graduate course at Parsons / The New School.
 
+## Project Documentation
+
+All project documentation lives in /docs at the repo root:
+- CLAUDE.md — this file (stays at project root for Claude Code auto-loading)
+- /docs/requirements.md — detailed feature spec and data schema
+- /docs/questionnaire-draft.md — question copy and format spec
+- /docs/backlog.md — ideas and deferred features
+- /docs/bugs.md — bug tracker
+- /docs/changelog.md — session-by-session narrative history
+
+## Documentation Discipline
+
+Every code change must be reflected in the relevant documentation files. This is non-negotiable. At the end of every session that touches code, update:
+
+- /docs/changelog.md — always. Add a new dated entry under the current session header describing what shipped and why. This is the narrative record.
+- /docs/bugs.md — when a bug is found (add to Open) or fixed (move to Fixed with date and commit reference).
+- /docs/requirements.md — when scope, schema, or behavior changes. Update the affected section to reflect new reality. The doc should always describe what the project IS, not what it was.
+- CLAUDE.md — when architectural principles, file structure, conventions, or anti-patterns change. Update the schema-at-a-glance if the schema shape changes.
+- /docs/backlog.md — when an idea surfaces that's deferred or out-of-scope. Capture it here, don't lose it.
+- README.md — when setup steps, dev commands, or environment requirements change.
+
+Documentation is part of the deliverable, not an afterthought. A code change without doc updates is incomplete.
+
+When starting a session, check /docs/changelog.md and /docs/bugs.md to see what state the project is in. When ending a session, update them.
+
 ## What This Project Is Not
 
 - It is not a refusal mechanism (like Glaze, Nightshade, or NoAI tags)
@@ -81,13 +106,21 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   fingerprint-config.ts         # Mapping of answers to visual primitives
   grace-prompt.ts               # System prompt for Grace generation
   storage.ts                    # localStorage helpers
+  /hooks
+    useRovingTabIndex.ts        # Reusable arrow-key navigation for checkbox groups
 /public
   /assets                       # SVG primitives, fonts, etc.
+/docs
+  requirements.md               # Feature spec and data schema
+  questionnaire-draft.md        # Question copy and format spec
+  backlog.md                    # Ideas and deferred features
+  bugs.md                       # Bug tracker
+  changelog.md                  # Session-by-session history
 ```
 
 ## Data Schema
 
-The `ProvenanceResponse` type lives in `/lib/schema.ts` and is the contract for every component. See `requirements.md` for the full schema. Do not modify it without updating all consumers.
+The `ProvenanceResponse` type lives in `/lib/schema.ts` and is the contract for every component. See `/docs/requirements.md` for the full schema. Do not modify it without updating all consumers.
 
 ### Schema-at-a-glance
 
@@ -98,7 +131,7 @@ type ProvenanceResponse = {
   version: '1.0.0';
 
   piece: { description: string; medium: MediumType; mediumOther?: string };
-  seed: { type: SeedType; other?: string };
+  seed: { types: SeedType[]; other?: string };
   references: Array<{ id: ReferenceTileId; weight: number; position: { x: number; y: number } }>;
   teachers: Array<TeacherType>;
   ghost: { present: boolean; description?: string };
@@ -116,7 +149,7 @@ type ProvenanceResponse = {
 };
 ```
 
-All union types and exact value lists are in `requirements.md` and should be defined as TypeScript string literal unions in `/lib/schema.ts`.
+All union types and exact value lists are in `/docs/requirements.md` and should be defined as TypeScript string literal unions in `/lib/schema.ts`.
 
 ## Visual System
 
@@ -127,7 +160,7 @@ The fingerprint is composed of four channels:
 3. **Texture and finish** (Q6, Q7 kinds + stage): AI presence affects pixelation, dithering, color temperature
 4. **Atmosphere** (Q5, Q8, Q10): emotional channel — clarity, ghost element, line quality
 
-Q3 has 12 reference tiles, Q2 has 12 seed types, Q4 has 8 teacher types — the primitive library is correspondingly larger than V1's earlier draft. A separate visual system spec will be provided by Paola and Yash. Until that lands, use placeholder shapes (basic geometric forms) and color-code by category. Placeholder mappings are in `requirements.md`.
+Q3 has 12 reference tiles, Q2 has 12 seed types, Q4 has 8 teacher types — the primitive library is correspondingly larger than V1's earlier draft. A separate visual system spec will be provided by Paola and Yash. Until that lands, use placeholder shapes (basic geometric forms) and color-code by category. Placeholder mappings are in `/docs/requirements.md`.
 
 ## Grace Generation
 
@@ -220,7 +253,7 @@ UI copy should be:
 - The questionnaire is reflective, not transactional. Pacing matters.
 - Question prompts can be slightly playful; instruction text should be clear.
 
-The full revised question copy is in `/questionnaire-draft.md`. Use that as the source of truth for user-facing strings.
+The full revised question copy is in `/docs/questionnaire-draft.md`. Use that as the source of truth for user-facing strings.
 
 ## Contact
 

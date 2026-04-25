@@ -42,6 +42,11 @@ lib/
   fingerprint-config.ts # Answer-to-visual-primitive mapping
   grace-prompt.ts       # System prompt for Grace generation
   storage.ts            # localStorage helpers
+docs/                   # Project documentation
+  requirements.md       # Feature spec and data schema
+  changelog.md          # Session-by-session history
+  bugs.md               # Bug tracker
+  backlog.md            # Ideas and deferred features
 ```
 
 ## Team

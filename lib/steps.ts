@@ -11,12 +11,17 @@ export const STEPS: StepConfig[] = [
     number: 1,
     label: 'The piece',
     isValid: (r) =>
-      !!r.piece?.description && r.piece.description.length > 0 && !!r.piece?.medium,
+      !!r.piece?.description &&
+      !!r.piece?.medium &&
+      (r.piece.medium !== 'other' || !!r.piece.mediumOther),
   },
   {
     number: 2,
     label: 'The seed',
-    isValid: (r) => !!r.seed?.type,
+    isValid: (r) =>
+      !!r.seed?.types &&
+      r.seed.types.length > 0 &&
+      (!r.seed.types.includes('other') || !!r.seed.other),
   },
   {
     number: 3,
