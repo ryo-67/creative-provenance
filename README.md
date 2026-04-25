@@ -4,6 +4,14 @@ A web-based interactive questionnaire that helps visual artists trace the chain 
 
 Built for the **F(r)ictions: Creative Work in an Age of AI** symposium, May 1, 2026, at The New School.
 
+## Live Deployment
+
+**Production:** [creative-provenance.vercel.app](https://creative-provenance.vercel.app/)
+
+- Push to `main` triggers a production deploy automatically
+- Push to any other branch creates a preview deploy with its own URL
+- `ANTHROPIC_API_KEY` must be set in Vercel environment variables (Production, Preview, and Development) for Grace generation to work
+
 ## Quick Start
 
 ```bash

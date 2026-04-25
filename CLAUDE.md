@@ -52,7 +52,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 - **Animation**: Framer Motion (only where needed)
 - **Visualization**: SVG (declarative, debuggable, scales infinitely)
 - **AI Generation**: Anthropic Claude API (Sonnet 4.6 default)
-- **Hosting**: Vercel free tier
+- **Hosting**: Vercel free tier -- deployed at https://creative-provenance.vercel.app/
 - **Storage** (V1): localStorage for session state; no backend persistence
 - **Storage** (V2, future): Supabase free tier for shareable URLs
 - **Image Export**: html-to-image or canvas-based PNG export
@@ -198,6 +198,14 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 3. Deploy to Vercel preview on every push
 4. Test on real mobile devices before merging — desktop simulators lie
 5. When asking Claude Code for help: provide the relevant component, the data schema reference, and the specific behavior you want. Don't ask "build the whole questionnaire."
+
+### Deployment
+
+- Push to `main` = production deploy at https://creative-provenance.vercel.app/
+- Push to any other branch = preview deploy with its own URL
+- `ANTHROPIC_API_KEY` is set in Vercel environment variables for Production, Preview, and Development
+- Build failures show in Vercel dashboard; check there before assuming a regression is local
+- Production environment is stricter than `next dev` — always run `npm run build` locally before pushing if a change is risky
 
 ## What to Prioritize
 

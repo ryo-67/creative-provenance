@@ -1,5 +1,12 @@
 # Changelog
 
+## Deploy -- 2026-04-25 -- First production deploy
+- Vercel project linked to GitHub repo
+- Production URL: https://creative-provenance.vercel.app/
+- ANTHROPIC_API_KEY configured in Vercel environment variables (all three environments)
+- Auto-deploy on push to main; preview deploys on feature branches
+- Anthropic API usage cap set to $20/month
+
 ## Session 7 -- 2026-04-25 -- Q7 restructured as internal sub-step flow
 - Restructured Q7 from stacked progressive disclosure to a forked sub-step flow (4 sub-steps: Gate, Kinds, Stage, Awareness)
 - Each sub-step is one decision per screen, matching the rest of the questionnaire's pacing

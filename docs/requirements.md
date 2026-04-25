@@ -561,12 +561,12 @@ These are V2+ ideas worth tracking but not building now.
 
 ## Symposium-Specific Considerations
 
-The site will be displayed at the F(r)ictions symposium on May 1, 2026.
+The site is live at https://creative-provenance.vercel.app/ and will be displayed at the F(r)ictions symposium on May 1, 2026.
 
 - Display setup: laptop or iPad on a table, plus printed fingerprints from test users as wall display
-- QR code on the printed display links to the live site
-- Need a brief project label/placard: title, group members, 2–3 sentence description
-- Site must work on slow venue WiFi (test offline behavior — fingerprint should still render even if Grace API fails)
+- QR code on the printed display should point to https://creative-provenance.vercel.app/ (or custom domain if one is configured before the event)
+- Need a brief project label/placard: title, group members, 2-3 sentence description
+- Site must work on slow venue WiFi (test offline behavior -- fingerprint should still render even if Grace API fails)
 
 ## Open Questions to Resolve Before Launch
 
