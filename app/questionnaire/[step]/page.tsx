@@ -116,6 +116,8 @@ export default function StepPage() {
             <AIGeneratorQuestion
               data={response.aiGenerator}
               onUpdate={(aiGenerator) => updateResponse({ aiGenerator })}
+              onBack={() => router.push('/questionnaire/6')}
+              onAdvance={() => router.push('/questionnaire/8')}
             />
           )}
           {stepNum === 8 && (
@@ -143,26 +145,28 @@ export default function StepPage() {
           )}
         </div>
 
-        {/* Navigation */}
-        <div className="mt-8 flex justify-between">
-          <button
-            onClick={goBack}
-            className="rounded-full border border-zinc-300 px-6 py-2 text-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
-          >
-            Back
-          </button>
-          <button
-            onClick={goNext}
-            disabled={!canAdvance}
-            className={`rounded-full px-6 py-2 text-sm transition-colors ${
-              canAdvance
-                ? 'bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200'
-                : 'cursor-not-allowed bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600'
-            }`}
-          >
-            {isLast ? 'See result' : 'Next'}
-          </button>
-        </div>
+        {/* Navigation — hidden on step 7 (Q7 renders its own) */}
+        {stepNum !== 7 && (
+          <div className="mt-8 flex justify-between">
+            <button
+              onClick={goBack}
+              className="rounded-full border border-zinc-300 px-6 py-2 text-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              Back
+            </button>
+            <button
+              onClick={goNext}
+              disabled={!canAdvance}
+              className={`rounded-full px-6 py-2 text-sm transition-colors ${
+                canAdvance
+                  ? 'bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200'
+                  : 'cursor-not-allowed bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600'
+              }`}
+            >
+              {isLast ? 'See result' : 'Next'}
+            </button>
+          </div>
+        )}
       </div>
     </main>
   );

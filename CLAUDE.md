@@ -229,6 +229,10 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 - All images and SVG elements need alt text or aria-label
 - The Grace must be selectable and copyable
 
+## Branched Questions
+
+Q7 uses internal sub-step state for its branched flow. The layout's back/next buttons are hidden on step 7; Q7 renders its own. The initial sub-step is derived from current data state (first incomplete field), so refreshing lands on the right sub-step without separate persistence. This pattern can be reused for any future branched questions.
+
 ## Anti-Patterns
 
 Do not:

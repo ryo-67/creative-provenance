@@ -1,5 +1,19 @@
 # Changelog
 
+## Session 7 -- 2026-04-25 -- Q7 restructured as internal sub-step flow
+- Restructured Q7 from stacked progressive disclosure to a forked sub-step flow (4 sub-steps: Gate, Kinds, Stage, Awareness)
+- Each sub-step is one decision per screen, matching the rest of the questionnaire's pacing
+- Q7 renders its own Back/Next buttons; the layout's nav is hidden on step 7
+- False at Gate skips directly to Q8; True advances through sub-steps 1-3
+- Sub-step derived from data state on mount (first incomplete field), so refresh lands on the right sub-step
+- Sub-step indicator ("1 of 4") shown on True branch sub-steps
+- State preserved across True/False toggles and sub-step navigation
+
+## Session 6 -- 2026-04-25 -- Q7 (AI as generator) initial build
+- Built Q7 with True/False gate and three sub-questions (Kinds, Stage, Awareness)
+- Tightened Q7 validation: False is always valid; True requires all three sub-answers plus kindOther when "other" is selected
+- Extracted shared card class names (cardBase, cardSelected, cardUnselected) within the component
+
 ## Session 5 -- 2026-04-25 -- Q1 (the piece) and Q5 (the ghost)
 - Built Q1 with text input for piece description and card-style radio selector for 9 medium types
 - Q1 "Something else" reveals text input, blocks Next when empty (consistent with Q2 "Other" pattern)

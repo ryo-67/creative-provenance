@@ -47,7 +47,15 @@ export const STEPS: StepConfig[] = [
   {
     number: 7,
     label: 'AI as generator',
-    isValid: (r) => r.aiGenerator?.used !== undefined,
+    isValid: (r) => {
+      if (r.aiGenerator?.used === false) return true;
+      if (r.aiGenerator?.used !== true) return false;
+      const hasKinds = !!r.aiGenerator.kinds && r.aiGenerator.kinds.length > 0;
+      const kindsOk = !r.aiGenerator.kinds?.includes('other') || !!r.aiGenerator.kindOther;
+      const hasStage = !!r.aiGenerator.stage;
+      const hasAwareness = !!r.aiGenerator.trainingDataAwareness;
+      return hasKinds && kindsOk && hasStage && hasAwareness;
+    },
   },
   {
     number: 8,

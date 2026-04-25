@@ -131,7 +131,7 @@ Twelve quiet-helper categories:
 - `none` — none of these
 
 ### Q7 — AI as generator
-- **Format**: branched (yes/no, then two multi-selects + a single-select if yes)
+- **Format**: branched sub-step flow (True/False gate, then 3 sub-steps if True). Each sub-step is one screen. URL stays at /questionnaire/7; Q7 renders its own Back/Next buttons.
 - **Required**: yes (the branch is required if "true")
 - **Schema**:
   ```typescript
