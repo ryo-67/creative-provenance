@@ -1,3 +1,5 @@
+import { redirect } from 'next/navigation';
+
 export default function QuestionnairePage() {
-  return <div>Questionnaire</div>;
+  redirect('/questionnaire/1');
 }
