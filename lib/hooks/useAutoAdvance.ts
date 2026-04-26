@@ -6,15 +6,11 @@ const ADVANCE_DELAY = 550;
 
 export function useAutoAdvance(onAdvance: () => void) {
   const [advancing, setAdvancing] = useState(false);
-  const interactedSinceMount = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const triggerAdvance = useCallback(() => {
-    if (!interactedSinceMount.current) {
-      interactedSinceMount.current = true;
-      return; // First interaction just marks as interacted, doesn't advance
-    }
     setAdvancing(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => {
       setAdvancing(false);
       onAdvance();
@@ -29,15 +25,11 @@ export function useAutoAdvance(onAdvance: () => void) {
     setAdvancing(false);
   }, []);
 
-  const markInteracted = useCallback(() => {
-    interactedSinceMount.current = true;
-  }, []);
-
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 
-  return { advancing, triggerAdvance, cancelAdvance, markInteracted };
+  return { advancing, triggerAdvance, cancelAdvance };
 }

@@ -6,6 +6,18 @@
 
 ## Fixed
 
+### 2026-04-25 -- Auto-advance only triggers on second click, not first
+- Symptom: First selection on a single-select question (Q1 medium, Q7 gate/stage/awareness) registers but doesn't auto-advance. Second selection triggers it.
+- Cause: useAutoAdvance hook checked `interactedSinceMount` flag before setting it, so first call only set the flag and returned early.
+- Fix: Removed the interactedSinceMount guard entirely. Since triggerAdvance is only called from user click handlers (never from mount/hydration), no revisit guard is needed.
+- Commit: [included in this commit]
+
+### 2026-04-25 -- Q3 fallback weight buttons in wrong order
+- Symptom: Buttons appeared as [Really shaped it] [Shaped it some] [Barely there] (high-to-low, left-to-right).
+- Cause: BUCKET_CONFIG array ordered high-to-low.
+- Fix: Reversed to [Barely there] [Shaped it some] [Really shaped it] to match left-to-right = low-to-high reading direction.
+- Commit: [included in this commit]
+
 ### 2026-04-25 -- Q2 first option focus ring missing
 - Symptom: First radio option in Q2 didn't show its focus ring on Tab focus. Other 11 options did.
 - Cause: `focus-within:ring-offset-2` without explicit offset color in light mode; Tailwind v4 needs it set. Also `focus-within` less reliable than `has-[:focus-visible]` for sr-only inputs.

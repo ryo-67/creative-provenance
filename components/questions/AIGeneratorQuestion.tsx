@@ -140,7 +140,7 @@ export default function AIGeneratorQuestion({
     }
   }, [onAdvance]);
 
-  const { advancing, triggerAdvance, cancelAdvance, markInteracted } =
+  const { advancing, triggerAdvance, cancelAdvance } =
     useAutoAdvance(handleAutoAdvance);
 
   // --- Sub-step 0: Gate ---

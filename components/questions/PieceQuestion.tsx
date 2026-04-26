@@ -72,7 +72,7 @@ export default function PieceQuestion({
   const otherInputRef = useRef<HTMLInputElement>(null);
   const selected = data?.medium;
   const otherWasSelected = useRef(selected === 'other');
-  const { advancing, triggerAdvance, cancelAdvance, markInteracted } =
+  const { advancing, triggerAdvance, cancelAdvance } =
     useAutoAdvance(onAdvance);
 
   const descriptionValid = (data?.description ?? '').trim().length > 0;
@@ -91,7 +91,6 @@ export default function PieceQuestion({
   const handleMediumChange = (value: MediumType) => {
     if (value === 'other') {
       cancelAdvance();
-      markInteracted();
       onUpdate({
         description: data?.description ?? '',
         medium: 'other',

@@ -1,5 +1,9 @@
 # Changelog
 
+## Session 10.1 -- 2026-04-25 -- Bug fixes: auto-advance first-click + Q3 bucket order
+- Fixed auto-advance triggering only on second click: removed interactedSinceMount guard from useAutoAdvance (unnecessary since triggerAdvance is only called from user handlers)
+- Fixed Q3 fallback bucket order: reversed to [Barely there] [Shaped it some] [Really shaped it] for natural left-to-right intensity mapping
+
 ## Session 10 -- 2026-04-25 -- MultiSelectCard + auto-advance
 - Extracted MultiSelectCard component with visible checkbox indicator (14px square, checkmark on select)
 - Refactored Q2, Q4, Q6, Q9, Q7 Kinds to use MultiSelectCard -- visual differentiation from single-select

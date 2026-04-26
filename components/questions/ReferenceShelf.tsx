@@ -10,9 +10,9 @@ type Props = {
 type Bucket = 'really' | 'some' | 'barely';
 
 const BUCKET_CONFIG: { key: Bucket; label: string; weight: number; position: { x: number; y: number } }[] = [
-  { key: 'really', label: 'Really shaped it', weight: 0.85, position: { x: 0.5, y: 0.2 } },
-  { key: 'some', label: 'Shaped it some', weight: 0.5, position: { x: 0.5, y: 0.5 } },
   { key: 'barely', label: 'Barely there', weight: 0.2, position: { x: 0.5, y: 0.8 } },
+  { key: 'some', label: 'Shaped it some', weight: 0.5, position: { x: 0.5, y: 0.5 } },
+  { key: 'really', label: 'Really shaped it', weight: 0.85, position: { x: 0.5, y: 0.2 } },
 ];
 
 type TileInfo = {
