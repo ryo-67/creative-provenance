@@ -70,10 +70,6 @@ export default function ReferenceShelf({
   const isLastTile = tileIndex === ALL_TILES.length - 1;
   const hasRefs = refs.length > 0;
 
-  // Show section header when entering a new section
-  const prevSection = tileIndex > 0 ? ALL_TILES[tileIndex - 1].section : null;
-  const showSectionHeader = tile.section !== prevSection;
-
   const currentBucket = (() => {
     const ref = refs.find((r) => r.id === tile.id);
     if (!ref) return null;
@@ -154,12 +150,6 @@ export default function ReferenceShelf({
           transitioning ? 'opacity-0' : 'opacity-100'
         }`}
       >
-        {showSectionHeader && (
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-            {tile.section}
-          </p>
-        )}
-
         <div className="rounded-lg border border-zinc-200 bg-white px-5 py-5 dark:border-zinc-700 dark:bg-zinc-900">
           <p className="text-lg font-medium leading-snug">{tile.name}</p>
           {tile.detail && (
@@ -197,21 +187,31 @@ export default function ReferenceShelf({
       </div>
 
       {/* Navigation */}
-      <div className="mt-8 flex justify-between">
+      <div className="mt-8 flex items-center justify-between">
         <button
           onClick={handleInternalBack}
           className="rounded-full border border-zinc-300 px-6 py-2 text-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
         >
           Back
         </button>
-        {hasRefs && (
-          <button
-            onClick={onAdvance}
-            className="rounded-full bg-zinc-900 px-6 py-2 text-sm text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
-          >
-            Done
-          </button>
-        )}
+        <div className="flex gap-2">
+          {!isLastTile && (
+            <button
+              onClick={() => setTileIndex((i) => i + 1)}
+              className="rounded-full border border-zinc-300 px-6 py-2 text-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+            >
+              Next
+            </button>
+          )}
+          {hasRefs && (
+            <button
+              onClick={onAdvance}
+              className="rounded-full bg-zinc-900 px-6 py-2 text-sm text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+            >
+              Done
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
