@@ -103,6 +103,8 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
     DownloadButton.tsx
   /shared
     StepNav.tsx                 # Reusable Back/Next nav for sub-step flows (Q1, Q7)
+    MultiSelectCard.tsx         # Card with checkbox indicator for multi-select questions
+    AutoAdvanceIndicator.tsx    # Pulsing "Next" indicator for single-select auto-advance
 /lib
   schema.ts                     # ProvenanceResponse type + Zod schema
   fingerprint-config.ts         # Mapping of answers to visual primitives
@@ -110,6 +112,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   storage.ts                    # localStorage helpers
   /hooks
     useRovingTabIndex.ts        # Reusable arrow-key navigation for checkbox groups
+    useAutoAdvance.ts           # Single-select auto-advance with interaction suppression
 /public
   /assets                       # SVG primitives, fonts, etc.
 /docs
@@ -238,6 +241,14 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 - All text contrast must meet WCAG AA
 - All images and SVG elements need alt text or aria-label
 - The Grace must be selectable and copyable
+
+## Interaction Patterns
+
+**Single-select questions auto-advance.** Q1 medium, Q7 gate, Q7 stage, and Q7 awareness use the `useAutoAdvance` hook. On selection: the option highlights, a pulsing "Next" indicator appears for ~550ms, then the form transitions to the next step/sub-step. Auto-advance is suppressed on page load (revisiting a question with a prior selection) until a new user interaction occurs. It is also suppressed when "other"/"Something else" is selected (user needs to type first).
+
+**Multi-select questions use explicit Next.** Q2, Q4, Q6, Q9, and Q7 Kinds wait for the user to click Next. These questions show a checkbox indicator on each card (via `MultiSelectCard`). The subtitle reads "Check all that apply."
+
+**PositionDot questions use explicit Next.** Q8 and Q10 show the Next button as soon as the dot has been interacted with.
 
 ## Branched Questions
 

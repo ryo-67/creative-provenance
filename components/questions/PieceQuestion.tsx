@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MediumType, ProvenanceResponse } from '@/lib/schema';
 import StepNav from '@/components/shared/StepNav';
+import AutoAdvanceIndicator from '@/components/shared/AutoAdvanceIndicator';
+import { useAutoAdvance } from '@/lib/hooks/useAutoAdvance';
 
 type Props = {
   data: Partial<ProvenanceResponse>['piece'];
@@ -70,6 +72,8 @@ export default function PieceQuestion({
   const otherInputRef = useRef<HTMLInputElement>(null);
   const selected = data?.medium;
   const otherWasSelected = useRef(selected === 'other');
+  const { advancing, triggerAdvance, cancelAdvance, markInteracted } =
+    useAutoAdvance(onAdvance);
 
   const descriptionValid = (data?.description ?? '').trim().length > 0;
 
@@ -86,6 +90,8 @@ export default function PieceQuestion({
 
   const handleMediumChange = (value: MediumType) => {
     if (value === 'other') {
+      cancelAdvance();
+      markInteracted();
       onUpdate({
         description: data?.description ?? '',
         medium: 'other',
@@ -96,6 +102,7 @@ export default function PieceQuestion({
         description: data?.description ?? '',
         medium: value,
       });
+      triggerAdvance();
     }
   };
 
@@ -217,11 +224,15 @@ export default function PieceQuestion({
             </div>
           </fieldset>
 
-          <StepNav
-            onBack={() => setSubStep(0)}
-            onNext={onAdvance}
-            nextDisabled={!mediumValid}
-          />
+          {advancing ? (
+            <AutoAdvanceIndicator visible />
+          ) : (
+            <StepNav
+              onBack={() => setSubStep(0)}
+              onNext={onAdvance}
+              nextDisabled={!mediumValid}
+            />
+          )}
         </>
       )}
     </div>

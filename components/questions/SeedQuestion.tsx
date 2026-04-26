@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import type { ProvenanceResponse, SeedType } from '@/lib/schema';
 import { useRovingTabIndex } from '@/lib/hooks/useRovingTabIndex';
+import MultiSelectCard from '@/components/shared/MultiSelectCard';
 
 type Props = {
   data: Partial<ProvenanceResponse>['seed'];
@@ -83,7 +84,7 @@ export default function SeedQuestion({ data, onUpdate }: Props) {
           as...
         </p>
         <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
-          Choose as many as apply.
+          Check all that apply.
         </p>
       </div>
 
@@ -94,53 +95,34 @@ export default function SeedQuestion({ data, onUpdate }: Props) {
         </legend>
 
         <div role="group" aria-label="Seed options" className="space-y-2">
-          {SEED_OPTIONS.map(({ value, label }, index) => {
-            const isChecked = selected.includes(value);
-            const optionProps = getOptionProps(index);
-
-            return (
-              <div key={value}>
-                <label
-                  className={`flex min-h-[44px] cursor-pointer items-center rounded-lg border px-4 py-3 text-[15px] leading-snug transition-colors
-                    ${
-                      isChecked
-                        ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                        : 'border-zinc-200 bg-white hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800'
-                    }
-                    has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-zinc-500 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-white dark:has-[:focus-visible]:ring-zinc-400 dark:has-[:focus-visible]:ring-offset-zinc-950`}
-                >
+          {SEED_OPTIONS.map(({ value, label }, index) => (
+            <MultiSelectCard
+              key={value}
+              label={label}
+              isChecked={selected.includes(value)}
+              onChange={() => handleToggle(value)}
+              inputProps={getOptionProps(index)}
+            >
+              {value === 'other' && otherIsChecked && (
+                <div className="ml-4 mt-1">
+                  <label htmlFor="seed-other" className="sr-only">
+                    Describe the beginning of this piece
+                  </label>
                   <input
-                    type="checkbox"
-                    value={value}
-                    checked={isChecked}
-                    onChange={() => handleToggle(value)}
-                    className="sr-only"
-                    {...optionProps}
+                    ref={otherInputRef}
+                    id="seed-other"
+                    type="text"
+                    placeholder="Tell us what"
+                    value={data?.other ?? ''}
+                    onChange={(e) =>
+                      onUpdate({ types: selected, other: e.target.value })
+                    }
+                    className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-[15px] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-white dark:border-zinc-600 dark:bg-zinc-900 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400 dark:focus:ring-offset-zinc-950"
                   />
-                  <span>{label}</span>
-                </label>
-
-                {value === 'other' && otherIsChecked && (
-                  <div className="ml-4 mt-1">
-                    <label htmlFor="seed-other" className="sr-only">
-                      Describe the beginning of this piece
-                    </label>
-                    <input
-                      ref={otherInputRef}
-                      id="seed-other"
-                      type="text"
-                      placeholder="Tell us what"
-                      value={data?.other ?? ''}
-                      onChange={(e) =>
-                        onUpdate({ types: selected, other: e.target.value })
-                      }
-                      className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-[15px] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-white dark:border-zinc-600 dark:bg-zinc-900 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400 dark:focus:ring-offset-zinc-950"
-                    />
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                </div>
+              )}
+            </MultiSelectCard>
+          ))}
         </div>
       </fieldset>
     </div>

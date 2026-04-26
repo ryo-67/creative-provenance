@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   AIGenerationKind,
   AIGenerationStage,
@@ -8,7 +8,10 @@ import type {
   TrainingDataAwareness,
 } from '@/lib/schema';
 import { useRovingTabIndex } from '@/lib/hooks/useRovingTabIndex';
+import { useAutoAdvance } from '@/lib/hooks/useAutoAdvance';
 import StepNav from '@/components/shared/StepNav';
+import MultiSelectCard from '@/components/shared/MultiSelectCard';
+import AutoAdvanceIndicator from '@/components/shared/AutoAdvanceIndicator';
 
 type Props = {
   data: Partial<ProvenanceResponse>['aiGenerator'];
@@ -116,6 +119,30 @@ export default function AIGeneratorQuestion({
 }: Props) {
   const [subStep, setSubStep] = useState(() => deriveSubStep(data));
 
+  // Auto-advance for single-select sub-steps (gate, stage, awareness)
+  const subStepRef = useRef(subStep);
+  subStepRef.current = subStep;
+  const usedRef = useRef(data?.used);
+  usedRef.current = data?.used;
+
+  const handleAutoAdvance = useCallback(() => {
+    const s = subStepRef.current;
+    if (s === 0) {
+      if (usedRef.current === false) {
+        onAdvance();
+      } else {
+        setSubStep(1);
+      }
+    } else if (s === 2) {
+      setSubStep(3);
+    } else if (s === 3) {
+      onAdvance();
+    }
+  }, [onAdvance]);
+
+  const { advancing, triggerAdvance, cancelAdvance, markInteracted } =
+    useAutoAdvance(handleAutoAdvance);
+
   // --- Sub-step 0: Gate ---
 
   const used = data?.used;
@@ -129,11 +156,12 @@ export default function AIGeneratorQuestion({
       stage: data?.stage,
       trainingDataAwareness: data?.trainingDataAwareness,
     });
+    triggerAdvance();
   };
 
   const handleGateNext = () => {
     if (used === false) {
-      onAdvance(); // skip to Q8
+      onAdvance();
     } else {
       setSubStep(1);
     }
@@ -184,6 +212,7 @@ export default function AIGeneratorQuestion({
       stage: value,
       trainingDataAwareness: data?.trainingDataAwareness,
     });
+    triggerAdvance();
   };
 
   // --- Sub-step 3: Awareness ---
@@ -196,6 +225,7 @@ export default function AIGeneratorQuestion({
       stage: data?.stage,
       trainingDataAwareness: value,
     });
+    triggerAdvance();
   };
 
   // --- Sub-step indicator for True branch ---
@@ -247,11 +277,15 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          <StepNav
-            onBack={onBack}
-            onNext={handleGateNext}
-            nextDisabled={!gateValid}
-          />
+          {advancing ? (
+            <AutoAdvanceIndicator visible />
+          ) : (
+            <StepNav
+              onBack={onBack}
+              onNext={handleGateNext}
+              nextDisabled={!gateValid}
+            />
+          )}
         </>
       )}
 
@@ -279,54 +313,41 @@ export default function AIGeneratorQuestion({
               aria-label="AI generation kind options"
               className="space-y-2"
             >
-              {KIND_OPTIONS.map(({ value, label }, index) => {
-                const isChecked = kinds.includes(value);
-                const optionProps = getOptionProps(index);
-
-                return (
-                  <div key={value}>
-                    <label
-                      className={`${cardBase} ${isChecked ? cardSelected : cardUnselected}`}
-                    >
+              {KIND_OPTIONS.map(({ value, label }, index) => (
+                <MultiSelectCard
+                  key={value}
+                  label={label}
+                  isChecked={kinds.includes(value)}
+                  onChange={() => handleKindToggle(value)}
+                  inputProps={getOptionProps(index)}
+                >
+                  {value === 'other' && otherIsChecked && (
+                    <div className="ml-4 mt-1">
+                      <label htmlFor="kind-other" className="sr-only">
+                        Describe the AI generation you used
+                      </label>
                       <input
-                        type="checkbox"
-                        value={value}
-                        checked={isChecked}
-                        onChange={() => handleKindToggle(value)}
-                        className="sr-only"
-                        {...optionProps}
+                        ref={otherInputRef}
+                        id="kind-other"
+                        type="text"
+                        placeholder="Tell us what"
+                        value={data?.kindOther ?? ''}
+                        onChange={(e) =>
+                          onUpdate({
+                            used: true,
+                            kinds,
+                            kindOther: e.target.value,
+                            stage: data?.stage,
+                            trainingDataAwareness:
+                              data?.trainingDataAwareness,
+                          })
+                        }
+                        className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-[15px] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-white dark:border-zinc-600 dark:bg-zinc-900 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400 dark:focus:ring-offset-zinc-950"
                       />
-                      <span>{label}</span>
-                    </label>
-
-                    {value === 'other' && otherIsChecked && (
-                      <div className="ml-4 mt-1">
-                        <label htmlFor="kind-other" className="sr-only">
-                          Describe the AI generation you used
-                        </label>
-                        <input
-                          ref={otherInputRef}
-                          id="kind-other"
-                          type="text"
-                          placeholder="Tell us what"
-                          value={data?.kindOther ?? ''}
-                          onChange={(e) =>
-                            onUpdate({
-                              used: true,
-                              kinds,
-                              kindOther: e.target.value,
-                              stage: data?.stage,
-                              trainingDataAwareness:
-                                data?.trainingDataAwareness,
-                            })
-                          }
-                          className="w-full rounded-lg border border-zinc-300 bg-white px-4 py-3 text-[15px] placeholder:text-zinc-400 focus:border-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-500 focus:ring-offset-2 focus:ring-offset-white dark:border-zinc-600 dark:bg-zinc-900 dark:placeholder:text-zinc-500 dark:focus:border-zinc-400 dark:focus:ring-zinc-400 dark:focus:ring-offset-zinc-950"
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                    </div>
+                  )}
+                </MultiSelectCard>
+              ))}
             </div>
           </fieldset>
 
@@ -373,11 +394,15 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          <StepNav
-            onBack={() => setSubStep(1)}
-            onNext={() => setSubStep(3)}
-            nextDisabled={!data?.stage}
-          />
+          {advancing ? (
+            <AutoAdvanceIndicator visible />
+          ) : (
+            <StepNav
+              onBack={() => setSubStep(1)}
+              onNext={() => setSubStep(3)}
+              nextDisabled={!data?.stage}
+            />
+          )}
         </>
       )}
 
@@ -416,11 +441,15 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          <StepNav
-            onBack={() => setSubStep(2)}
-            onNext={onAdvance}
-            nextDisabled={!data?.trainingDataAwareness}
-          />
+          {advancing ? (
+            <AutoAdvanceIndicator visible />
+          ) : (
+            <StepNav
+              onBack={() => setSubStep(2)}
+              onNext={onAdvance}
+              nextDisabled={!data?.trainingDataAwareness}
+            />
+          )}
         </>
       )}
     </div>

@@ -2,6 +2,7 @@
 
 import type { ProvenanceResponse, TeacherType } from '@/lib/schema';
 import { useRovingTabIndex } from '@/lib/hooks/useRovingTabIndex';
+import MultiSelectCard from '@/components/shared/MultiSelectCard';
 
 type Props = {
   data: Partial<ProvenanceResponse>['teachers'];
@@ -61,7 +62,7 @@ export default function TeachersQuestion({ data, onUpdate }: Props) {
           the form — I learned from...
         </p>
         <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
-          Choose as many as apply.
+          Check all that apply.
         </p>
       </div>
 
@@ -72,33 +73,15 @@ export default function TeachersQuestion({ data, onUpdate }: Props) {
         </legend>
 
         <div role="group" aria-label="Teacher options" className="space-y-2">
-          {TEACHER_OPTIONS.map(({ value, label }, index) => {
-            const isChecked = selected.includes(value);
-            const optionProps = getOptionProps(index);
-
-            return (
-              <label
-                key={value}
-                className={`flex min-h-[44px] cursor-pointer items-center rounded-lg border px-4 py-3 text-[15px] leading-snug transition-colors
-                  ${
-                    isChecked
-                      ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900'
-                      : 'border-zinc-200 bg-white hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800'
-                  }
-                  has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-zinc-500 has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-white dark:has-[:focus-visible]:ring-zinc-400 dark:has-[:focus-visible]:ring-offset-zinc-950`}
-              >
-                <input
-                  type="checkbox"
-                  value={value}
-                  checked={isChecked}
-                  onChange={() => handleToggle(value)}
-                  className="sr-only"
-                  {...optionProps}
-                />
-                <span>{label}</span>
-              </label>
-            );
-          })}
+          {TEACHER_OPTIONS.map(({ value, label }, index) => (
+            <MultiSelectCard
+              key={value}
+              label={label}
+              isChecked={selected.includes(value)}
+              onChange={() => handleToggle(value)}
+              inputProps={getOptionProps(index)}
+            />
+          ))}
         </div>
       </fieldset>
     </div>

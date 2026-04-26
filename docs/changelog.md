@@ -1,5 +1,15 @@
 # Changelog
 
+## Session 10 -- 2026-04-25 -- MultiSelectCard + auto-advance
+- Extracted MultiSelectCard component with visible checkbox indicator (14px square, checkmark on select)
+- Refactored Q2, Q4, Q6, Q9, Q7 Kinds to use MultiSelectCard -- visual differentiation from single-select
+- Single-select cards (Q1 medium, Q7 gate/stage/awareness) remain clean, no indicator
+- Standardized "Check all that apply." subtitle across all multi-select questions
+- Built useAutoAdvance hook with interactedSinceMount suppression and 550ms delay
+- Built AutoAdvanceIndicator component (pulsing "Next" badge)
+- Wired auto-advance to Q1 medium (suppressed for "Something else"), Q7 gate, Q7 stage, Q7 awareness
+- Auto-advance suppressed on revisit until new user interaction
+
 ## Session 9 -- 2026-04-25 -- PositionDot subtitle fix, Q1 sub-step refactor, shared StepNav
 - Fixed PositionDot subtitle: always visible now, no layout jump on first interaction
 - Refactored Q1 into sub-step flow matching Q7's pattern (sub-step 0: description, sub-step 1: medium)
