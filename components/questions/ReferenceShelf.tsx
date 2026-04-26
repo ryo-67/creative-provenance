@@ -55,12 +55,9 @@ function clamp(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, n));
 }
 
-function weightFromPosition(x: number, y: number): number {
-  const dx = x - 0.5;
-  const dy = y - 0.5;
-  const distance = Math.sqrt(dx * dx + dy * dy);
-  const maxDistance = Math.sqrt(0.5 * 0.5 + 0.5 * 0.5);
-  return Math.max(0.1, 1 - distance / maxDistance);
+function weightFromY(y: number): number {
+  // y=0 (top) → weight 1.0, y=1 (bottom) → weight 0.1
+  return Math.max(0.1, 1 - y);
 }
 
 // ─── Rapid-fire fallback (mobile) ───────────────────────────────────
@@ -269,7 +266,7 @@ function CanvasMode({
         e.clientY <= rect.bottom;
 
       if (onCanvas && norm) {
-        const weight = weightFromPosition(norm.x, norm.y);
+        const weight = weightFromY(norm.y);
         const without = refs.filter((r) => r.id !== dragging.id);
         onUpdate([...without, { id: dragging.id, weight, position: norm }]);
       } else {
@@ -300,8 +297,7 @@ function CanvasMode({
       className="select-none"
     >
       <p className="mb-4 text-sm text-zinc-400 dark:text-zinc-500">
-        Drag tiles onto the canvas. Closer to the center means it shaped the
-        piece more.
+        Drag tiles onto the canvas. Higher means it shaped the piece more.
       </p>
 
       <div className="flex gap-6">
@@ -327,56 +323,87 @@ function CanvasMode({
         </div>
 
         {/* Canvas */}
-        <div
-          ref={canvasRef}
-          className="relative aspect-square w-3/5 rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900/50"
-        >
-          {/* Center marker */}
-          <div className="absolute left-1/2 top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zinc-300 dark:bg-zinc-600" />
+        <div className="relative w-3/5">
+          {/* Top label */}
+          <p className="mb-1 text-center text-xs text-zinc-400 dark:text-zinc-500">
+            &uarr; Most influential
+          </p>
 
-          {/* Placed tiles */}
-          {refs.map((ref) => {
-            const tileInfo = ALL_TILES.find((t) => t.id === ref.id);
-            if (!tileInfo) return null;
-            const size = tileSize(ref.weight);
-            const isBeingDragged = dragging?.id === ref.id;
-            if (isBeingDragged) return null;
+          <div
+            ref={canvasRef}
+            className="relative rounded-xl border-2 border-zinc-300 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900/50"
+            style={{ aspectRatio: '4 / 5' }}
+          >
+            {/* Zone dividers */}
+            <div
+              className="absolute left-0 w-full border-t border-dashed border-zinc-300/60 dark:border-zinc-600/60"
+              style={{ top: '33.33%' }}
+            />
+            <div
+              className="absolute left-0 w-full border-t border-dashed border-zinc-300/60 dark:border-zinc-600/60"
+              style={{ top: '66.67%' }}
+            />
 
-            return (
-              <div
-                key={ref.id}
-                onPointerDown={(e) => handlePointerDown(ref.id, e)}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSelectedTile(selectedTile === ref.id ? null : ref.id);
-                }}
-                className="absolute cursor-grab rounded-md border border-zinc-400 bg-white text-center shadow-sm transition-shadow hover:shadow-md touch-none dark:border-zinc-500 dark:bg-zinc-800"
-                style={{
-                  left: `${ref.position.x * 100}%`,
-                  top: `${ref.position.y * 100}%`,
-                  width: `${size}px`,
-                  height: `${size}px`,
-                  transform: 'translate(-50%, -50%)',
-                  fontSize: `${Math.max(9, size / 6)}px`,
-                }}
-              >
-                <span className="flex h-full items-center justify-center overflow-hidden px-1 leading-tight">
-                  {tileInfo.name.split(' ').slice(0, 3).join(' ')}
-                </span>
-                {selectedTile === ref.id && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeTile(ref.id);
-                    }}
-                    className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-xs text-white dark:bg-zinc-100 dark:text-zinc-900"
-                  >
-                    &times;
-                  </button>
-                )}
-              </div>
-            );
-          })}
+            {/* Zone labels */}
+            <span className="absolute left-2 text-[10px] text-zinc-300 dark:text-zinc-600" style={{ top: '14%' }}>
+              Really shaped it
+            </span>
+            <span className="absolute left-2 text-[10px] text-zinc-300 dark:text-zinc-600" style={{ top: '47%' }}>
+              Shaped it some
+            </span>
+            <span className="absolute left-2 text-[10px] text-zinc-300 dark:text-zinc-600" style={{ top: '80%' }}>
+              Barely there
+            </span>
+
+            {/* Placed tiles */}
+            {refs.map((ref) => {
+              const tileInfo = ALL_TILES.find((t) => t.id === ref.id);
+              if (!tileInfo) return null;
+              const size = tileSize(ref.weight);
+              const isBeingDragged = dragging?.id === ref.id;
+              if (isBeingDragged) return null;
+
+              return (
+                <div
+                  key={ref.id}
+                  onPointerDown={(e) => handlePointerDown(ref.id, e)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedTile(selectedTile === ref.id ? null : ref.id);
+                  }}
+                  className="absolute cursor-grab rounded-md border border-zinc-400 bg-white text-center shadow-sm transition-all hover:shadow-md touch-none dark:border-zinc-500 dark:bg-zinc-800"
+                  style={{
+                    left: `${ref.position.x * 100}%`,
+                    top: `${ref.position.y * 100}%`,
+                    width: `${size}px`,
+                    height: `${size}px`,
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: `${Math.max(9, size / 6)}px`,
+                  }}
+                >
+                  <span className="flex h-full items-center justify-center overflow-hidden px-1 leading-tight">
+                    {tileInfo.name.split(' ').slice(0, 3).join(' ')}
+                  </span>
+                  {selectedTile === ref.id && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeTile(ref.id);
+                      }}
+                      className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-xs text-white dark:bg-zinc-100 dark:text-zinc-900"
+                    >
+                      &times;
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Bottom label */}
+          <p className="mt-1 text-center text-xs text-zinc-400 dark:text-zinc-500">
+            &darr; Barely there
+          </p>
         </div>
       </div>
 

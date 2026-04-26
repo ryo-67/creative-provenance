@@ -62,7 +62,7 @@ Twelve seed categories covering inner, structural, and external origins:
 
 ### Q3 — The reference shelf
 - **Format**: two modes detected via `matchMedia('(min-width: 768px)')`:
-  - **Desktop (>= 768px)**: spatial canvas with drag-and-drop. Pool of 12 tiles on left, canvas on right. Weight derived from distance to center: `weight = max(0.1, 1 - distance/maxDistance)`. Tiles sized 40-80px by weight.
+  - **Desktop (>= 768px)**: spatial canvas with drag-and-drop. Pool of 12 tiles on left, canvas on right. Vertical axis encodes weight: `weight = max(0.1, 1 - y)` where y=0 is the top. Three visual zones (Really shaped it / Shaped it some / Barely there) separated by dashed dividers. X-axis is cosmetic (horizontal spread). Tiles sized 40-80px by weight.
   - **Mobile (< 768px) / accessibility**: rapid-fire tile-by-tile flow. One tile at a time with 3 weight buttons + Skip. Auto-advances per tile on tap. Back/Next/Done for manual navigation.
   - "Use simple version" toggle available on desktop for keyboard users.
 - **Required**: yes (at least one tile placed)

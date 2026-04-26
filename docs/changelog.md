@@ -1,5 +1,15 @@
 # Changelog
 
+## Session 11.1 -- 2026-04-25 -- Q3 canvas: radial to inverted pyramid
+- Refactored desktop canvas weight model from radial (distance-from-center) to vertical (y-axis)
+- weight = max(0.1, 1 - y): top of canvas = most influential, bottom = least
+- Added three zone dividers (dashed lines at 33% and 67%) with zone labels: "Really shaped it" / "Shaped it some" / "Barely there"
+- Added directional labels: "Most influential" at top, "Barely there" at bottom
+- Canvas aspect ratio changed to 4:5 (taller) to better accommodate vertical encoding
+- Tile sizing still driven by weight (40-80px), now consistently mapped to vertical position
+- X-axis is cosmetic only (horizontal spread for visual clarity, not encoded)
+- Pool and drag interactions unchanged
+
 ## Session 11 -- 2026-04-25 -- Revert auto-advance + Q3 two-mode implementation
 - Reverted form-wide auto-advance (Q1 medium, Q7 gate/stage/awareness) for consistency -- all questions now use explicit Next
 - Deleted useAutoAdvance.ts and AutoAdvanceIndicator.tsx
