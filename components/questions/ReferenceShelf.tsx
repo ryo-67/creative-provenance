@@ -288,7 +288,7 @@ function CanvasMode({
     [refs, onUpdate],
   );
 
-  const tileSize = (weight: number) => Math.round(40 + weight * 40);
+  const tileSize = (weight: number) => Math.round(36 + weight * 28);
 
   return (
     <div
@@ -300,9 +300,9 @@ function CanvasMode({
         Drag tiles onto the canvas. Higher means it shaped the piece more.
       </p>
 
-      <div className="flex gap-6">
+      <div className="flex gap-4">
         {/* Pool */}
-        <div className="w-2/5 shrink-0 space-y-1.5">
+        <div className="w-2/5 shrink-0 space-y-1">
           {ALL_TILES.map(({ id, name }) => {
             const isPlaced = placedIds.has(id);
             const isBeingDragged = dragging?.id === id;
@@ -310,7 +310,7 @@ function CanvasMode({
               <div
                 key={id}
                 onPointerDown={(e) => handlePointerDown(id, e)}
-                className={`cursor-grab rounded-md border px-3 py-2 text-xs leading-snug transition-opacity touch-none ${
+                className={`cursor-grab rounded-md border px-2.5 py-1 text-[11px] leading-snug transition-opacity touch-none ${
                   isPlaced || isBeingDragged
                     ? 'border-zinc-200 text-zinc-300 dark:border-zinc-800 dark:text-zinc-600'
                     : 'border-zinc-300 bg-white hover:border-zinc-400 dark:border-zinc-600 dark:bg-zinc-900 dark:hover:border-zinc-500'
@@ -322,38 +322,34 @@ function CanvasMode({
           })}
         </div>
 
-        {/* Canvas */}
+        {/* Canvas with external zone labels */}
         <div className="relative w-3/5">
           {/* Top label */}
           <p className="mb-1 text-center text-xs text-zinc-400 dark:text-zinc-500">
             &uarr; Most influential
           </p>
 
-          <div
-            ref={canvasRef}
-            className="relative rounded-xl border-2 border-zinc-300 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900/50"
-            style={{ aspectRatio: '4 / 5' }}
-          >
-            {/* Zone dividers */}
-            <div
-              className="absolute left-0 w-full border-t border-dashed border-zinc-300/60 dark:border-zinc-600/60"
-              style={{ top: '33.33%' }}
-            />
-            <div
-              className="absolute left-0 w-full border-t border-dashed border-zinc-300/60 dark:border-zinc-600/60"
-              style={{ top: '66.67%' }}
-            />
+          <div className="flex">
+            {/* Zone labels — outside the canvas on the left */}
+            <div className="relative mr-1.5 flex w-[70px] shrink-0 flex-col justify-between py-1 text-[10px] text-zinc-400 dark:text-zinc-500">
+              <span className="leading-tight">Really shaped it</span>
+              <span className="leading-tight">Shaped it some</span>
+              <span className="leading-tight">Barely there</span>
+            </div>
 
-            {/* Zone labels */}
-            <span className="absolute left-2 text-[10px] text-zinc-300 dark:text-zinc-600" style={{ top: '14%' }}>
-              Really shaped it
-            </span>
-            <span className="absolute left-2 text-[10px] text-zinc-300 dark:text-zinc-600" style={{ top: '47%' }}>
-              Shaped it some
-            </span>
-            <span className="absolute left-2 text-[10px] text-zinc-300 dark:text-zinc-600" style={{ top: '80%' }}>
-              Barely there
-            </span>
+            <div
+              ref={canvasRef}
+              className="relative max-h-[600px] min-h-[360px] flex-1 rounded-xl border-2 border-zinc-300 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900/50"
+            >
+              {/* Zone dividers */}
+              <div
+                className="absolute left-0 w-full border-t border-dashed border-zinc-300/60 dark:border-zinc-600/60"
+                style={{ top: '33.33%' }}
+              />
+              <div
+                className="absolute left-0 w-full border-t border-dashed border-zinc-300/60 dark:border-zinc-600/60"
+                style={{ top: '66.67%' }}
+              />
 
             {/* Placed tiles */}
             {refs.map((ref) => {
@@ -398,6 +394,7 @@ function CanvasMode({
                 </div>
               );
             })}
+            </div>
           </div>
 
           {/* Bottom label */}

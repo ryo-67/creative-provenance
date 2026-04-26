@@ -1,5 +1,11 @@
 # Changelog
 
+## Session 11.2 -- 2026-04-25 -- Q3 canvas layout balance
+- Tightened pool tile padding (py-1, text-[11px]) so 12 tiles take less vertical space
+- Canvas min-height 360px, max-height 600px (no aspect-ratio lock) so it stretches to match pool height
+- Moved zone labels outside the canvas to a left-side column, no longer overlapping the drop zone
+- Capped max canvas tile size at 64px (was 80px) for better proportion with pool tiles
+
 ## Session 11.1 -- 2026-04-25 -- Q3 canvas: radial to inverted pyramid
 - Refactored desktop canvas weight model from radial (distance-from-center) to vertical (y-axis)
 - weight = max(0.1, 1 - y): top of canvas = most influential, bottom = least
