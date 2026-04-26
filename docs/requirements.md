@@ -61,11 +61,14 @@ Twelve seed categories covering inner, structural, and external origins:
 - `other` — open text fallback
 
 ### Q3 — The reference shelf
-- **Format**: drag-to-stack on a spatial canvas (desktop) / three-bucket fallback (mobile + a11y)
-- **Required**: yes
+- **Format**: two modes detected via `matchMedia('(min-width: 768px)')`:
+  - **Desktop (>= 768px)**: spatial canvas with drag-and-drop. Pool of 12 tiles on left, canvas on right. Weight derived from distance to center: `weight = max(0.1, 1 - distance/maxDistance)`. Tiles sized 40-80px by weight.
+  - **Mobile (< 768px) / accessibility**: rapid-fire tile-by-tile flow. One tile at a time with 3 weight buttons + Skip. Auto-advances per tile on tap. Back/Next/Done for manual navigation.
+  - "Use simple version" toggle available on desktop for keyboard users.
+- **Required**: yes (at least one tile placed)
 - **Schema**: `references: Array<{ id: ReferenceTileId, weight: number, position: { x: number, y: number } }>`
-  - `weight`: 0 (not placed) to 1 (center, large)
-  - `position`: normalized 0–1 canvas coordinates
+  - `weight`: 0.1 to 1 (canvas) or 0.2/0.5/0.85 (fallback buckets)
+  - `position`: normalized 0-1 canvas coordinates (canvas) or fixed bucket positions (fallback)
 
 Reference tiles are grouped (visually distinct sections in the UI) but data-flat:
 

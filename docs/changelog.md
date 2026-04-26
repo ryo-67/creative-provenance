@@ -1,6 +1,6 @@
 # Changelog
 
-## Session 11 -- 2026-04-25 -- Revert auto-advance + Q3 rapid-fire fallback
+## Session 11 -- 2026-04-25 -- Revert auto-advance + Q3 two-mode implementation
 - Reverted form-wide auto-advance (Q1 medium, Q7 gate/stage/awareness) for consistency -- all questions now use explicit Next
 - Deleted useAutoAdvance.ts and AutoAdvanceIndicator.tsx
 - MultiSelectCard checkbox indicators preserved (visual differentiation still useful)
@@ -8,6 +8,14 @@
 - Q3 auto-advances per tile on tap (the only structurally-justified auto-advance in the form)
 - Q3 shows internal Back, Done button (appears once >= 1 tile weighted), section headers on section transitions
 - Layout nav hidden on step 3 (Q3 renders its own)
+- Removed section category headers from Q3 fallback (inconsistent visual)
+- Added Next button to Q3 fallback for sequential navigation without re-answering
+- Built Q3 desktop spatial canvas (>= 768px): pool of 12 tiles on left, drop canvas on right
+- Canvas: drag tiles from pool onto canvas, weight derived from distance to center (center = high, edge = low)
+- Tiles on canvas sized by weight (40-80px), repositionable, removable via X button or drag-back-to-pool
+- Drag ghost follows pointer during drag with setPointerCapture
+- "Use simple version" toggle for keyboard users switches to fallback on desktop
+- Mode detection via matchMedia; state shared between modes via references array
 
 ## Session 10.1 -- 2026-04-25 -- Bug fixes: auto-advance first-click + Q3 bucket order
 - Fixed auto-advance triggering only on second click: removed interactedSinceMount guard from useAutoAdvance (unnecessary since triggerAdvance is only called from user handlers)
