@@ -1,5 +1,14 @@
 # Changelog
 
+## Session 11 -- 2026-04-25 -- Revert auto-advance + Q3 rapid-fire fallback
+- Reverted form-wide auto-advance (Q1 medium, Q7 gate/stage/awareness) for consistency -- all questions now use explicit Next
+- Deleted useAutoAdvance.ts and AutoAdvanceIndicator.tsx
+- MultiSelectCard checkbox indicators preserved (visual differentiation still useful)
+- Built Q3 rapid-fire tile-by-tile fallback: 12 tiles shown one at a time with weight buttons (Barely there / Shaped it some / Really shaped it) + Skip
+- Q3 auto-advances per tile on tap (the only structurally-justified auto-advance in the form)
+- Q3 shows internal Back, Done button (appears once >= 1 tile weighted), section headers on section transitions
+- Layout nav hidden on step 3 (Q3 renders its own)
+
 ## Session 10.1 -- 2026-04-25 -- Bug fixes: auto-advance first-click + Q3 bucket order
 - Fixed auto-advance triggering only on second click: removed interactedSinceMount guard from useAutoAdvance (unnecessary since triggerAdvance is only called from user handlers)
 - Fixed Q3 fallback bucket order: reversed to [Barely there] [Shaped it some] [Really shaped it] for natural left-to-right intensity mapping

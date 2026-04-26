@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MediumType, ProvenanceResponse } from '@/lib/schema';
 import StepNav from '@/components/shared/StepNav';
-import AutoAdvanceIndicator from '@/components/shared/AutoAdvanceIndicator';
-import { useAutoAdvance } from '@/lib/hooks/useAutoAdvance';
 
 type Props = {
   data: Partial<ProvenanceResponse>['piece'];
@@ -72,8 +70,6 @@ export default function PieceQuestion({
   const otherInputRef = useRef<HTMLInputElement>(null);
   const selected = data?.medium;
   const otherWasSelected = useRef(selected === 'other');
-  const { advancing, triggerAdvance, cancelAdvance } =
-    useAutoAdvance(onAdvance);
 
   const descriptionValid = (data?.description ?? '').trim().length > 0;
 
@@ -90,7 +86,6 @@ export default function PieceQuestion({
 
   const handleMediumChange = (value: MediumType) => {
     if (value === 'other') {
-      cancelAdvance();
       onUpdate({
         description: data?.description ?? '',
         medium: 'other',
@@ -101,7 +96,6 @@ export default function PieceQuestion({
         description: data?.description ?? '',
         medium: value,
       });
-      triggerAdvance();
     }
   };
 
@@ -114,7 +108,6 @@ export default function PieceQuestion({
 
   return (
     <div className="space-y-6">
-      {/* Sub-step 0: Description */}
       {subStep === 0 && (
         <>
           <div>
@@ -152,7 +145,6 @@ export default function PieceQuestion({
         </>
       )}
 
-      {/* Sub-step 1: Medium */}
       {subStep === 1 && (
         <>
           <div>
@@ -223,15 +215,11 @@ export default function PieceQuestion({
             </div>
           </fieldset>
 
-          {advancing ? (
-            <AutoAdvanceIndicator visible />
-          ) : (
-            <StepNav
-              onBack={() => setSubStep(0)}
-              onNext={onAdvance}
-              nextDisabled={!mediumValid}
-            />
-          )}
+          <StepNav
+            onBack={() => setSubStep(0)}
+            onNext={onAdvance}
+            nextDisabled={!mediumValid}
+          />
         </>
       )}
     </div>

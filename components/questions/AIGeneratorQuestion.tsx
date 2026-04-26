@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type {
   AIGenerationKind,
   AIGenerationStage,
@@ -8,10 +8,8 @@ import type {
   TrainingDataAwareness,
 } from '@/lib/schema';
 import { useRovingTabIndex } from '@/lib/hooks/useRovingTabIndex';
-import { useAutoAdvance } from '@/lib/hooks/useAutoAdvance';
 import StepNav from '@/components/shared/StepNav';
 import MultiSelectCard from '@/components/shared/MultiSelectCard';
-import AutoAdvanceIndicator from '@/components/shared/AutoAdvanceIndicator';
 
 type Props = {
   data: Partial<ProvenanceResponse>['aiGenerator'];
@@ -106,7 +104,7 @@ function deriveSubStep(
   if (!data.kinds || data.kinds.length === 0) return 1;
   if (!data.stage) return 2;
   if (!data.trainingDataAwareness) return 3;
-  return 3; // all filled — show last
+  return 3;
 }
 
 // --- Component ---
@@ -118,30 +116,6 @@ export default function AIGeneratorQuestion({
   onAdvance,
 }: Props) {
   const [subStep, setSubStep] = useState(() => deriveSubStep(data));
-
-  // Auto-advance for single-select sub-steps (gate, stage, awareness)
-  const subStepRef = useRef(subStep);
-  subStepRef.current = subStep;
-  const usedRef = useRef(data?.used);
-  usedRef.current = data?.used;
-
-  const handleAutoAdvance = useCallback(() => {
-    const s = subStepRef.current;
-    if (s === 0) {
-      if (usedRef.current === false) {
-        onAdvance();
-      } else {
-        setSubStep(1);
-      }
-    } else if (s === 2) {
-      setSubStep(3);
-    } else if (s === 3) {
-      onAdvance();
-    }
-  }, [onAdvance]);
-
-  const { advancing, triggerAdvance, cancelAdvance } =
-    useAutoAdvance(handleAutoAdvance);
 
   // --- Sub-step 0: Gate ---
 
@@ -156,7 +130,6 @@ export default function AIGeneratorQuestion({
       stage: data?.stage,
       trainingDataAwareness: data?.trainingDataAwareness,
     });
-    triggerAdvance();
   };
 
   const handleGateNext = () => {
@@ -212,7 +185,6 @@ export default function AIGeneratorQuestion({
       stage: value,
       trainingDataAwareness: data?.trainingDataAwareness,
     });
-    triggerAdvance();
   };
 
   // --- Sub-step 3: Awareness ---
@@ -225,7 +197,6 @@ export default function AIGeneratorQuestion({
       stage: data?.stage,
       trainingDataAwareness: value,
     });
-    triggerAdvance();
   };
 
   // --- Sub-step indicator for True branch ---
@@ -277,15 +248,11 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          {advancing ? (
-            <AutoAdvanceIndicator visible />
-          ) : (
-            <StepNav
-              onBack={onBack}
-              onNext={handleGateNext}
-              nextDisabled={!gateValid}
-            />
-          )}
+          <StepNav
+            onBack={onBack}
+            onNext={handleGateNext}
+            nextDisabled={!gateValid}
+          />
         </>
       )}
 
@@ -394,15 +361,11 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          {advancing ? (
-            <AutoAdvanceIndicator visible />
-          ) : (
-            <StepNav
-              onBack={() => setSubStep(1)}
-              onNext={() => setSubStep(3)}
-              nextDisabled={!data?.stage}
-            />
-          )}
+          <StepNav
+            onBack={() => setSubStep(1)}
+            onNext={() => setSubStep(3)}
+            nextDisabled={!data?.stage}
+          />
         </>
       )}
 
@@ -441,15 +404,11 @@ export default function AIGeneratorQuestion({
             </div>
           </fieldset>
 
-          {advancing ? (
-            <AutoAdvanceIndicator visible />
-          ) : (
-            <StepNav
-              onBack={() => setSubStep(2)}
-              onNext={onAdvance}
-              nextDisabled={!data?.trainingDataAwareness}
-            />
-          )}
+          <StepNav
+            onBack={() => setSubStep(2)}
+            onNext={onAdvance}
+            nextDisabled={!data?.trainingDataAwareness}
+          />
         </>
       )}
     </div>

@@ -6,6 +6,12 @@
 
 ## Fixed
 
+### 2026-04-25 -- Form-wide auto-advance caused inconsistent UX
+- Symptom: Mixed interaction patterns (some questions auto-advance, others use Next) forced users to relearn the pattern at each question.
+- Cause: Auto-advance was applied to single-select questions (Q1 medium, Q7 gate/stage/awareness) but not multi-select or drag questions, creating unpredictable pacing.
+- Fix: Reverted all form-wide auto-advance. All questions use explicit Next. Q3 rapid-fire fallback is the sole exception (structurally justified).
+- Commit: [included in this commit]
+
 ### 2026-04-25 -- Auto-advance only triggers on second click, not first
 - Symptom: First selection on a single-select question (Q1 medium, Q7 gate/stage/awareness) registers but doesn't auto-advance. Second selection triggers it.
 - Cause: useAutoAdvance hook checked `interactedSinceMount` flag before setting it, so first call only set the flag and returned early.

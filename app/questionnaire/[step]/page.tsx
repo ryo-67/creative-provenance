@@ -92,6 +92,8 @@ export default function StepPage() {
             <ReferenceShelf
               data={response.references}
               onUpdate={(references) => updateResponse({ references })}
+              onBack={() => router.push('/questionnaire/2')}
+              onAdvance={() => router.push('/questionnaire/4')}
             />
           )}
           {stepNum === 4 && (
@@ -167,7 +169,7 @@ export default function StepPage() {
         </div>
 
         {/* Navigation — hidden on step 7 (Q7 renders its own) */}
-        {stepNum !== 1 && stepNum !== 7 && (
+        {stepNum !== 1 && stepNum !== 3 && stepNum !== 7 && (
           <div className="mt-8 flex justify-between">
             <button
               onClick={goBack}

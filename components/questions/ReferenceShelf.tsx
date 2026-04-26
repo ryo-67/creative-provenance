@@ -1,13 +1,16 @@
 'use client';
 
+import { useCallback, useRef, useState } from 'react';
 import type { ProvenanceResponse, ReferenceTileId } from '@/lib/schema';
 
 type Props = {
   data: Partial<ProvenanceResponse>['references'];
   onUpdate: (references: ProvenanceResponse['references']) => void;
+  onBack: () => void;
+  onAdvance: () => void;
 };
 
-type Bucket = 'really' | 'some' | 'barely';
+type Bucket = 'barely' | 'some' | 'really';
 
 const BUCKET_CONFIG: { key: Bucket; label: string; weight: number; position: { x: number; y: number } }[] = [
   { key: 'barely', label: 'Barely there', weight: 0.2, position: { x: 0.5, y: 0.8 } },
@@ -19,51 +22,22 @@ type TileInfo = {
   id: ReferenceTileId;
   name: string;
   detail: string;
+  section: string;
 };
 
-type Section = {
-  heading: string;
-  tiles: TileInfo[];
-};
-
-const SECTIONS: Section[] = [
-  {
-    heading: 'Other artists, attributed',
-    tiles: [
-      { id: 'artist-portfolios', name: "Other artists\u2019 portfolios", detail: 'ArtStation, Behance, personal websites, monographs' },
-      { id: 'curated-channels', name: 'Curated channels and saves', detail: 'Are.na, Cosmos, mood boards, art books' },
-    ],
-  },
-  {
-    heading: 'Algorithmic feeds',
-    tiles: [
-      { id: 'algorithmic-feeds', name: 'What my feeds showed me', detail: 'Pinterest, Instagram, TikTok, the explore tabs' },
-      { id: 'search-results', name: 'Search results', detail: 'Hunting for something specific' },
-    ],
-  },
-  {
-    heading: 'The world outside art',
-    tiles: [
-      { id: 'music', name: "Music I couldn\u2019t stop playing", detail: '' },
-      { id: 'film-literature', name: 'Film, TV, theater, novels, poetry', detail: '' },
-      { id: 'built-environment', name: 'Architecture and the built environment', detail: '' },
-      { id: 'natural-world', name: 'The natural world', detail: 'Landscape, plants, animals, weather, light' },
-      { id: 'heritage', name: 'My heritage, my family', detail: 'Cultural inheritance' },
-      { id: 'everyday-life', name: 'Everyday life and the people in it', detail: '' },
-    ],
-  },
-  {
-    heading: 'Inside my own head',
-    tiles: [
-      { id: 'imagination', name: 'Mostly just my own imagination', detail: '' },
-    ],
-  },
-  {
-    heading: 'AI-mediated',
-    tiles: [
-      { id: 'ai-moodboards', name: 'AI mood boards', detail: 'Generated to explore directions' },
-    ],
-  },
+const ALL_TILES: TileInfo[] = [
+  { id: 'artist-portfolios', name: "Other artists\u2019 portfolios", detail: 'ArtStation, Behance, personal websites, monographs', section: 'Other artists, attributed' },
+  { id: 'curated-channels', name: 'Curated channels and saves', detail: 'Are.na, Cosmos, mood boards, art books', section: 'Other artists, attributed' },
+  { id: 'algorithmic-feeds', name: 'What my feeds showed me', detail: 'Pinterest, Instagram, TikTok, the explore tabs', section: 'Algorithmic feeds' },
+  { id: 'search-results', name: 'Search results', detail: 'Hunting for something specific', section: 'Algorithmic feeds' },
+  { id: 'music', name: "Music I couldn\u2019t stop playing", detail: '', section: 'The world outside art' },
+  { id: 'film-literature', name: 'Film, TV, theater, novels, poetry', detail: '', section: 'The world outside art' },
+  { id: 'built-environment', name: 'Architecture and the built environment', detail: '', section: 'The world outside art' },
+  { id: 'natural-world', name: 'The natural world', detail: 'Landscape, plants, animals, weather, light', section: 'The world outside art' },
+  { id: 'heritage', name: 'My heritage, my family', detail: 'Cultural inheritance', section: 'The world outside art' },
+  { id: 'everyday-life', name: 'Everyday life and the people in it', detail: '', section: 'The world outside art' },
+  { id: 'imagination', name: 'Mostly just my own imagination', detail: '', section: 'Inside my own head' },
+  { id: 'ai-moodboards', name: 'AI mood boards', detail: 'Generated to explore directions', section: 'AI-mediated' },
 ];
 
 function getBucketForWeight(weight: number): Bucket | null {
@@ -73,31 +47,85 @@ function getBucketForWeight(weight: number): Bucket | null {
   return null;
 }
 
-export default function ReferenceShelf({ data, onUpdate }: Props) {
-  const refs = data ?? [];
+function deriveStartTile(refs: ProvenanceResponse['references']): number {
+  // Start at first tile without a weight assignment
+  for (let i = 0; i < ALL_TILES.length; i++) {
+    if (!refs.find((r) => r.id === ALL_TILES[i].id)) return i;
+  }
+  return 0; // all assigned — start at 0
+}
 
-  const getTileBucket = (id: ReferenceTileId): Bucket | null => {
-    const ref = refs.find((r) => r.id === id);
+export default function ReferenceShelf({
+  data,
+  onUpdate,
+  onBack,
+  onAdvance,
+}: Props) {
+  const refs = data ?? [];
+  const [tileIndex, setTileIndex] = useState(() => deriveStartTile(refs));
+  const [transitioning, setTransitioning] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const tile = ALL_TILES[tileIndex];
+  const isLastTile = tileIndex === ALL_TILES.length - 1;
+  const hasRefs = refs.length > 0;
+
+  // Show section header when entering a new section
+  const prevSection = tileIndex > 0 ? ALL_TILES[tileIndex - 1].section : null;
+  const showSectionHeader = tile.section !== prevSection;
+
+  const currentBucket = (() => {
+    const ref = refs.find((r) => r.id === tile.id);
     if (!ref) return null;
     return getBucketForWeight(ref.weight);
-  };
+  })();
 
-  const handleBucketSelect = (id: ReferenceTileId, bucket: Bucket) => {
-    const currentBucket = getTileBucket(id);
-    const config = BUCKET_CONFIG.find((b) => b.key === bucket)!;
-
-    if (currentBucket === bucket) {
-      // Deselect — remove from references
-      onUpdate(refs.filter((r) => r.id !== id));
+  const advanceToNext = useCallback(() => {
+    if (isLastTile) {
+      onAdvance();
     } else {
-      // Add or update
-      const without = refs.filter((r) => r.id !== id);
-      onUpdate([
-        ...without,
-        { id, weight: config.weight, position: config.position },
-      ]);
+      setTransitioning(true);
+      timerRef.current = setTimeout(() => {
+        setTileIndex((i) => i + 1);
+        setTransitioning(false);
+      }, 300);
     }
-  };
+  }, [isLastTile, onAdvance]);
+
+  const handleWeight = useCallback(
+    (bucket: Bucket) => {
+      const config = BUCKET_CONFIG.find((b) => b.key === bucket)!;
+
+      if (currentBucket === bucket) {
+        // Deselect
+        onUpdate(refs.filter((r) => r.id !== tile.id));
+      } else {
+        const without = refs.filter((r) => r.id !== tile.id);
+        onUpdate([
+          ...without,
+          { id: tile.id, weight: config.weight, position: config.position },
+        ]);
+      }
+      advanceToNext();
+    },
+    [currentBucket, refs, tile.id, onUpdate, advanceToNext],
+  );
+
+  const handleSkip = useCallback(() => {
+    // Remove any existing weight for this tile
+    if (refs.find((r) => r.id === tile.id)) {
+      onUpdate(refs.filter((r) => r.id !== tile.id));
+    }
+    advanceToNext();
+  }, [refs, tile.id, onUpdate, advanceToNext]);
+
+  const handleInternalBack = useCallback(() => {
+    if (tileIndex === 0) {
+      onBack();
+    } else {
+      setTileIndex((i) => i - 1);
+    }
+  }, [tileIndex, onBack]);
 
   return (
     <div className="space-y-6">
@@ -110,62 +138,80 @@ export default function ReferenceShelf({ data, onUpdate }: Props) {
           the books on your desk, the people you were talking to.
         </p>
         <p className="mt-1 text-sm text-zinc-400 dark:text-zinc-500">
-          Tap how much each one shaped your piece. Leave the rest untouched.
+          Tap your way through 12 sources. For each, pick how much it shaped
+          this piece — or skip.
         </p>
       </div>
 
-      <div className="space-y-6">
-        {SECTIONS.map((section) => (
-          <div key={section.heading}>
-            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
-              {section.heading}
-            </p>
-            <div className="space-y-3">
-              {section.tiles.map(({ id, name, detail }) => {
-                const currentBucket = getTileBucket(id);
-                const isPlaced = currentBucket !== null;
+      {/* Progress within Q3 */}
+      <p className="text-sm text-zinc-400 dark:text-zinc-500">
+        Tile {tileIndex + 1} of {ALL_TILES.length}
+      </p>
 
-                return (
-                  <div
-                    key={id}
-                    className={`rounded-lg border px-4 py-3 transition-colors ${
-                      isPlaced
-                        ? 'border-zinc-400 bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-800/50'
-                        : 'border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900'
-                    }`}
-                  >
-                    <p className="text-[15px] leading-snug">
-                      {name}
-                    </p>
-                    {detail && (
-                      <p className="mt-0.5 text-xs text-zinc-400 dark:text-zinc-500">
-                        {detail}
-                      </p>
-                    )}
-                    <div className="mt-2 flex gap-1.5">
-                      {BUCKET_CONFIG.map(({ key, label }) => {
-                        const isActive = currentBucket === key;
-                        return (
-                          <button
-                            key={key}
-                            onClick={() => handleBucketSelect(id, key)}
-                            className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-                              isActive
-                                ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
-                                : 'bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700'
-                            }`}
-                          >
-                            {label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
+      {/* Current tile */}
+      <div
+        className={`transition-opacity duration-300 ${
+          transitioning ? 'opacity-0' : 'opacity-100'
+        }`}
+      >
+        {showSectionHeader && (
+          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-400 dark:text-zinc-500">
+            {tile.section}
+          </p>
+        )}
+
+        <div className="rounded-lg border border-zinc-200 bg-white px-5 py-5 dark:border-zinc-700 dark:bg-zinc-900">
+          <p className="text-lg font-medium leading-snug">{tile.name}</p>
+          {tile.detail && (
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {tile.detail}
+            </p>
+          )}
+        </div>
+
+        {/* Weight buttons + Skip */}
+        <div className="mt-4 flex gap-2">
+          {BUCKET_CONFIG.map(({ key, label }) => {
+            const isActive = currentBucket === key;
+            return (
+              <button
+                key={key}
+                onClick={() => handleWeight(key)}
+                className={`flex-1 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                    : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+          <button
+            onClick={handleSkip}
+            className="rounded-lg px-3 py-2.5 text-sm text-zinc-400 transition-colors hover:bg-zinc-100 dark:text-zinc-500 dark:hover:bg-zinc-800"
+          >
+            Skip
+          </button>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <div className="mt-8 flex justify-between">
+        <button
+          onClick={handleInternalBack}
+          className="rounded-full border border-zinc-300 px-6 py-2 text-sm transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+        >
+          Back
+        </button>
+        {hasRefs && (
+          <button
+            onClick={onAdvance}
+            className="rounded-full bg-zinc-900 px-6 py-2 text-sm text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            Done
+          </button>
+        )}
       </div>
     </div>
   );
