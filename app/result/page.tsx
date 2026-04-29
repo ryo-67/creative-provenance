@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Download, Link as LinkIcon, Share } from 'lucide-react';
 import Tracemark from '@/components/Tracemark';
 import type { ProvenanceResponse } from '@/lib/schema';
 
@@ -93,50 +94,6 @@ function GraceLines({ grace }: { grace: string }) {
         </p>
       ))}
     </div>
-  );
-}
-
-// --- Share icons ---
-// Inline SVGs picked per platform. iOS = square + up arrow; Android = three
-// connected dots; desktop = chain link (rendered when navigator.share is
-// unavailable, paired with a "Copy link" label).
-
-function ShareIcon({ platform }: { platform: SharePlatform }) {
-  const common = {
-    width: 18,
-    height: 18,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    stroke: 'currentColor',
-    strokeWidth: 2,
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
-  };
-  if (platform === 'ios') {
-    return (
-      <svg {...common} aria-hidden>
-        <path d="M12 16V4" />
-        <path d="M8 8l4-4 4 4" />
-        <path d="M5 12v8h14v-8" />
-      </svg>
-    );
-  }
-  if (platform === 'android') {
-    return (
-      <svg {...common} aria-hidden>
-        <circle cx="6" cy="12" r="3" />
-        <circle cx="18" cy="5" r="3" />
-        <circle cx="18" cy="19" r="3" />
-        <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
-        <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
-      </svg>
-    );
-  }
-  return (
-    <svg {...common} aria-hidden>
-      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-    </svg>
   );
 }
 
@@ -397,16 +354,21 @@ function ResultContent() {
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="inline-flex h-12 items-center bg-black px-6 text-lg text-white transition-opacity hover:opacity-90"
+                  className="inline-flex h-12 items-center gap-2 bg-black px-6 text-lg text-white transition-opacity hover:opacity-90"
                 >
-                  Download Tracemark ↓
+                  <Download size={20} strokeWidth={2.5} aria-hidden />
+                  Download Tracemark
                 </button>
                 <button
                   type="button"
                   onClick={handleShare}
                   className="inline-flex h-12 items-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black/5"
                 >
-                  <ShareIcon platform={platform} />
+                  {platform === 'desktop' ? (
+                    <LinkIcon size={20} strokeWidth={2.5} aria-hidden />
+                  ) : (
+                    <Share size={20} strokeWidth={2.5} aria-hidden />
+                  )}
                   {shareLabel}
                 </button>
               </div>

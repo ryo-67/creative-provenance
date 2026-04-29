@@ -394,11 +394,11 @@ function Patch5({
   y,
   aiUsed,
 }: PatchProps & { aiUsed: boolean }) {
-  // Always draw both halves and the diagonal. The two halves use the same
-  // light fill when AI was not used, so the diagonal still shows but the
-  // patch reads as visually uniform apart from the line.
-  const upperLeftFill = aiUsed ? PATCH5_DARK : PATCH5_LIGHT;
-  const lowerRightFill = PATCH5_LIGHT;
+  // Default (used=false/undefined): the entire patch is the dark green; the
+  // diagonal still draws but reads as a black line over a uniform field.
+  // When used=true: split halves — upper-left light, lower-right dark.
+  const upperLeftFill = aiUsed ? PATCH5_LIGHT : PATCH5_DARK;
+  const lowerRightFill = PATCH5_DARK;
   return (
     <g transform={`translate(${x},${y})`}>
       <polygon points="0,0 210,0 0,180" fill={upperLeftFill} />
