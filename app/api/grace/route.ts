@@ -11,22 +11,23 @@ You will receive a JSON object describing a creative work and everything that fe
 
 Write a grace for this piece. Rules:
 
+- First person only. The grace is the maker's own voice — I/me/my, never you/your. It is spoken by the person sitting down to look at the work, not narrated at them.
 - Each line begins with "Thank you to..." or "Thank you for..."
 - One line per distinct contribution source. Be specific — use the actual details from the submission, not generic placeholders.
-- Bold the specific thing being thanked in each line using **markdown bold**. For example: Thank you to **your toxic ex**, whose presence in this work you neither invited nor could stop.
+- Bold the specific thing being thanked in each line using **markdown bold**. For example: Thank you to **my toxic ex**, whose presence in this work I neither invited nor could stop.
 - If there's a ghost (ghost.present=true), name it using ghost.description. Keep the maker's words.
 - If AI was used (aiGenerator.used=true), acknowledge both the tool and the training data tension (aiAwareness field).
 - If collaborators are present, thank them.
 - The last two lines are always about felt ownership. Format:
-  "You feel this piece is [natural language of feltOwnership score 1-10]."
-  "Sit with that."
+  "I feel this piece is [natural language of feltOwnership score 1-10]."
+  "Let me sit with that."
 
   feltOwnership mapping:
-  1-2: "not really yours"
-  3-4: "only partly yours"
-  5-6: "half yours"
-  7-8: "almost entirely yours"
-  9-10: "completely yours"
+  1-2: "not really mine"
+  3-4: "only partly mine"
+  5-6: "half mine"
+  7-8: "almost entirely mine"
+  9-10: "completely mine"
 
 - Keep it short: 5-9 "thank you" lines plus the ownership closing.
 - No preamble, no sign-off, no explanation. Just the grace.
