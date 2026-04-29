@@ -1,6 +1,13 @@
 'use client';
 
-import { Fragment, Suspense, useEffect, useState, type ReactNode } from 'react';
+import {
+  Fragment,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useSearchParams } from 'next/navigation';
 import Tracemark from '@/components/Tracemark';
 import type { ProvenanceResponse } from '@/lib/schema';
@@ -77,14 +84,69 @@ function GraceLines({ grace }: { grace: string }) {
   // the body of thank-yous.
   const ownershipIndex = lines.length - 2;
   return (
-    <div className="space-y-2 italic leading-relaxed">
+    <div className="space-y-1.5 text-sm italic leading-relaxed md:space-y-2 md:text-base">
       {lines.map((line, i) => (
-        <p key={i} className={i === ownershipIndex ? 'pt-6' : ''}>
+        <p key={i} className={i === ownershipIndex ? 'pt-5 md:pt-6' : ''}>
           {renderGraceLine(line)}
         </p>
       ))}
     </div>
   );
+}
+
+// Render the SVG inside `wrapper` to a 1080×1080 PNG and trigger a download.
+async function downloadTracemarkPNG(
+  wrapper: HTMLElement,
+  sid: string,
+): Promise<void> {
+  const svg = wrapper.querySelector('svg');
+  if (!svg) return;
+
+  // Clone so we don't mutate what's on screen, and ensure xmlns is present
+  // for standalone serialization.
+  const cloned = svg.cloneNode(true) as SVGSVGElement;
+  if (!cloned.getAttribute('xmlns')) {
+    cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  }
+  const svgString = new XMLSerializer().serializeToString(cloned);
+  const svgBlob = new Blob([svgString], {
+    type: 'image/svg+xml;charset=utf-8',
+  });
+  const svgUrl = URL.createObjectURL(svgBlob);
+
+  try {
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error('Failed to load SVG'));
+      img.src = svgUrl;
+    });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1080;
+    canvas.height = 1080;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, 1080, 1080);
+    ctx.drawImage(img, 0, 0, 1080, 1080);
+
+    const blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob(resolve, 'image/png');
+    });
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tracemark-${sid}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } finally {
+    URL.revokeObjectURL(svgUrl);
+  }
 }
 
 function ResultContent() {
@@ -104,6 +166,9 @@ function ResultContent() {
     const cached = readCachedGrace(sid);
     return cached ? { status: 'ok', grace: cached } : { status: 'idle' };
   });
+  const [toast, setToast] = useState<string | null>(null);
+
+  const tracemarkRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!sid) return;
@@ -178,13 +243,55 @@ function ResultContent() {
     };
   }, [state, sid]);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const graceLoading =
     state.status === 'ok' && graceState.status === 'idle';
+  const tracemarkReady = state.status === 'ok';
+
+  const handleDownload = () => {
+    if (!tracemarkRef.current || !sid) return;
+    void downloadTracemarkPNG(tracemarkRef.current, sid).catch(() =>
+      setToast('Could not download'),
+    );
+  };
+
+  const handleShare = async () => {
+    if (typeof window === 'undefined') return;
+    const url = window.location.href;
+    const navAny = navigator as Navigator & {
+      share?: (data: ShareData) => Promise<void>;
+    };
+    if (typeof navAny.share === 'function') {
+      try {
+        await navAny.share({
+          title: 'My Creative Trace',
+          text: 'See the creative provenance of my work',
+          url,
+        });
+        return;
+      } catch {
+        // user cancelled or share failed; fall through to clipboard
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setToast('Link copied!');
+    } catch {
+      setToast('Could not copy link');
+    }
+  };
 
   return (
-    <main className="flex flex-1 flex-col px-6 py-24">
-      <div className="mx-auto w-full max-w-[700px] space-y-12">
-        <h1 className="text-5xl font-medium tracking-tight">Your Tracemark</h1>
+    <main className="flex flex-1 flex-col px-6 py-10 md:py-16">
+      <div className="mx-auto w-full max-w-[1000px] space-y-10">
+        <h1 className="text-4xl font-medium tracking-tight md:text-5xl">
+          Your Tracemark
+        </h1>
 
         {state.status === 'loading' && (
           <p className="text-[#666]" aria-live="polite">
@@ -199,60 +306,81 @@ function ResultContent() {
           </p>
         )}
 
-        {/* Tracemark */}
-        <section aria-label="Tracemark" className="flex justify-center">
-          {state.status === 'ok' ? (
-            <Tracemark
-              data={state.data}
-              className="h-auto w-full max-w-[540px]"
-            />
-          ) : (
-            <div
-              className="flex aspect-square w-full max-w-[540px] items-center justify-center rounded-lg border border-dashed border-[#ddd] text-sm text-[#999]"
-              aria-live="polite"
-            >
-              {state.status === 'loading'
-                ? 'Tracemark — loading…'
-                : 'Tracemark — awaiting submission'}
+        <div className="md:grid md:grid-cols-[minmax(0,440px)_1fr] md:gap-12">
+          {/* Left column: Tracemark + actions. Sticky on desktop. */}
+          <section
+            aria-label="Tracemark"
+            className="md:sticky md:top-8 md:self-start"
+          >
+            <div ref={tracemarkRef} className="flex justify-center">
+              {tracemarkReady ? (
+                <Tracemark
+                  data={state.data}
+                  className="h-auto w-full max-w-[440px]"
+                />
+              ) : (
+                <div
+                  className="flex aspect-square w-full max-w-[440px] items-center justify-center rounded-lg border border-dashed border-[#ddd] text-sm text-[#999]"
+                  aria-live="polite"
+                >
+                  {state.status === 'loading'
+                    ? 'Tracemark — loading…'
+                    : 'Tracemark — awaiting submission'}
+                </div>
+              )}
             </div>
-          )}
-        </section>
 
-        {/* Grace */}
-        <section aria-label="Grace" className="space-y-6">
-          <p className="text-sm leading-relaxed text-[#666]">{GRACE_INTRO}</p>
+            {tracemarkReady && (
+              <div className="mt-4 flex justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="inline-flex h-9 items-center rounded-lg bg-[#3E51C0] px-3.5 text-base text-white transition-opacity hover:opacity-90"
+                >
+                  Download Tracemark ↓
+                </button>
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  className="inline-flex h-9 items-center rounded-lg border border-[#3E51C0] bg-transparent px-3.5 text-base text-[#3E51C0] transition-colors hover:bg-[#3E51C0]/5"
+                >
+                  Share ↗
+                </button>
+              </div>
+            )}
+          </section>
 
-          <div className="rounded-lg border border-[#eee] p-6">
-            {graceLoading && (
-              <p className="italic text-[#999]" aria-live="polite">
-                Composing your grace…
-              </p>
-            )}
-            {graceState.status === 'error' && (
-              <p className="text-[#b00]" aria-live="polite">
-                Couldn’t compose your grace: {graceState.message}
-              </p>
-            )}
-            {graceState.status === 'ok' && (
-              <GraceLines grace={graceState.grace} />
-            )}
-            {graceState.status === 'idle' && state.status !== 'ok' && (
-              <p className="italic text-[#999]">Waiting for your submission…</p>
-            )}
-          </div>
-        </section>
+          {/* Right column: grace intro + grace box. Stacks below on mobile. */}
+          <section
+            aria-label="Grace"
+            className="mt-10 space-y-5 md:mt-0 md:space-y-6"
+          >
+            <p className="text-sm leading-relaxed text-[#666]">
+              {GRACE_INTRO}
+            </p>
 
-        {/* Data transparency */}
-        <section aria-label="Data use" className="space-y-3">
-          <h2 className="text-lg font-medium">How is your data used?</h2>
-          <p className="text-sm leading-relaxed text-[#666]">
-            Your questionnaire responses are stored by Tally, our form
-            provider. To generate your grace text, your responses are sent to
-            Anthropic’s Claude. Your data is not used for model training,
-            advertising, or any purpose beyond generating your Tracemark. We
-            do not collect your name, email, or any contact information.
-          </p>
-        </section>
+            <div className="border-l-[3px] border-[#3E51C0] bg-[#F8F7F6] p-4 md:p-6">
+              {graceLoading && (
+                <p className="text-sm italic text-[#999]" aria-live="polite">
+                  Composing your grace…
+                </p>
+              )}
+              {graceState.status === 'error' && (
+                <p className="text-sm text-[#b00]" aria-live="polite">
+                  Couldn’t compose your grace: {graceState.message}
+                </p>
+              )}
+              {graceState.status === 'ok' && (
+                <GraceLines grace={graceState.grace} />
+              )}
+              {graceState.status === 'idle' && state.status !== 'ok' && (
+                <p className="text-sm italic text-[#999]">
+                  Waiting for your submission…
+                </p>
+              )}
+            </div>
+          </section>
+        </div>
 
         {isDev && (
           <section className="space-y-4 rounded-lg border border-[#eee] bg-[#fafafa] p-4 text-xs">
@@ -277,6 +405,16 @@ function ResultContent() {
           </section>
         )}
       </div>
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-black px-4 py-2 text-sm text-white shadow-lg"
+        >
+          {toast}
+        </div>
+      )}
     </main>
   );
 }

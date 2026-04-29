@@ -1,9 +1,156 @@
 import Link from 'next/link';
+import Tracemark from '@/components/Tracemark';
+import type { ProvenanceResponse } from '@/lib/schema';
+
+// --- Hero sample Tracemarks ---
+// Six hardcoded responses with deliberately varied data so each mark
+// reads as visually distinct: different mediums, teacher mixes, helper
+// mixes, with-and-without AI generation, and different ownership scores.
+
+const SAMPLE_TRACEMARKS: Array<Partial<ProvenanceResponse>> = [
+  // 1. Traditional painter, no AI, mostly theirs
+  {
+    piece: { description: '', medium: 'painted' },
+    seed: { types: ['memory'] },
+    references: [
+      { id: 'artist-portfolios', weight: 0.85 },
+      { id: 'music', weight: 0.5 },
+      { id: 'heritage', weight: 0.5 },
+      { id: 'everyday-life', weight: 0.5 },
+    ],
+    teachers: ['formal-education', 'mentor', 'critique'],
+    aiHelpers: [],
+    aiGenerator: { used: false },
+    directionExecution: 9,
+    collaborators: ['peer'],
+  },
+  // 2. Digital illustrator leaning on AI helpers but no generator
+  {
+    piece: { description: '', medium: 'digital-2d' },
+    seed: { types: ['image'] },
+    references: [
+      { id: 'algorithmic-feeds', weight: 0.85 },
+      { id: 'search-results', weight: 0.85 },
+      { id: 'artist-portfolios', weight: 0.5 },
+    ],
+    teachers: ['self-taught', 'copying', 'ai-teacher'],
+    aiHelpers: ['background-removal', 'auto-correction', 'upscaling'],
+    aiGenerator: { used: false },
+    directionExecution: 6,
+    collaborators: ['editor'],
+  },
+  // 3. 3D artist with full AI pipeline
+  {
+    piece: { description: '', medium: '3d-digital' },
+    seed: { types: ['technique'] },
+    references: [
+      { id: 'artist-portfolios', weight: 0.85 },
+      { id: 'ai-moodboards', weight: 0.85 },
+      { id: 'music', weight: 0.5 },
+    ],
+    teachers: ['formal-education', 'workshops', 'ai-teacher'],
+    aiHelpers: ['generative-fill', 'recommendations'],
+    aiGenerator: {
+      used: true,
+      kinds: ['text-to-image', '3d-generation'],
+      stage: 'reference',
+      trainingDataAwareness: 'artists-like-me',
+    },
+    directionExecution: 5,
+    collaborators: ['fabricator'],
+  },
+  // 4. Printmaker, copy-tradition, no AI
+  {
+    piece: { description: '', medium: 'printed' },
+    seed: { types: ['constraint'] },
+    references: [
+      { id: 'artist-portfolios', weight: 0.5 },
+      { id: 'heritage', weight: 0.85 },
+      { id: 'everyday-life', weight: 0.5 },
+    ],
+    teachers: ['apprenticeship', 'mentor', 'copying'],
+    aiHelpers: [],
+    aiGenerator: { used: false },
+    directionExecution: 10,
+    collaborators: ['fabricator'],
+  },
+  // 5. Fiber artist, heritage-driven
+  {
+    piece: { description: '', medium: 'fiber' },
+    seed: { types: ['body'] },
+    references: [
+      { id: 'heritage', weight: 0.85 },
+      { id: 'natural-world', weight: 0.5 },
+      { id: 'music', weight: 0.5 },
+    ],
+    teachers: ['apprenticeship', 'mentor', 'workshops'],
+    aiHelpers: [],
+    aiGenerator: { used: false },
+    directionExecution: 8,
+    collaborators: [],
+  },
+  // 6. Mixed-media, AI-heavy collage
+  {
+    piece: { description: '', medium: 'mixed-media' },
+    seed: { types: ['critique'] },
+    references: [
+      { id: 'algorithmic-feeds', weight: 0.85 },
+      { id: 'ai-moodboards', weight: 0.85 },
+      { id: 'film-literature', weight: 0.5 },
+    ],
+    teachers: ['self-taught', 'ai-teacher', 'critique'],
+    aiHelpers: [
+      'generative-fill',
+      'auto-correction',
+      'upscaling',
+      'retouching',
+    ],
+    aiGenerator: {
+      used: true,
+      kinds: ['text-to-image', 'image-to-image'],
+      stage: 'composited',
+      trainingDataAwareness: 'no-idea',
+    },
+    directionExecution: 4,
+    collaborators: ['peer', 'editor'],
+  },
+];
+
+// Stagger transforms — alternating tilts plus a few translate-y offsets so
+// the grid reads like stickers laid on a surface, not a regular grid.
+const SAMPLE_TRANSFORMS = [
+  '-rotate-3',
+  'rotate-2 translate-y-2',
+  '-rotate-2 -translate-y-1',
+  'rotate-3 translate-y-1',
+  '-rotate-2 translate-y-2',
+  'rotate-2 -translate-y-1',
+];
+
+function HeroGrid() {
+  return (
+    <div
+      aria-hidden
+      className="grid grid-cols-3 gap-6 sm:gap-8"
+    >
+      {SAMPLE_TRACEMARKS.map((sample, i) => (
+        <div
+          key={i}
+          className={`flex justify-center ${SAMPLE_TRANSFORMS[i] ?? ''}`}
+        >
+          <Tracemark data={sample} size={120} />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col px-6 py-10">
-      <div className="mx-auto w-full max-w-[700px] space-y-8">
+      <div className="mx-auto w-full max-w-[700px] space-y-10">
+        <HeroGrid />
+
         <header className="space-y-6">
           <h1 className="text-5xl font-medium tracking-tight">
             Creative Trace
@@ -43,7 +190,7 @@ export default function Home() {
         <div className="text-center">
           <Link
             href="/questionnaire"
-            className="inline-flex h-9 items-center rounded-lg bg-black px-3.5 text-base text-white transition-opacity hover:opacity-90"
+            className="inline-flex h-9 items-center rounded-lg bg-[#3E51C0] px-3.5 text-base text-white transition-opacity hover:opacity-90"
           >
             Trace your work →
           </Link>

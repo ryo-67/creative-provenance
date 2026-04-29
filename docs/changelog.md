@@ -1,5 +1,16 @@
 # Changelog
 
+## Session 17 -- 2026-04-29 -- Symposium UX polish: hero, two-col result, download/share, grace styling
+- **Landing hero**: added `HeroGrid` above the title — six hardcoded sample `Partial<ProvenanceResponse>` objects rendered as 120px Tracemarks in a 3×2 grid. Each sample is deliberately distinct (different mediums, teacher mixes, AI used or not, varying ownership scores) so the marks read as a visual sample rather than near-duplicates. Tilted via per-cell rotation/translate-y transforms (`-rotate-3`, `rotate-2 translate-y-2`, etc.) for a "stickers laid on a surface" look. Marked `aria-hidden` so screen readers skip the decorative grid.
+- **CTA color**: landing CTA button background changed from `bg-black` to `bg-[#3E51C0]` (deep blue from the palette). White text preserved. The download button on the result page picks up the same color; the share button uses an outlined variant (`border-[#3E51C0]` + transparent fill + blue text).
+- **Result page two-column layout**: at `md+`, the page becomes a grid (`md:grid md:grid-cols-[minmax(0,440px)_1fr] md:gap-12`). Left column holds the Tracemark (`max-w-[440px]`) plus the action buttons, and uses `md:sticky md:top-8 md:self-start` so it stays in view while the user scrolls the grace. Mobile keeps the existing single-column stack. Page max-width bumped from `700px` to `1000px` to accommodate the side-by-side layout.
+- **Download Tracemark**: new button below the Tracemark. Click handler clones the live SVG, serializes it, draws it on an offscreen 1080×1080 canvas (white background) via `Image` + `URL.createObjectURL`, and triggers a `tracemark-${sid}.png` download via `canvas.toBlob`. All cleanup (revokeObjectURL) is in `finally` blocks.
+- **Share**: new outlined button next to Download. Tries `navigator.share({ title: "My Creative Trace", text: "See the creative provenance of my work", url })` first; falls back to `navigator.clipboard.writeText(url)` with a "Link copied!" toast. Toast is a fixed-position pill at the bottom-center, auto-dismisses after 2s.
+- **Grace box restyled**: removed the rounded all-around border. New treatment is a 3px left accent in `#3E51C0` plus a warm off-white fill `#F8F7F6`, padding `p-4 md:p-6`. Italic + bold-subjects rendering preserved.
+- **Grace mobile sizing**: text steps from `text-sm` (mobile) to `text-base` (md+). Line spacing `space-y-1.5 md:space-y-2`. Ownership-line top spacing `pt-5 md:pt-6`. The grace intro paragraph and intro container padding are unchanged at mobile-friendly sizes.
+- **"How is your data used?" removed from result page**: the section was duplicate copy with the landing-page footnote. Removed entirely from `app/result/page.tsx` so the result page is just Tracemark + grace.
+- Build + lint clean.
+
 ## Session 16 -- 2026-04-29 -- Tracemark visualization (V1)
 - Built `components/Tracemark.tsx`: a generative 18×18-unit (540×540px at 1u=30px) SVG grid that visualizes a `Partial<ProvenanceResponse>`.
 - Layout follows the spec exactly — three 180px-tall rows, nine patches numbered 0/1/3/4/5/6/7/8/9 (no Patch 2). Each patch is a `<g transform="translate(x,y)">` with internal coords starting at (0,0); a 2px `#000000` `PatchBorder` rect outlines every patch boundary.
