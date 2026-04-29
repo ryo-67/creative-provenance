@@ -2,6 +2,7 @@
 
 import { Fragment, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Tracemark from '@/components/Tracemark';
 import type { ProvenanceResponse } from '@/lib/schema';
 
 // --- localStorage grace cache ---
@@ -198,14 +199,23 @@ function ResultContent() {
           </p>
         )}
 
-        {/* Tracemark — visual system pending */}
-        <section
-          aria-label="Tracemark"
-          className="aspect-square w-full rounded-lg border border-dashed border-[#ddd]"
-        >
-          <div className="flex h-full items-center justify-center text-sm text-[#999]">
-            Tracemark — awaiting visual system
-          </div>
+        {/* Tracemark */}
+        <section aria-label="Tracemark" className="flex justify-center">
+          {state.status === 'ok' ? (
+            <Tracemark
+              data={state.data}
+              className="h-auto w-full max-w-[540px]"
+            />
+          ) : (
+            <div
+              className="flex aspect-square w-full max-w-[540px] items-center justify-center rounded-lg border border-dashed border-[#ddd] text-sm text-[#999]"
+              aria-live="polite"
+            >
+              {state.status === 'loading'
+                ? 'Tracemark — loading…'
+                : 'Tracemark — awaiting submission'}
+            </div>
+          )}
         </section>
 
         {/* Grace */}

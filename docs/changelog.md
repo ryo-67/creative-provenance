@@ -1,5 +1,22 @@
 # Changelog
 
+## Session 16 -- 2026-04-29 -- Tracemark visualization (V1)
+- Built `components/Tracemark.tsx`: a generative 18×18-unit (540×540px at 1u=30px) SVG grid that visualizes a `Partial<ProvenanceResponse>`.
+- Layout follows the spec exactly — three 180px-tall rows, nine patches numbered 0/1/3/4/5/6/7/8/9 (no Patch 2). Each patch is a `<g transform="translate(x,y)">` with internal coords starting at (0,0); a 2px `#000000` `PatchBorder` rect outlines every patch boundary.
+- Patches:
+  - **Patch 0** — solid black anchor (60×180).
+  - **Patch 1** — 180×180 fill in the medium's color (mapping in `MEDIUM_COLOR`); fallback `#B5DD35`. TODO comment in source notes the seed-pattern overlay is pending.
+  - **Patch 3** — references collapsed into 5 vertical sections (60×180 each); base `#3E51C0`, fill `#99A5F9` rising from the bottom by `average(weight) × 180`.
+  - **Patch 4** — 8-cell teacher grid (rows 3 and 5 split). Base `#CB7C2B`, selected `#7BD0FD`. Spec's "crit" label maps to schema literal `'critique'`.
+  - **Patch 5** — AI-used boolean. Always solid `#8CBBA1`; if `used === false`, an additional `#567550` triangle covers the bottom-right half (`(210,0)→(0,180)→(210,180)`).
+  - **Patch 6** — 12-slot AI-helpers grid (3 cols × 4 rows, 30×45 each). Base `#983153`, selected `#F87014`. The 12th slot (col 3, row 4) has no schema mapping and always renders the base color.
+  - **Patch 7** — 16-cell AI-generator grid mixing kinds (rows 1–3, 60×30), stages (rows 3–4, 60×30), and awareness (rows 5–6, 90×30). Discriminated-union `Patch7Match` per cell drives selection. If `aiGenerator.used === false`, the whole patch fills `#E98FC6` with no cell highlights.
+  - **Patch 8** — direction/execution bar. `Math.ceil(value / 2)` columns (capped at 6) of `#567550` over `#E6D4DA`. Bar y=60 h=60. Five 1px black dividers between columns (the spec called out 6 lines but 5 is what visually delineates 6 columns; outer 2px patch border handles the edges).
+  - **Patch 9** — collaborators with the same row pattern as Patch 4. Base `#99A5F9`, selected `#FFAA00`. Last row has no schema mapping.
+- `Tracemark` exports a default React component with props `{ data: Partial<ProvenanceResponse>; size?: number; className?: string }`. `viewBox` is fixed at `0 0 540 540`; `size` sets the SVG's `width`/`height` attributes (default 540). `className` lets callers scale responsively (e.g. `w-full h-auto max-w-[540px]`).
+- Wired into `app/result/page.tsx`: when the submission fetch resolves, the placeholder card is replaced with `<Tracemark data={state.data} className="h-auto w-full max-w-[540px]" />`. During the fetch, a dashed-border placeholder shows "Tracemark — loading…". The Tracemark sits centered (`flex justify-center`) and shares the page's max-width.
+- Build + lint clean.
+
 ## Session 15 -- 2026-04-29 -- Polished landing, result layout, footer, data transparency
 - **Landing page (`app/page.tsx`)**: replaced the stub with the new long-form copy. Title "Creative Trace" (5xl, medium weight), large light-weight subtitle, three body paragraphs framing the project (binary refusal tools / mapping provenance / honoring everyone else's contribution), and a "Trace your work →" CTA styled to match Tally's button (h-9, bg-black, rounded-lg 8px, px-3.5 14px, text-base 16px). Centered, max-w-[700px].
 - **Result page (`app/result/page.tsx`)**: title is now "Your Tracemark" (was "Your trace"). Strip placeholder relabeled "Tracemark — awaiting visual system" with `aria-label="Tracemark"`. Added a "How is your data used?" section below the grace box explaining Tally storage, Anthropic Claude generation, no training/ads, no PII collected. Switched layout to the same max-w-[700px], lighter borders (#eee / #ddd), removed `dark:` variants. All existing functionality preserved (submission fetch, grace generation, localStorage cache, dev debug block).
