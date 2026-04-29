@@ -26,7 +26,7 @@ function FooterLink({
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="text-[#666] no-underline hover:underline"
+      className="text-[#999] no-underline hover:underline"
     >
       {children}
     </a>
@@ -35,7 +35,7 @@ function FooterLink({
 
 function Footer() {
   return (
-    <footer className="mt-12 border-t border-[#eee] px-6 py-8 text-center text-sm text-[#666]">
+    <footer className="mt-12 px-6 py-8 text-center text-[13px] text-[#999]">
       <div className="mx-auto w-full max-w-[700px] space-y-2">
         <p className="leading-relaxed">
           Made by{' '}
@@ -62,7 +62,10 @@ function Footer() {
           <FooterLink href="https://drive.google.com/file/d/14z5NZuvuJO-m2JSc6l4Nv3llfhFfjmLV/view?usp=share_link">
             Portfolio
           </FooterLink>
-          ). Together we call ourselves the{' '}
+          ).
+        </p>
+        <p>
+          Together we call ourselves the{' '}
           <FooterLink href="https://www.youtube.com/watch?v=oTHj7_Q5fKA">
             SPY Kids
           </FooterLink>
