@@ -320,7 +320,7 @@ function Patch3({
           fill={PATCH3_BASE}
         />
       ))}
-      {/* Pass 2: weight bar fills, rising from the bottom */}
+      {/* Pass 2: weight bar fills, rising from the bottom (no stroke) */}
       {sections.map(
         (s) =>
           s.fillHeight > 0 && (
@@ -331,15 +331,13 @@ function Patch3({
               width={60}
               height={s.fillHeight}
               fill={PATCH3_FILL}
-              stroke={STROKE}
-              strokeWidth={STROKE_WIDTH}
             />
           ),
       )}
-      {/* Pass 3: stroke-only outlines for each section */}
+      {/* Pass 3a: stroke-only outlines for each section */}
       {sections.map((s) => (
         <rect
-          key={`stroke-${s.x}`}
+          key={`section-stroke-${s.x}`}
           x={s.x}
           y={0}
           width={60}
@@ -349,6 +347,23 @@ function Patch3({
           strokeWidth={STROKE_WIDTH}
         />
       ))}
+      {/* Pass 3b: stroke-only outlines for each bar (drawn last so the
+          bar's top edge is unambiguously on top of its own fill). */}
+      {sections.map(
+        (s) =>
+          s.fillHeight > 0 && (
+            <rect
+              key={`bar-stroke-${s.x}`}
+              x={s.x}
+              y={180 - s.fillHeight}
+              width={60}
+              height={s.fillHeight}
+              fill="none"
+              stroke={STROKE}
+              strokeWidth={STROKE_WIDTH}
+            />
+          ),
+      )}
       <PatchBorder width={300} height={180} />
     </g>
   );
