@@ -2,26 +2,52 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="max-w-lg space-y-8">
-        <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-          Creative Trace
-        </h1>
-        <p className="text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
-          Trace the chain of hands, eyes, and algorithms that shaped your work.
-          Answer ten questions about a single piece, and receive a fingerprint
-          of everything that went into making it — and a grace for everyone who
-          did.
-        </p>
-        <Link
-          href="/questionnaire"
-          className="inline-block rounded-full bg-zinc-900 px-8 py-3 text-base font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
-        >
-          Begin
-        </Link>
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          No accounts. About 5–7 minutes.
-        </p>
+    <main className="flex flex-1 flex-col px-6 py-24">
+      <div className="mx-auto w-full max-w-[700px] space-y-12">
+        <header className="space-y-6">
+          <h1 className="text-5xl font-medium tracking-tight">
+            Creative Trace
+          </h1>
+          <p className="text-2xl font-light leading-snug text-[#37352F]/80">
+            This project maps the full chain of human, technological, and
+            cultural influences that shape a work of art.
+          </p>
+        </header>
+
+        <div className="space-y-5 text-base leading-relaxed">
+          <p>
+            We’ve always borrowed, referenced, and built on others. AI is just
+            the newest contributor. But the tools that address AI in creative
+            work offer a binary: protect your work from training pipelines, or
+            don’t. That framing misses how artists actually work. You sketch
+            by hand, then feed the sketch into a generative tool. You
+            composite AI output with handmade layers. There’s no vocabulary
+            for that middle ground.
+          </p>
+          <p>
+            Creative Trace is an interactive questionnaire that maps the
+            provenance of a piece of work. In art, provenance is the
+            documented chain of ownership and origin. Here, we extend it to
+            the creative process itself: mentors, memories, cultural
+            references, platforms, tools, and generative systems. Your
+            answers produce a Tracemark, a visual mark encoding where your
+            work came from and what role AI played in it.
+          </p>
+          <p>
+            For creative workers navigating contracts, credits, and authorship
+            questions right now, this is a way to name your contribution and
+            honor everyone else’s.
+          </p>
+        </div>
+
+        <div>
+          <Link
+            href="/questionnaire"
+            className="inline-flex h-9 items-center rounded-lg bg-black px-3.5 text-base text-white transition-opacity hover:opacity-90"
+          >
+            Trace your work →
+          </Link>
+        </div>
       </div>
     </main>
   );

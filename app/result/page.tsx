@@ -76,7 +76,7 @@ function GraceLines({ grace }: { grace: string }) {
   // the body of thank-yous.
   const ownershipIndex = lines.length - 2;
   return (
-    <div className="space-y-2 italic leading-relaxed text-zinc-700 dark:text-zinc-200">
+    <div className="space-y-2 italic leading-relaxed">
       {lines.map((line, i) => (
         <p key={i} className={i === ownershipIndex ? 'pt-6' : ''}>
           {renderGraceLine(line)}
@@ -181,68 +181,73 @@ function ResultContent() {
     state.status === 'ok' && graceState.status === 'idle';
 
   return (
-    <main className="flex flex-1 flex-col px-6 py-16">
-      <div className="mx-auto w-full max-w-2xl space-y-8">
-        <h1 className="text-3xl font-semibold tracking-tight">Your trace</h1>
+    <main className="flex flex-1 flex-col px-6 py-24">
+      <div className="mx-auto w-full max-w-[700px] space-y-12">
+        <h1 className="text-5xl font-medium tracking-tight">Your Tracemark</h1>
 
         {state.status === 'loading' && (
-          <p className="text-zinc-500" aria-live="polite">
+          <p className="text-[#666]" aria-live="polite">
             Loading your submission…
           </p>
         )}
 
         {state.status === 'error' && (
-          <p className="text-red-600 dark:text-red-400" aria-live="polite">
-            Couldn&apos;t load your submission: {state.message}
+          <p className="text-[#b00]" aria-live="polite">
+            Couldn’t load your submission: {state.message}
             {state.httpStatus ? ` (${state.httpStatus})` : ''}
           </p>
         )}
 
-        {/* Strip placeholder — visual system pending */}
+        {/* Tracemark — visual system pending */}
         <section
-          aria-label="Fingerprint"
-          className="aspect-square w-full rounded-lg border border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900"
+          aria-label="Tracemark"
+          className="aspect-square w-full rounded-lg border border-dashed border-[#ddd]"
         >
-          <div className="flex h-full items-center justify-center text-sm text-zinc-400">
-            Strip area — awaiting visual system
+          <div className="flex h-full items-center justify-center text-sm text-[#999]">
+            Tracemark — awaiting visual system
           </div>
         </section>
 
         {/* Grace */}
         <section aria-label="Grace" className="space-y-6">
-          <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-            {GRACE_INTRO}
-          </p>
+          <p className="text-sm leading-relaxed text-[#666]">{GRACE_INTRO}</p>
 
-          <div className="rounded-lg border border-zinc-200 p-6 dark:border-zinc-800">
+          <div className="rounded-lg border border-[#eee] p-6">
             {graceLoading && (
-              <p className="text-zinc-400 italic" aria-live="polite">
+              <p className="italic text-[#999]" aria-live="polite">
                 Composing your grace…
               </p>
             )}
             {graceState.status === 'error' && (
-              <p
-                className="text-red-600 dark:text-red-400"
-                aria-live="polite"
-              >
-                Couldn&apos;t compose your grace: {graceState.message}
+              <p className="text-[#b00]" aria-live="polite">
+                Couldn’t compose your grace: {graceState.message}
               </p>
             )}
             {graceState.status === 'ok' && (
               <GraceLines grace={graceState.grace} />
             )}
             {graceState.status === 'idle' && state.status !== 'ok' && (
-              <p className="text-zinc-400 italic">
-                Waiting for your submission…
-              </p>
+              <p className="italic text-[#999]">Waiting for your submission…</p>
             )}
           </div>
         </section>
 
+        {/* Data transparency */}
+        <section aria-label="Data use" className="space-y-3">
+          <h2 className="text-lg font-medium">How is your data used?</h2>
+          <p className="text-sm leading-relaxed text-[#666]">
+            Your questionnaire responses are stored by Tally, our form
+            provider. To generate your grace text, your responses are sent to
+            Anthropic’s Claude. Your data is not used for model training,
+            advertising, or any purpose beyond generating your Tracemark. We
+            do not collect your name, email, or any contact information.
+          </p>
+        </section>
+
         {isDev && (
-          <section className="space-y-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-xs dark:border-zinc-800 dark:bg-zinc-900">
+          <section className="space-y-4 rounded-lg border border-[#eee] bg-[#fafafa] p-4 text-xs">
             <div>
-              <h2 className="mb-2 font-mono uppercase tracking-wide text-zinc-500">
+              <h2 className="mb-2 font-mono uppercase tracking-wide text-[#999]">
                 sid
               </h2>
               <pre className="overflow-x-auto whitespace-pre-wrap break-all">
@@ -250,7 +255,7 @@ function ResultContent() {
               </pre>
             </div>
             <div>
-              <h2 className="mb-2 font-mono uppercase tracking-wide text-zinc-500">
+              <h2 className="mb-2 font-mono uppercase tracking-wide text-[#999]">
                 Mapped ProvenanceResponse
               </h2>
               <pre className="overflow-x-auto whitespace-pre-wrap break-all">
