@@ -142,12 +142,16 @@ const SAMPLE_COUNT = 16; // 8 cols × 2 rows
 const SAMPLES = Array.from({ length: SAMPLE_COUNT }, (_, i) => buildSample(i));
 
 function HeroGrid() {
-  // 8 cols × 140px + 7 × 8px gap = 1176px natural width. On viewports
-  // narrower than that, the outer overflow-hidden clips the edges so
-  // the grid reads as a "sample field" continuing past the page.
+  // 8 cols × 140px + 7 × 12px gap = 1204px natural width. The
+  // overflow-hidden wrapper clips edges on narrower viewports so the
+  // grid reads as a "sample field" continuing past the page. Soft gray
+  // background sets the section apart from the white text below.
   return (
-    <div aria-hidden className="overflow-hidden py-16">
-      <div className="mx-auto grid w-max grid-cols-8 gap-2">
+    <div
+      aria-hidden
+      className="overflow-hidden bg-[#F5F5F5] py-20 md:py-24"
+    >
+      <div className="mx-auto grid w-max grid-cols-8 gap-3">
         {SAMPLES.map((sample, i) => (
           <Tracemark key={i} data={sample} size={140} />
         ))}
@@ -205,7 +209,10 @@ export default function Home() {
             <ArrowRight size={20} strokeWidth={2.5} aria-hidden />
           </Link>
 
-          <p className="mt-12 max-w-[600px] text-base leading-relaxed">
+          <h2 className="mt-12 mb-3 text-lg font-medium">
+            How is your data used?
+          </h2>
+          <p className="text-base leading-relaxed">
             Your questionnaire responses are stored by Tally, our form
             provider. To generate your grace, your responses are sent to
             Anthropic’s Claude. Your data is not used for model training,

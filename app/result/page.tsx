@@ -308,9 +308,14 @@ function ResultContent() {
   return (
     <main className="flex flex-1 flex-col px-6 pt-12 pb-20 md:pt-20">
       <div className="mx-auto w-full max-w-[1100px]">
-        <h1 className="mb-8 text-4xl font-medium tracking-tight md:mb-12 md:text-5xl">
-          Your Tracemark
-        </h1>
+        <header className="mb-8 md:mb-12">
+          <h1 className="text-4xl font-medium tracking-tight md:text-5xl">
+            Your Tracemark
+          </h1>
+          <p className="mt-2 text-xl font-normal text-[#666] md:text-2xl">
+            A visual map of everything that shaped this piece.
+          </p>
+        </header>
 
         {state.status === 'loading' && (
           <p className="text-[#666]" aria-live="polite">
@@ -362,7 +367,7 @@ function ResultContent() {
                   className="inline-flex h-12 flex-1 items-center justify-center gap-2 bg-black px-4 text-lg text-white transition-opacity hover:opacity-90"
                 >
                   <Download size={20} strokeWidth={2.5} aria-hidden />
-                  Download Tracemark
+                  Download PNG
                 </button>
                 <button
                   type="button"
