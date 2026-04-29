@@ -122,14 +122,18 @@ async function downloadTracemarkPNG(
       img.src = svgUrl;
     });
 
+    // 1080×1080 Tracemark + 10% white padding on each side → 1296×1296 canvas.
+    const TRACEMARK_SIZE = 1080;
+    const PADDING = TRACEMARK_SIZE * 0.1; // 108
+    const CANVAS_SIZE = TRACEMARK_SIZE + PADDING * 2; // 1296
     const canvas = document.createElement('canvas');
-    canvas.width = 1080;
-    canvas.height = 1080;
+    canvas.width = CANVAS_SIZE;
+    canvas.height = CANVAS_SIZE;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 1080, 1080);
-    ctx.drawImage(img, 0, 0, 1080, 1080);
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.drawImage(img, PADDING, PADDING, TRACEMARK_SIZE, TRACEMARK_SIZE);
 
     const blob = await new Promise<Blob | null>((resolve) => {
       canvas.toBlob(resolve, 'image/png');
