@@ -3,9 +3,15 @@
 // Each of the nine patches reads from a different slice of the
 // ProvenanceResponse. Patch numbering follows the spec (0, 1, 3, 4, 5, 6,
 // 7, 8, 9 — there is no Patch 2). The grid is fixed at 540×540 in viewBox
-// coordinates; the rendered size is controlled by the `size` prop, and the
-// SVG can also be scaled responsively via `className` (the viewBox keeps
-// the geometry intact).
+// coordinates; `size` controls the rendered SVG box; `className` lets a
+// parent scale it responsively while viewBox preserves geometry.
+//
+// Rendering rule for every patch:
+//   1. background fill (base color, no stroke)
+//   2. data-driven fill rects (selected color, no stroke)
+//   3. stroke-only grid rects on top (fill="none", black stroke)
+//   4. patch border last (fill="none", black stroke)
+// Splitting fills from strokes guarantees no fill paints over a stroke.
 
 import type {
   AIGenerationKind,
@@ -19,10 +25,13 @@ import type {
   TrainingDataAwareness,
 } from '@/lib/schema';
 
-const STROKE = '#000000';
-const STROKE_WIDTH = 2;
+// --- Geometry ---
 
-// --- Patch 1: medium → base color ---
+const UNIT = 30; // 540px / 18 units
+const STROKE_WIDTH = UNIT / 6; // = 5px — used for every stroke
+const STROKE = '#000000';
+
+// --- Colors ---
 
 const MEDIUM_COLOR: Record<MediumType, string> = {
   painted: '#983153',
@@ -35,6 +44,21 @@ const MEDIUM_COLOR: Record<MediumType, string> = {
   'mixed-media': '#8CBBA1',
   other: '#B5DD35',
 };
+
+const PATCH3_BASE = '#3E51C0';
+const PATCH3_FILL = '#99A5F9';
+const PATCH4_BASE = '#CB7C2B';
+const PATCH4_SELECTED = '#7BD0FD';
+const PATCH5_LIGHT = '#8CBBA1';
+const PATCH5_DARK = '#567550';
+const PATCH6_BASE = '#983153';
+const PATCH6_SELECTED = '#F87014';
+const PATCH7_BASE = '#E98FC6';
+const PATCH7_SELECTED = '#B5DD35';
+const PATCH8_BASE = '#E6D4DA';
+const PATCH8_BAR = '#567550';
+const PATCH9_BASE = '#99A5F9';
+const PATCH9_SELECTED = '#FFAA00';
 
 // --- Patch 3: reference grouping ---
 // 12 reference sources collapsed into 5 sections, each rendered as a
@@ -83,26 +107,31 @@ const TEACHER_CELLS: Array<{
 // Cells are 30×45. The 12th slot (col 3, row 4) has no schema id — always
 // renders the base color.
 
-const HELPER_CELLS: Array<{ x: number; y: number; id: AIHelperType | null }> =
-  [
-    { x: 0, y: 0, id: 'background-removal' },
-    { x: 0, y: 45, id: 'generative-fill' },
-    { x: 0, y: 90, id: 'auto-correction' },
-    { x: 0, y: 135, id: 'upscaling' },
-    { x: 30, y: 0, id: 'search' },
-    { x: 30, y: 45, id: 'autosuggest' },
-    { x: 30, y: 90, id: 'retouching' },
-    { x: 30, y: 135, id: 'rotoscoping' },
-    { x: 60, y: 0, id: 'transcription' },
-    { x: 60, y: 45, id: 'recommendations' },
-    { x: 60, y: 90, id: 'auto-tagging' },
-    { x: 60, y: 135, id: null },
-  ];
+const HELPER_CELLS: Array<{
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  id: AIHelperType | null;
+}> = [
+  { x: 0, y: 0, w: 30, h: 45, id: 'background-removal' },
+  { x: 0, y: 45, w: 30, h: 45, id: 'generative-fill' },
+  { x: 0, y: 90, w: 30, h: 45, id: 'auto-correction' },
+  { x: 0, y: 135, w: 30, h: 45, id: 'upscaling' },
+  { x: 30, y: 0, w: 30, h: 45, id: 'search' },
+  { x: 30, y: 45, w: 30, h: 45, id: 'autosuggest' },
+  { x: 30, y: 90, w: 30, h: 45, id: 'retouching' },
+  { x: 30, y: 135, w: 30, h: 45, id: 'rotoscoping' },
+  { x: 60, y: 0, w: 30, h: 45, id: 'transcription' },
+  { x: 60, y: 45, w: 30, h: 45, id: 'recommendations' },
+  { x: 60, y: 90, w: 30, h: 45, id: 'auto-tagging' },
+  { x: 60, y: 135, w: 30, h: 45, id: null },
+];
 
 // --- Patch 7: AI generator details ---
+// Rows 1-4 are 3 columns of 60×30; rows 5-6 are 2 columns of 90×30.
 // Each cell either matches an aiKinds member, the aiStage scalar, or the
-// awareness scalar. Discriminated by `kind` so the selection logic can be
-// data-driven.
+// awareness scalar (discriminated union).
 
 type Patch7Match =
   | { kind: 'aiKind'; value: AIGenerationKind }
@@ -116,26 +145,26 @@ const PATCH7_CELLS: Array<{
   h: number;
   match: Patch7Match;
 }> = [
-  // Row 1 — kinds
+  // Row 1 — kinds (60×30)
   { x: 0, y: 0, w: 60, h: 30, match: { kind: 'aiKind', value: 'text-to-image' } },
   { x: 60, y: 0, w: 60, h: 30, match: { kind: 'aiKind', value: 'image-to-image' } },
   { x: 120, y: 0, w: 60, h: 30, match: { kind: 'aiKind', value: '3d-generation' } },
-  // Row 2 — kinds
+  // Row 2 — kinds (60×30)
   { x: 0, y: 30, w: 60, h: 30, match: { kind: 'aiKind', value: 'motion' } },
   { x: 60, y: 30, w: 60, h: 30, match: { kind: 'aiKind', value: 'audio' } },
   { x: 120, y: 30, w: 60, h: 30, match: { kind: 'aiKind', value: 'text' } },
-  // Row 3 — kind 'other' + first two stages
+  // Row 3 — kind 'other' + first two stages (60×30)
   { x: 0, y: 60, w: 60, h: 30, match: { kind: 'aiKind', value: 'other' } },
   { x: 60, y: 60, w: 60, h: 30, match: { kind: 'aiStage', value: 'concept-only' } },
   { x: 120, y: 60, w: 60, h: 30, match: { kind: 'aiStage', value: 'reference' } },
-  // Row 4 — remaining stages
+  // Row 4 — remaining stages (60×30)
   { x: 0, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'composited' } },
   { x: 60, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'mostly-as-is' } },
   { x: 120, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'all-ai' } },
-  // Row 5 — awareness (90px wide)
+  // Row 5 — awareness (90×30)
   { x: 0, y: 120, w: 90, h: 30, match: { kind: 'awareness', value: 'no-idea' } },
   { x: 90, y: 120, w: 90, h: 30, match: { kind: 'awareness', value: 'artists-like-me' } },
-  // Row 6 — awareness (90px wide)
+  // Row 6 — awareness (90×30)
   { x: 0, y: 150, w: 90, h: 30, match: { kind: 'awareness', value: 'specific-artists' } },
   { x: 90, y: 150, w: 90, h: 30, match: { kind: 'awareness', value: 'licensed' } },
 ];
@@ -159,11 +188,55 @@ const COLLAB_CELLS: Array<{
   { x: 0, y: 150, w: 180, h: 30, id: null },
 ];
 
-// --- Patches ---
+// --- Helpers ---
 
-interface PatchProps {
+interface CellRect {
   x: number;
   y: number;
+  w: number;
+  h: number;
+}
+
+function FillRects<T extends CellRect>({
+  cells,
+  fillFor,
+}: {
+  cells: T[];
+  fillFor: (cell: T, index: number) => string;
+}) {
+  return (
+    <>
+      {cells.map((cell, i) => (
+        <rect
+          key={i}
+          x={cell.x}
+          y={cell.y}
+          width={cell.w}
+          height={cell.h}
+          fill={fillFor(cell, i)}
+        />
+      ))}
+    </>
+  );
+}
+
+function StrokeRects<T extends CellRect>({ cells }: { cells: T[] }) {
+  return (
+    <>
+      {cells.map((cell, i) => (
+        <rect
+          key={i}
+          x={cell.x}
+          y={cell.y}
+          width={cell.w}
+          height={cell.h}
+          fill="none"
+          stroke={STROKE}
+          strokeWidth={STROKE_WIDTH}
+        />
+      ))}
+    </>
+  );
 }
 
 function PatchBorder({ width, height }: { width: number; height: number }) {
@@ -176,6 +249,13 @@ function PatchBorder({ width, height }: { width: number; height: number }) {
       strokeWidth={STROKE_WIDTH}
     />
   );
+}
+
+// --- Patches ---
+
+interface PatchProps {
+  x: number;
+  y: number;
 }
 
 function Patch0({ x, y }: PatchProps) {
@@ -212,40 +292,55 @@ function Patch3({
   const weightById = new Map<string, number>(
     references.map((r) => [r.id, r.weight]),
   );
+  const sections = REFERENCE_SECTIONS.map((section) => {
+    const sum = section.ids.reduce(
+      (acc, id) => acc + (weightById.get(id) ?? 0),
+      0,
+    );
+    const avg = sum / section.ids.length;
+    return { ...section, fillHeight: avg * 180 };
+  });
+
   return (
     <g transform={`translate(${x},${y})`}>
-      {REFERENCE_SECTIONS.map((section) => {
-        const sum = section.ids.reduce(
-          (acc, id) => acc + (weightById.get(id) ?? 0),
-          0,
-        );
-        const avg = sum / section.ids.length;
-        const fillHeight = avg * 180;
-        return (
-          <g key={section.x}>
-            {/* Section base. Stroke draws the section's bounding rect so
-                each of the 5 columns has a visible 2px outline. */}
+      {/* Pass 1: section base fills */}
+      {sections.map((s) => (
+        <rect
+          key={`base-${s.x}`}
+          x={s.x}
+          y={0}
+          width={60}
+          height={180}
+          fill={PATCH3_BASE}
+        />
+      ))}
+      {/* Pass 2: weight bar fills, rising from the bottom */}
+      {sections.map(
+        (s) =>
+          s.fillHeight > 0 && (
             <rect
-              x={section.x}
-              y={0}
+              key={`bar-${s.x}`}
+              x={s.x}
+              y={180 - s.fillHeight}
               width={60}
-              height={180}
-              fill="#3E51C0"
-              stroke={STROKE}
-              strokeWidth={STROKE_WIDTH}
+              height={s.fillHeight}
+              fill={PATCH3_FILL}
             />
-            {fillHeight > 0 && (
-              <rect
-                x={section.x}
-                y={180 - fillHeight}
-                width={60}
-                height={fillHeight}
-                fill="#99A5F9"
-              />
-            )}
-          </g>
-        );
-      })}
+          ),
+      )}
+      {/* Pass 3: stroke-only outlines for each section */}
+      {sections.map((s) => (
+        <rect
+          key={`stroke-${s.x}`}
+          x={s.x}
+          y={0}
+          width={60}
+          height={180}
+          fill="none"
+          stroke={STROKE}
+          strokeWidth={STROKE_WIDTH}
+        />
+      ))}
       <PatchBorder width={300} height={180} />
     </g>
   );
@@ -259,18 +354,13 @@ function Patch4({
   const selected = new Set(teachers);
   return (
     <g transform={`translate(${x},${y})`}>
-      {TEACHER_CELLS.map((cell) => (
-        <rect
-          key={cell.id}
-          x={cell.x}
-          y={cell.y}
-          width={cell.w}
-          height={cell.h}
-          fill={selected.has(cell.id) ? '#7BD0FD' : '#CB7C2B'}
-          stroke={STROKE}
-          strokeWidth={STROKE_WIDTH}
-        />
-      ))}
+      <FillRects
+        cells={TEACHER_CELLS}
+        fillFor={(cell) =>
+          selected.has(cell.id) ? PATCH4_SELECTED : PATCH4_BASE
+        }
+      />
+      <StrokeRects cells={TEACHER_CELLS} />
       <PatchBorder width={240} height={180} />
     </g>
   );
@@ -281,25 +371,25 @@ function Patch5({
   y,
   aiUsed,
 }: PatchProps & { aiUsed: boolean }) {
+  // Always draw both halves and the diagonal. The two halves use the same
+  // light fill when AI was not used, so the diagonal still shows but the
+  // patch reads as visually uniform apart from the line.
+  const upperLeftFill = aiUsed ? PATCH5_DARK : PATCH5_LIGHT;
+  const lowerRightFill = PATCH5_LIGHT;
   return (
     <g transform={`translate(${x},${y})`}>
-      <rect width={210} height={180} fill="#8CBBA1" />
-      {!aiUsed && (
-        <>
-          {/* Dark triangle fills the upper-left half. The hypotenuse runs
-              from the top-right corner (210,0) to the bottom-left (0,180);
-              that diagonal is what visually separates the two halves. */}
-          <polygon points="0,0 210,0 0,180" fill="#567550" />
-          <line
-            x1={210}
-            y1={0}
-            x2={0}
-            y2={180}
-            stroke={STROKE}
-            strokeWidth={STROKE_WIDTH}
-          />
-        </>
-      )}
+      <polygon points="0,0 210,0 0,180" fill={upperLeftFill} />
+      <polygon points="210,0 210,180 0,180" fill={lowerRightFill} />
+      {/* Diagonal hypotenuse — top-right to bottom-left, drawn last so it
+          sits on top of the polygon edges. */}
+      <line
+        x1={210}
+        y1={0}
+        x2={0}
+        y2={180}
+        stroke={STROKE}
+        strokeWidth={STROKE_WIDTH}
+      />
       <PatchBorder width={210} height={180} />
     </g>
   );
@@ -313,21 +403,15 @@ function Patch6({
   const selected = new Set(aiHelpers);
   return (
     <g transform={`translate(${x},${y})`}>
-      {HELPER_CELLS.map((cell, i) => {
-        const isSelected = cell.id !== null && selected.has(cell.id);
-        return (
-          <rect
-            key={i}
-            x={cell.x}
-            y={cell.y}
-            width={30}
-            height={45}
-            fill={isSelected ? '#F87014' : '#983153'}
-            stroke={STROKE}
-            strokeWidth={STROKE_WIDTH}
-          />
-        );
-      })}
+      <FillRects
+        cells={HELPER_CELLS}
+        fillFor={(cell) =>
+          cell.id !== null && selected.has(cell.id)
+            ? PATCH6_SELECTED
+            : PATCH6_BASE
+        }
+      />
+      <StrokeRects cells={HELPER_CELLS} />
       <PatchBorder width={90} height={180} />
     </g>
   );
@@ -340,39 +424,30 @@ function Patch7({
 }: PatchProps & {
   aiGenerator?: ProvenanceResponse['aiGenerator'];
 }) {
+  // Always render the full 16-cell grid. When used !== true, every cell
+  // takes the base color (no selections) but the cell borders still draw,
+  // so the grid structure stays visible.
   const used = aiGenerator?.used === true;
   const kindsSet = new Set(aiGenerator?.kinds ?? []);
   const stage = aiGenerator?.stage;
   const awareness = aiGenerator?.trainingDataAwareness;
 
+  const isSelected = (cell: (typeof PATCH7_CELLS)[number]): boolean => {
+    if (!used) return false;
+    if (cell.match.kind === 'aiKind') return kindsSet.has(cell.match.value);
+    if (cell.match.kind === 'aiStage') return stage === cell.match.value;
+    return awareness === cell.match.value;
+  };
+
   return (
     <g transform={`translate(${x},${y})`}>
-      {used ? (
-        PATCH7_CELLS.map((cell, i) => {
-          let isSelected = false;
-          if (cell.match.kind === 'aiKind') {
-            isSelected = kindsSet.has(cell.match.value);
-          } else if (cell.match.kind === 'aiStage') {
-            isSelected = stage === cell.match.value;
-          } else {
-            isSelected = awareness === cell.match.value;
-          }
-          return (
-            <rect
-              key={i}
-              x={cell.x}
-              y={cell.y}
-              width={cell.w}
-              height={cell.h}
-              fill={isSelected ? '#B5DD35' : '#E98FC6'}
-              stroke={STROKE}
-              strokeWidth={STROKE_WIDTH}
-            />
-          );
-        })
-      ) : (
-        <rect width={180} height={180} fill="#E98FC6" />
-      )}
+      <FillRects
+        cells={PATCH7_CELLS}
+        fillFor={(cell) =>
+          isSelected(cell) ? PATCH7_SELECTED : PATCH7_BASE
+        }
+      />
+      <StrokeRects cells={PATCH7_CELLS} />
       <PatchBorder width={180} height={180} />
     </g>
   );
@@ -384,15 +459,19 @@ function Patch8({
   value,
 }: PatchProps & { value?: number }) {
   const cols =
-    typeof value === 'number' ? Math.min(6, Math.max(0, Math.ceil(value / 2))) : 0;
+    typeof value === 'number'
+      ? Math.min(6, Math.max(0, Math.ceil(value / 2)))
+      : 0;
   const barWidth = cols * 30;
   return (
     <g transform={`translate(${x},${y})`}>
-      <rect width={180} height={180} fill="#E6D4DA" />
+      {/* Background */}
+      <rect width={180} height={180} fill={PATCH8_BASE} />
+      {/* Bar fill */}
       {barWidth > 0 && (
-        <rect x={0} y={60} width={barWidth} height={60} fill="#567550" />
+        <rect x={0} y={60} width={barWidth} height={60} fill={PATCH8_BAR} />
       )}
-      {/* Internal column dividers (5 lines between 6 columns). */}
+      {/* Column dividers — drawn on top of the bar so they remain visible */}
       {[30, 60, 90, 120, 150].map((lx) => (
         <line
           key={lx}
@@ -417,21 +496,15 @@ function Patch9({
   const selected = new Set(collaborators);
   return (
     <g transform={`translate(${x},${y})`}>
-      {COLLAB_CELLS.map((cell, i) => {
-        const isSelected = cell.id !== null && selected.has(cell.id);
-        return (
-          <rect
-            key={i}
-            x={cell.x}
-            y={cell.y}
-            width={cell.w}
-            height={cell.h}
-            fill={isSelected ? '#FFAA00' : '#99A5F9'}
-            stroke={STROKE}
-            strokeWidth={STROKE_WIDTH}
-          />
-        );
-      })}
+      <FillRects
+        cells={COLLAB_CELLS}
+        fillFor={(cell) =>
+          cell.id !== null && selected.has(cell.id)
+            ? PATCH9_SELECTED
+            : PATCH9_BASE
+        }
+      />
+      <StrokeRects cells={COLLAB_CELLS} />
       <PatchBorder width={180} height={180} />
     </g>
   );
