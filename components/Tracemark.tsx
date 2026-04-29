@@ -45,7 +45,7 @@ const MEDIUM_COLOR: Record<MediumType, string> = {
   other: '#B5DD35',
 };
 
-const PATCH3_BASE = '#3E51C0';
+const PATCH3_BASE = '#E6D4DA';
 const PATCH3_FILL = '#99A5F9';
 const PATCH4_BASE = '#CB7C2B';
 const PATCH4_SELECTED = '#7BD0FD';
@@ -103,9 +103,10 @@ const TEACHER_CELLS: Array<{
   { x: 0, y: 150, w: 240, h: 30, id: 'ai-teacher' },
 ];
 
-// --- Patch 6: AI helper cells (column-first) ---
-// Cells are 30×45. The 12th slot (col 3, row 4) has no schema id — always
-// renders the base color.
+// --- Patch 6: AI helper cells (row-first, alternating row heights) ---
+// 4 rows of 3 columns. Each column is 30px wide; row heights alternate
+// 60 / 30 / 60 / 30 (sums to 180). The 12th slot (row 4, col 3) has no
+// schema id and always renders the base color.
 
 const HELPER_CELLS: Array<{
   x: number;
@@ -114,22 +115,27 @@ const HELPER_CELLS: Array<{
   h: number;
   id: AIHelperType | null;
 }> = [
-  { x: 0, y: 0, w: 30, h: 45, id: 'background-removal' },
-  { x: 0, y: 45, w: 30, h: 45, id: 'generative-fill' },
-  { x: 0, y: 90, w: 30, h: 45, id: 'auto-correction' },
-  { x: 0, y: 135, w: 30, h: 45, id: 'upscaling' },
-  { x: 30, y: 0, w: 30, h: 45, id: 'search' },
-  { x: 30, y: 45, w: 30, h: 45, id: 'autosuggest' },
-  { x: 30, y: 90, w: 30, h: 45, id: 'retouching' },
-  { x: 30, y: 135, w: 30, h: 45, id: 'rotoscoping' },
-  { x: 60, y: 0, w: 30, h: 45, id: 'transcription' },
-  { x: 60, y: 45, w: 30, h: 45, id: 'recommendations' },
-  { x: 60, y: 90, w: 30, h: 45, id: 'auto-tagging' },
-  { x: 60, y: 135, w: 30, h: 45, id: null },
+  // Row 1 — y=0, h=60
+  { x: 0, y: 0, w: 30, h: 60, id: 'background-removal' },
+  { x: 30, y: 0, w: 30, h: 60, id: 'generative-fill' },
+  { x: 60, y: 0, w: 30, h: 60, id: 'auto-correction' },
+  // Row 2 — y=60, h=30
+  { x: 0, y: 60, w: 30, h: 30, id: 'upscaling' },
+  { x: 30, y: 60, w: 30, h: 30, id: 'search' },
+  { x: 60, y: 60, w: 30, h: 30, id: 'autosuggest' },
+  // Row 3 — y=90, h=60
+  { x: 0, y: 90, w: 30, h: 60, id: 'retouching' },
+  { x: 30, y: 90, w: 30, h: 60, id: 'rotoscoping' },
+  { x: 60, y: 90, w: 30, h: 60, id: 'transcription' },
+  // Row 4 — y=150, h=30
+  { x: 0, y: 150, w: 30, h: 30, id: 'recommendations' },
+  { x: 30, y: 150, w: 30, h: 30, id: 'auto-tagging' },
+  { x: 60, y: 150, w: 30, h: 30, id: null },
 ];
 
 // --- Patch 7: AI generator details ---
-// Rows 1-4 are 3 columns of 60×30; rows 5-6 are 2 columns of 90×30.
+// Rows 1-4: 3 columns of 60×30. Rows 5-6: 2 cells per row, but the
+// widths alternate — row 5 is 120 + 60, row 6 is 60 + 120.
 // Each cell either matches an aiKinds member, the aiStage scalar, or the
 // awareness scalar (discriminated union).
 
@@ -161,12 +167,12 @@ const PATCH7_CELLS: Array<{
   { x: 0, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'composited' } },
   { x: 60, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'mostly-as-is' } },
   { x: 120, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'all-ai' } },
-  // Row 5 — awareness (90×30)
-  { x: 0, y: 120, w: 90, h: 30, match: { kind: 'awareness', value: 'no-idea' } },
-  { x: 90, y: 120, w: 90, h: 30, match: { kind: 'awareness', value: 'artists-like-me' } },
-  // Row 6 — awareness (90×30)
-  { x: 0, y: 150, w: 90, h: 30, match: { kind: 'awareness', value: 'specific-artists' } },
-  { x: 90, y: 150, w: 90, h: 30, match: { kind: 'awareness', value: 'licensed' } },
+  // Row 5 — awareness (left 120, right 60)
+  { x: 0, y: 120, w: 120, h: 30, match: { kind: 'awareness', value: 'no-idea' } },
+  { x: 120, y: 120, w: 60, h: 30, match: { kind: 'awareness', value: 'artists-like-me' } },
+  // Row 6 — awareness (left 60, right 120)
+  { x: 0, y: 150, w: 60, h: 30, match: { kind: 'awareness', value: 'specific-artists' } },
+  { x: 60, y: 150, w: 120, h: 30, match: { kind: 'awareness', value: 'licensed' } },
 ];
 
 // --- Patch 9: collaborator cells ---
