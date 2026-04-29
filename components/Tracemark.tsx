@@ -223,12 +223,16 @@ function Patch3({
         const fillHeight = avg * 180;
         return (
           <g key={section.x}>
+            {/* Section base. Stroke draws the section's bounding rect so
+                each of the 5 columns has a visible 2px outline. */}
             <rect
               x={section.x}
               y={0}
               width={60}
               height={180}
               fill="#3E51C0"
+              stroke={STROKE}
+              strokeWidth={STROKE_WIDTH}
             />
             {fillHeight > 0 && (
               <rect
@@ -263,6 +267,8 @@ function Patch4({
           width={cell.w}
           height={cell.h}
           fill={selected.has(cell.id) ? '#7BD0FD' : '#CB7C2B'}
+          stroke={STROKE}
+          strokeWidth={STROKE_WIDTH}
         />
       ))}
       <PatchBorder width={240} height={180} />
@@ -279,7 +285,20 @@ function Patch5({
     <g transform={`translate(${x},${y})`}>
       <rect width={210} height={180} fill="#8CBBA1" />
       {!aiUsed && (
-        <polygon points="210,0 0,180 210,180" fill="#567550" />
+        <>
+          {/* Dark triangle fills the upper-left half. The hypotenuse runs
+              from the top-right corner (210,0) to the bottom-left (0,180);
+              that diagonal is what visually separates the two halves. */}
+          <polygon points="0,0 210,0 0,180" fill="#567550" />
+          <line
+            x1={210}
+            y1={0}
+            x2={0}
+            y2={180}
+            stroke={STROKE}
+            strokeWidth={STROKE_WIDTH}
+          />
+        </>
       )}
       <PatchBorder width={210} height={180} />
     </g>
@@ -304,6 +323,8 @@ function Patch6({
             width={30}
             height={45}
             fill={isSelected ? '#F87014' : '#983153'}
+            stroke={STROKE}
+            strokeWidth={STROKE_WIDTH}
           />
         );
       })}
@@ -344,6 +365,8 @@ function Patch7({
               width={cell.w}
               height={cell.h}
               fill={isSelected ? '#B5DD35' : '#E98FC6'}
+              stroke={STROKE}
+              strokeWidth={STROKE_WIDTH}
             />
           );
         })
@@ -378,7 +401,7 @@ function Patch8({
           x2={lx}
           y2={180}
           stroke={STROKE}
-          strokeWidth={1}
+          strokeWidth={STROKE_WIDTH}
         />
       ))}
       <PatchBorder width={180} height={180} />
@@ -404,6 +427,8 @@ function Patch9({
             width={cell.w}
             height={cell.h}
             fill={isSelected ? '#FFAA00' : '#99A5F9'}
+            stroke={STROKE}
+            strokeWidth={STROKE_WIDTH}
           />
         );
       })}
@@ -454,6 +479,17 @@ export default function Tracemark({
       <Patch7 x={0} y={360} aiGenerator={data.aiGenerator} />
       <Patch8 x={180} y={360} value={data.directionExecution} />
       <Patch9 x={360} y={360} collaborators={data.collaborators ?? []} />
+
+      {/* Outer grid border — drawn last so it sits on top of everything. */}
+      <rect
+        x={0}
+        y={0}
+        width={540}
+        height={540}
+        fill="none"
+        stroke={STROKE}
+        strokeWidth={STROKE_WIDTH}
+      />
     </svg>
   );
 }
