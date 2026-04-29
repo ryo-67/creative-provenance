@@ -26,7 +26,7 @@ function FooterLink({
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="hover:underline"
+      className="text-[#666] no-underline hover:underline"
     >
       {children}
     </a>
@@ -37,28 +37,28 @@ function Footer() {
   return (
     <footer className="mt-24 border-t border-[#eee] px-8 py-12 text-sm text-[#666]">
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-        <p className="leading-relaxed md:max-w-[60%]">
-          Made by Shoro (
+        <p className="leading-relaxed">
+          Made by{' '}
           <FooterLink href="https://www.linkedin.com/in/royshoro/">
-            LinkedIn
-          </FooterLink>
-          {' | '}
+            Shoro Roy
+          </FooterLink>{' '}
+          (
           <FooterLink href="https://shoro.framer.website/">
             Portfolio
           </FooterLink>
-          ), Paola (
+          ),{' '}
           <FooterLink href="https://www.linkedin.com/in/pmachuca/">
-            LinkedIn
-          </FooterLink>
-          {' | '}
+            Paola Machuca Hernández
+          </FooterLink>{' '}
+          (
           <FooterLink href="https://www.behance.net/pmachucahdc16">
             Portfolio
           </FooterLink>
-          ), and Yash (
+          ), and{' '}
           <FooterLink href="https://www.linkedin.com/in/yash-pawar-94913b121/">
-            LinkedIn
-          </FooterLink>
-          {' | '}
+            Yash Pawar
+          </FooterLink>{' '}
+          (
           <FooterLink href="https://drive.google.com/file/d/14z5NZuvuJO-m2JSc6l4Nv3llfhFfjmLV/view?usp=share_link">
             Portfolio
           </FooterLink>
