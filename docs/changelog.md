@@ -1,5 +1,20 @@
 # Changelog
 
+## Session 13 -- 2026-04-29 -- Tally REST fetch via /result?sid={submissionId}
+- Tally now redirects to `/result?sid={submissionId}` on completion. The result page fetches the full submission server-side via the Tally REST API instead of reading every answer from URL params.
+- Added `TALLY_API_KEY` to `.env.local` and `.env.example` (both as empty placeholders).
+- Created `lib/tally.ts`:
+  - `fetchSubmission(submissionId)` — GETs `https://api.tally.so/forms/RGZO7p/submissions/{submissionId}` with `Authorization: Bearer ${TALLY_API_KEY}`. Throws a 404 error (with `.status` flag) if the submission isn't found, otherwise propagates a generic error.
+  - On the first successful call per process, logs the raw response shape to the server console so we can inspect it and refine the mapping.
+  - `mapTallyToProvenance(submission)` — best-effort map from Tally's `fields`/`responses` array to `Partial<ProvenanceResponse>`. Uses label/key substring heuristics to find each question, resolves option IDs to text via the field's `options` table, and matches against the schema's literal unions. TODO comments mark fields whose exact Tally shape can't be confirmed without a real submission (notably Q3's per-tile bucket fields and Q7's branch presence).
+- Created `app/api/tally-submission/route.ts` — GET handler. Reads `sid` from the query string, calls `fetchSubmission` + `mapTallyToProvenance`, returns the mapped response as JSON. 400 if `sid` is missing, 404 if the submission isn't found, 500 for other errors.
+- Updated `app/result/page.tsx`:
+  - Removed `parseTallyParams`. The result page no longer reads form answers from URL params — only `sid`.
+  - On mount, fetches `/api/tally-submission?sid={sid}` and renders loading/error/ok states.
+  - Added strip and Grace placeholder sections (still stubs; visual system + Grace generation are separate tasks).
+  - Dev-only debug block now shows the `sid` and the mapped `ProvenanceResponse` returned by the API route.
+- Build passes cleanly.
+
 ## Session 12.1 -- 2026-04-29 -- Rename to Creative Trace
 - Project renamed from "Creative Provenance" to "Creative Trace" after securing the domain creativetrace.art.
 - Production now lives at https://creativetrace.art/. The previous Vercel URL (https://creative-provenance.vercel.app/) is intentionally preserved as a live redirect to the new domain, handled at the Vercel/DNS level — references to it should not be removed from code or docs.
