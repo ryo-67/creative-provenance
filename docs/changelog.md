@@ -1,5 +1,18 @@
 # Changelog
 
+## Session 14 -- 2026-04-29 -- Grace generation wired end-to-end
+- Implemented `/app/api/grace/route.ts`: POST handler that accepts `{ submission: Partial<ProvenanceResponse> }`, calls Anthropic's Messages API with model `claude-sonnet-4-6` (alias — tracks the latest 4.6 build, no pinned date suffix), max_tokens 500, and the new "thank you to..." grace system prompt. Returns `{ grace: string }`. 400 on missing submission, 500 on API errors.
+- System prompt frames the grace as "a prayer said before a meal" — a moment to pause and name what was given to you before you take the first bite. Each line begins with "Thank you to..." or "Thank you for...", one per distinct contribution source. Ends with two ownership lines: `"You feel this piece is [natural language of feltOwnership 1-10]." / "Sit with that."` This closing exists to surface the Q10 tension — felt ownership is what the maker *feels*, not what fed the work; the submission may contradict the score.
+- System prompt marked `cache_control: { type: "ephemeral" }` so repeat traffic only pays for the user-specific JSON tokens.
+- Auth uses `x-api-key` (Anthropic's canonical header) rather than `Authorization: Bearer` — `sk-ant-…` keys aren't OAuth bearer tokens.
+- Updated `/app/result/page.tsx`:
+  - Added the static grace-intro paragraph above the grace area (the "A grace is a prayer said before a meal…" text).
+  - On successful submission load, the page POSTs the mapped submission to `/api/grace` and tracks a separate `graceState` (idle / loading / ok / error).
+  - "Composing your grace…" loading state, italic styling on the rendered grace.
+  - `<GraceLines>` splits the grace by `\n`, renders each line as its own `<p>`, and bumps `pt-6` on the second-to-last line so the ownership closing visibly steps away from the body.
+- Updated CLAUDE.md's Grace Generation section to match the new framing (prayer-before-a-meal, system prompt inlined in the route, max tokens 500, x-api-key, ephemeral caching, rate limiting deferred to V2). Updated "What to Prioritize" to drop the "implement /api/grace" item.
+- Build + lint clean.
+
 ## Session 13.3 -- 2026-04-29 -- Bugfix: mapTallyToProvenance was reading the wrong layer of the envelope
 - Symptom: even after Session 13.2's `value`/`answer` fallback, `/result?sid=X54L4bg` still rendered the schema's empty defaults for every field.
 - Cause: Tally's REST single-submission endpoint actually returns `{ questions: [...], submission: { id, responses: [...] } }` — the responses array is **one level deeper** than `mapTallyToProvenance` was reading. The function parameter was named `submission` but it was really the envelope; my code looked for `envelope.responses` and `envelope.submissions[0].responses`, but never `envelope.submission.responses`. Every `findAnswer` call ran against an empty array, and every mapped field collapsed to its default.
