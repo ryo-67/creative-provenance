@@ -71,6 +71,8 @@ type GraceState =
   | { status: 'ok'; grace: string }
   | { status: 'error'; message: string };
 
+type SharePlatform = 'ios' | 'android' | 'desktop';
+
 const GRACE_INTRO =
   'A grace is a prayer said before a meal — a moment to pause and name what was given to you before you take the first bite. This is yours. Read it, and sit with what fed this piece.';
 
@@ -84,7 +86,7 @@ function GraceLines({ grace }: { grace: string }) {
   // the body of thank-yous.
   const ownershipIndex = lines.length - 2;
   return (
-    <div className="space-y-1.5 text-sm italic leading-relaxed md:space-y-2 md:text-base">
+    <div className="space-y-1.5 text-sm italic leading-[1.8] md:space-y-2 md:text-base">
       {lines.map((line, i) => (
         <p key={i} className={i === ownershipIndex ? 'pt-5 md:pt-6' : ''}>
           {renderGraceLine(line)}
@@ -94,7 +96,52 @@ function GraceLines({ grace }: { grace: string }) {
   );
 }
 
-// Render the SVG inside `wrapper` to a 1080×1080 PNG and trigger a download.
+// --- Share icons ---
+// Inline SVGs picked per platform. iOS = square + up arrow; Android = three
+// connected dots; desktop = chain link (rendered when navigator.share is
+// unavailable, paired with a "Copy link" label).
+
+function ShareIcon({ platform }: { platform: SharePlatform }) {
+  const common = {
+    width: 18,
+    height: 18,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+  };
+  if (platform === 'ios') {
+    return (
+      <svg {...common} aria-hidden>
+        <path d="M12 16V4" />
+        <path d="M8 8l4-4 4 4" />
+        <path d="M5 12v8h14v-8" />
+      </svg>
+    );
+  }
+  if (platform === 'android') {
+    return (
+      <svg {...common} aria-hidden>
+        <circle cx="6" cy="12" r="3" />
+        <circle cx="18" cy="5" r="3" />
+        <circle cx="18" cy="19" r="3" />
+        <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+        <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+      </svg>
+    );
+  }
+  return (
+    <svg {...common} aria-hidden>
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+  );
+}
+
+// Render the SVG inside `wrapper` to a 1296×1296 PNG (1080 Tracemark + 10%
+// white padding) and trigger a download.
 async function downloadTracemarkPNG(
   wrapper: HTMLElement,
   sid: string,
@@ -122,7 +169,6 @@ async function downloadTracemarkPNG(
       img.src = svgUrl;
     });
 
-    // 1080×1080 Tracemark + 10% white padding on each side → 1296×1296 canvas.
     const TRACEMARK_SIZE = 1080;
     const PADDING = TRACEMARK_SIZE * 0.1; // 108
     const CANVAS_SIZE = TRACEMARK_SIZE + PADDING * 2; // 1296
@@ -171,6 +217,15 @@ function ResultContent() {
     return cached ? { status: 'ok', grace: cached } : { status: 'idle' };
   });
   const [toast, setToast] = useState<string | null>(null);
+  // Detect platform once at mount. The Suspense fallback above means this
+  // initializer only runs on the client, so navigator.userAgent is safe.
+  const [platform] = useState<SharePlatform>(() => {
+    if (typeof window === 'undefined') return 'desktop';
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+    if (/Android/i.test(ua)) return 'android';
+    return 'desktop';
+  });
 
   const tracemarkRef = useRef<HTMLDivElement>(null);
 
@@ -209,9 +264,6 @@ function ResultContent() {
 
   useEffect(() => {
     if (state.status !== 'ok' || !sid) return;
-    // Skip the API call if we already have a cached grace (initial state
-    // already populated from localStorage). Re-checking here keeps the
-    // effect closure-free and avoids reading graceState.
     if (readCachedGrace(sid)) return;
 
     let cancelled = false;
@@ -256,6 +308,7 @@ function ResultContent() {
   const graceLoading =
     state.status === 'ok' && graceState.status === 'idle';
   const tracemarkReady = state.status === 'ok';
+  const shareLabel = platform === 'desktop' ? 'Copy link' : 'Share';
 
   const handleDownload = () => {
     if (!tracemarkRef.current || !sid) return;
@@ -291,8 +344,8 @@ function ResultContent() {
   };
 
   return (
-    <main className="flex flex-1 flex-col px-6 py-10 md:py-16">
-      <div className="mx-auto w-full max-w-[1000px] space-y-10">
+    <main className="flex flex-1 flex-col px-6 py-12 md:py-20">
+      <div className="mx-auto w-full max-w-[1000px] space-y-16">
         <h1 className="text-4xl font-medium tracking-tight md:text-5xl">
           Your Tracemark
         </h1>
@@ -310,21 +363,26 @@ function ResultContent() {
           </p>
         )}
 
-        <div className="md:grid md:grid-cols-[minmax(0,440px)_1fr] md:gap-12">
-          {/* Left column: Tracemark + actions. Sticky on desktop. */}
+        <div className="md:grid md:grid-cols-[6fr_4fr] md:gap-12">
+          {/* Left column: Tracemark + actions + caption. Sticky on desktop. */}
           <section
             aria-label="Tracemark"
-            className="md:sticky md:top-8 md:self-start"
+            className="space-y-6 md:sticky md:top-8 md:self-start"
           >
-            <div ref={tracemarkRef} className="flex justify-center">
+            {/* Display-only background card. The download function reads the
+                inner SVG via querySelector, so this bg is not captured. */}
+            <div
+              ref={tracemarkRef}
+              className="flex justify-center bg-[#F5F5F5] p-6 md:p-8"
+            >
               {tracemarkReady ? (
                 <Tracemark
                   data={state.data}
-                  className="h-auto w-full max-w-[440px]"
+                  className="h-auto w-full max-w-[540px]"
                 />
               ) : (
                 <div
-                  className="flex aspect-square w-full max-w-[440px] items-center justify-center rounded-lg border border-dashed border-[#ddd] text-sm text-[#999]"
+                  className="flex aspect-square w-full max-w-[540px] items-center justify-center text-sm text-[#999]"
                   aria-live="polite"
                 >
                   {state.status === 'loading'
@@ -335,29 +393,35 @@ function ResultContent() {
             </div>
 
             {tracemarkReady && (
-              <div className="mt-4 flex justify-center gap-3">
+              <div className="flex justify-center gap-4">
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="inline-flex h-9 items-center rounded-lg bg-[#3E51C0] px-3.5 text-base text-white transition-opacity hover:opacity-90"
+                  className="inline-flex h-12 items-center bg-black px-6 text-lg text-white transition-opacity hover:opacity-90"
                 >
                   Download Tracemark ↓
                 </button>
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="inline-flex h-9 items-center rounded-lg border border-[#3E51C0] bg-transparent px-3.5 text-base text-[#3E51C0] transition-colors hover:bg-[#3E51C0]/5"
+                  className="inline-flex h-12 items-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black/5"
                 >
-                  Share ↗
+                  <ShareIcon platform={platform} />
+                  {shareLabel}
                 </button>
               </div>
             )}
+
+            <p className="mx-auto max-w-[440px] text-center text-sm leading-relaxed text-[#666]">
+              This is your Tracemark. Each patch represents a different
+              dimension of your creative process.
+            </p>
           </section>
 
           {/* Right column: grace intro + grace box. Stacks below on mobile. */}
           <section
             aria-label="Grace"
-            className="mt-10 space-y-5 md:mt-0 md:space-y-6"
+            className="mt-12 space-y-6 md:mt-0"
           >
             <p className="text-sm leading-relaxed text-[#666]">
               {GRACE_INTRO}
@@ -414,7 +478,7 @@ function ResultContent() {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-8 left-1/2 -translate-x-1/2 rounded-full bg-black px-4 py-2 text-sm text-white shadow-lg"
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-black px-4 py-2 text-sm text-white shadow-lg"
         >
           {toast}
         </div>
