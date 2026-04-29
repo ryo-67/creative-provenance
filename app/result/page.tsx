@@ -35,8 +35,9 @@ function writeCachedGrace(sid: string, grace: string): void {
   }
 }
 
-// Parse **markdown bold** spans into <strong>. Anything between matched
-// `**…**` becomes bold; everything else renders as plain text.
+// Parse **markdown bold** spans into emphasized inline text. The grace runs
+// in muted #666; bolded subjects use semibold weight + the darker #37352F
+// body color so they pop without shouting.
 function renderGraceLine(line: string): ReactNode[] {
   const parts: ReactNode[] = [];
   const regex = /\*\*([^*]+)\*\*/g;
@@ -49,7 +50,11 @@ function renderGraceLine(line: string): ReactNode[] {
         <Fragment key={key++}>{line.slice(lastIndex, match.index)}</Fragment>,
       );
     }
-    parts.push(<strong key={key++}>{match[1]}</strong>);
+    parts.push(
+      <strong key={key++} className="font-semibold text-[#37352F]">
+        {match[1]}
+      </strong>,
+    );
     lastIndex = regex.lastIndex;
   }
   if (lastIndex < line.length) {
@@ -87,7 +92,7 @@ function GraceLines({ grace }: { grace: string }) {
   // the body of thank-yous.
   const ownershipIndex = lines.length - 2;
   return (
-    <div className="space-y-1.5 text-sm italic leading-[1.8] md:space-y-2 md:text-base">
+    <div className="space-y-4 text-[13px] leading-[1.8] text-[#666] md:space-y-5 md:text-[15px]">
       {lines.map((line, i) => (
         <p key={i} className={i === ownershipIndex ? 'pt-5 md:pt-6' : ''}>
           {renderGraceLine(line)}
@@ -301,9 +306,9 @@ function ResultContent() {
   };
 
   return (
-    <main className="flex flex-1 flex-col px-6 py-12 md:py-20">
-      <div className="mx-auto w-full max-w-[1000px] space-y-16">
-        <h1 className="text-4xl font-medium tracking-tight md:text-5xl">
+    <main className="flex flex-1 flex-col px-6 pt-12 pb-20 md:pt-20">
+      <div className="mx-auto w-full max-w-[1100px]">
+        <h1 className="mb-8 text-4xl font-medium tracking-tight md:mb-12 md:text-5xl">
           Your Tracemark
         </h1>
 
@@ -324,7 +329,7 @@ function ResultContent() {
           {/* Left column: Tracemark + actions + caption. Sticky on desktop. */}
           <section
             aria-label="Tracemark"
-            className="space-y-6 md:sticky md:top-8 md:self-start"
+            className="md:sticky md:top-8 md:self-start"
           >
             {/* Display-only background card. The download function reads the
                 inner SVG via querySelector, so this bg is not captured. */}
@@ -350,11 +355,11 @@ function ResultContent() {
             </div>
 
             {tracemarkReady && (
-              <div className="flex justify-center gap-4">
+              <div className="mx-auto mt-6 flex w-full max-w-[540px] gap-2">
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="inline-flex h-12 items-center gap-2 bg-black px-6 text-lg text-white transition-opacity hover:opacity-90"
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 bg-black px-4 text-lg text-white transition-opacity hover:opacity-90"
                 >
                   <Download size={20} strokeWidth={2.5} aria-hidden />
                   Download Tracemark
@@ -362,7 +367,7 @@ function ResultContent() {
                 <button
                   type="button"
                   onClick={handleShare}
-                  className="inline-flex h-12 items-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black/5"
+                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 border-[3px] border-black bg-transparent px-4 text-lg text-black transition-colors hover:bg-black/5"
                 >
                   {platform === 'desktop' ? (
                     <LinkIcon size={20} strokeWidth={2.5} aria-hidden />
@@ -374,24 +379,22 @@ function ResultContent() {
               </div>
             )}
 
-            <p className="mx-auto max-w-[440px] text-center text-sm leading-relaxed text-[#666]">
-              This is your Tracemark. Each patch represents a different
-              dimension of your creative process.
+            <p className="mx-auto mt-4 max-w-[540px] text-center text-sm leading-relaxed text-[#666]">
+              This is your Tracemark. Each patch maps a different part of
+              how this piece was made: who taught you, what you soaked in,
+              what tools you used, and who shaped it alongside you.
             </p>
           </section>
 
           {/* Right column: grace intro + grace box. Stacks below on mobile. */}
-          <section
-            aria-label="Grace"
-            className="mt-12 space-y-6 md:mt-0"
-          >
-            <p className="text-sm leading-relaxed text-[#666]">
+          <section aria-label="Grace" className="mt-12 md:mt-0">
+            <p className="mb-6 text-sm leading-relaxed text-[#666]">
               {GRACE_INTRO}
             </p>
 
-            <div className="border-l-[3px] border-[#3E51C0] bg-[#F8F7F6] p-4 md:p-6">
+            <div className="border-l-2 border-black bg-[#F8F7F6] p-4 md:p-6">
               {graceLoading && (
-                <p className="text-sm italic text-[#999]" aria-live="polite">
+                <p className="text-sm text-[#999]" aria-live="polite">
                   Composing your grace…
                 </p>
               )}
@@ -404,7 +407,7 @@ function ResultContent() {
                 <GraceLines grace={graceState.grace} />
               )}
               {graceState.status === 'idle' && state.status !== 'ok' && (
-                <p className="text-sm italic text-[#999]">
+                <p className="text-sm text-[#999]">
                   Waiting for your submission…
                 </p>
               )}
@@ -413,7 +416,7 @@ function ResultContent() {
         </div>
 
         {isDev && (
-          <section className="space-y-4 rounded-lg border border-[#eee] bg-[#fafafa] p-4 text-xs">
+          <section className="mt-16 space-y-4 rounded-lg border border-[#eee] bg-[#fafafa] p-4 text-xs">
             <div>
               <h2 className="mb-2 font-mono uppercase tracking-wide text-[#999]">
                 sid

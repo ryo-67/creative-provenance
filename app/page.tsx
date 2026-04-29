@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
 import Tracemark from '@/components/Tracemark';
 import type {
   AIGenerationKind,
@@ -13,10 +14,9 @@ import type {
 } from '@/lib/schema';
 
 // --- Hero sample Tracemarks ---
-// Generated deterministically from index `i` so each cell looks distinct
-// (different mediums, teacher mixes, helper mixes, AI used or not, varied
-// ownership). Prime modulos on different fields keep adjacent cells from
-// looking similar.
+// 16 marks, deterministic per index. Prime-modulo cycling on each axis
+// (medium / teachers / helpers / references / collaborators / AI fields)
+// keeps adjacent cells from repeating.
 
 const MEDIUMS: MediumType[] = [
   'painted',
@@ -118,8 +118,6 @@ const AI_AWARENESS: TrainingDataAwareness[] = [
 ];
 
 function buildSample(i: number): Partial<ProvenanceResponse> {
-  // Prime modulos so each axis cycles independently — adjacent samples
-  // rarely match on more than one or two fields at once.
   const aiUsed = i % 3 === 0;
   return {
     piece: { description: '', medium: MEDIUMS[i % MEDIUMS.length] },
@@ -140,22 +138,18 @@ function buildSample(i: number): Partial<ProvenanceResponse> {
   };
 }
 
-const SAMPLE_COUNT = 36; // 12 cols × 3 rows
+const SAMPLE_COUNT = 16; // 8 cols × 2 rows
 const SAMPLES = Array.from({ length: SAMPLE_COUNT }, (_, i) => buildSample(i));
 
 function HeroGrid() {
-  // Outer wrapper is full-width with overflow-hidden so the grid edges
-  // get clipped on viewports narrower than the grid's natural width
-  // (1288px at 12 cols × 100px + 11 × 8px gap). Inner grid uses w-max so
-  // it stays at its natural width regardless of container.
+  // 8 cols × 140px + 7 × 8px gap = 1176px natural width. On viewports
+  // narrower than that, the outer overflow-hidden clips the edges so
+  // the grid reads as a "sample field" continuing past the page.
   return (
-    <div
-      aria-hidden
-      className="overflow-hidden py-8 md:py-12"
-    >
-      <div className="mx-auto grid w-max grid-cols-12 gap-2">
+    <div aria-hidden className="overflow-hidden py-16">
+      <div className="mx-auto grid w-max grid-cols-8 gap-2">
         {SAMPLES.map((sample, i) => (
-          <Tracemark key={i} data={sample} size={100} />
+          <Tracemark key={i} data={sample} size={140} />
         ))}
       </div>
     </div>
@@ -167,19 +161,17 @@ export default function Home() {
     <main className="flex flex-1 flex-col">
       <HeroGrid />
 
-      <div className="px-6 py-10">
-        <div className="mx-auto w-full max-w-[700px] space-y-10">
-          <header className="space-y-6">
-            <h1 className="text-5xl font-medium tracking-tight">
-              Creative Trace
-            </h1>
-            <p className="text-2xl font-light leading-snug text-[#666]">
-              This project maps the full chain of human, technological, and
-              cultural influences that shape a work of art.
-            </p>
-          </header>
+      <div className="px-6 pb-16 md:pb-20">
+        <div className="mx-auto w-full max-w-[800px]">
+          <h1 className="mb-4 text-5xl font-medium tracking-tight">
+            Creative Trace
+          </h1>
+          <p className="text-2xl font-light leading-snug text-[#666]">
+            This project maps the full chain of human, technological, and
+            cultural influences that shape a work of art.
+          </p>
 
-          <div className="space-y-5 text-base leading-relaxed">
+          <div className="mt-10 space-y-8 text-base leading-relaxed">
             <p>
               We’ve always borrowed, referenced, and built on others. AI is
               just the newest contributor. But the tools that address AI in
@@ -205,23 +197,21 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="text-center">
-            <Link
-              href="/questionnaire"
-              className="inline-flex h-12 items-center bg-black px-6 text-lg text-white transition-opacity hover:opacity-90"
-            >
-              Trace your work →
-            </Link>
+          <Link
+            href="/questionnaire"
+            className="mt-12 inline-flex h-12 w-full items-center justify-center gap-2 bg-black px-6 text-lg text-white transition-opacity hover:opacity-90"
+          >
+            Trace your work
+            <ArrowRight size={20} strokeWidth={2.5} aria-hidden />
+          </Link>
 
-            <p className="mx-auto mt-12 max-w-[600px] text-base leading-relaxed">
-              Your questionnaire responses are stored by Tally, our form
-              provider. To generate your grace, your responses are sent to
-              Anthropic’s Claude. Your data is not used for model training,
-              advertising, or any purpose beyond generating your Tracemark.
-              We do not collect your name, email, or any contact
-              information.
-            </p>
-          </div>
+          <p className="mt-12 max-w-[600px] text-base leading-relaxed">
+            Your questionnaire responses are stored by Tally, our form
+            provider. To generate your grace, your responses are sent to
+            Anthropic’s Claude. Your data is not used for model training,
+            advertising, or any purpose beyond generating your Tracemark. We
+            do not collect your name, email, or any contact information.
+          </p>
         </div>
       </div>
     </main>

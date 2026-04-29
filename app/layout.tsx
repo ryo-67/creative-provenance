@@ -36,7 +36,7 @@ function FooterLink({
 function Footer() {
   return (
     <footer className="mt-8 px-6 py-6 text-center text-[13px] text-[#999]">
-      <div className="mx-auto w-full max-w-[700px] space-y-2">
+      <div className="mx-auto w-full max-w-[1100px] space-y-2">
         <p className="leading-relaxed">
           Made by{' '}
           <FooterLink href="https://www.linkedin.com/in/royshoro/">
