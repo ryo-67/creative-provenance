@@ -371,6 +371,15 @@ export function mapTallyToProvenance(
     );
   }
 
+  // --- Per-item raw dump (temporary; remove once mapping is verified) ---
+  // Logs every response item's questionId + raw answer BEFORE any mapping,
+  // so we see exactly what Tally sent regardless of TEXT_TO_SCHEMA hits.
+  for (const r of responses) {
+    const raw = r.answer !== undefined ? r.answer : r.value;
+    console.log(`[tally] q=${r.questionId} answer=${JSON.stringify(raw)}`);
+  }
+  // --- End per-item raw dump ---
+
   // Metadata.
   if (inner.id) out.id = inner.id;
   const ts = inner.submittedAt ?? inner.createdAt;
