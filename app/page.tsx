@@ -20,7 +20,7 @@ export default function Home() {
           Begin
         </Link>
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          No accounts. No tracking. Your answers stay on your device.
+          No accounts. About 5–7 minutes.
         </p>
       </div>
     </main>

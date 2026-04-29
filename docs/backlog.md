@@ -3,6 +3,8 @@
 Ideas, deferred features, and out-of-scope items that surfaced during development. Items here are not commitments -- they're the parking lot.
 
 ## V2 Features
+- Re-implement reflective custom UI in Next.js (sub-step flows, spatial drag canvas for Q3, position-dot 2D field for Q8/Q10). Built and removed in Sessions 1–11; lives in git history. The Tally embed in V1 is a faster path to symposium; the original ambition was a hand-crafted, contemplative interaction that Tally cannot match.
+- Tally → webhook ingestion to a database (Supabase / Vercel KV) instead of redirect-with-params, so the URL stays clean and answers are durable
 - Shareable URLs for fingerprints (requires backend storage)
 - Email-the-result functionality
 - User accounts and saved sessions across devices

@@ -75,47 +75,29 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   layout.tsx                    # Root layout with metadata
   page.tsx                      # Landing page
   /questionnaire
-    page.tsx                    # Main questionnaire flow
-    /[step]
-      page.tsx                  # Per-question routing (optional, see questions array first)
+    page.tsx                    # Tally embed (full-viewport iframe + embed.js loader)
   /result
-    page.tsx                    # Fingerprint + Grace + share/download
+    page.tsx                    # Reads URL params from Tally redirect, parseTallyParams stub, renders fingerprint + Grace
   /api
     /grace
-      route.ts                  # Proxied call to Claude API
+      route.ts                  # Proxied call to Claude API (currently a stub)
 /components
-  /questions                    # One component per question type
-    PieceQuestion.tsx           # Q1
-    SeedQuestion.tsx            # Q2
-    ReferenceShelf.tsx          # Q3 spatial canvas
-    TeachersQuestion.tsx        # Q4
-    GhostQuestion.tsx           # Q5
-    AIHelpersQuestion.tsx       # Q6
-    AIGeneratorQuestion.tsx     # Q7 (branched)
-    PositionDot.tsx             # Q8, Q10 shared
-    CollaboratorsQuestion.tsx   # Q9
-    VerdictQuestion.tsx         # Q10
   /fingerprint
-    Fingerprint.tsx             # Master SVG composition
+    Fingerprint.tsx             # Master SVG composition (placeholder, awaiting visual system)
     primitives/                 # Individual visual primitives per source type
   /share
     ShareSheet.tsx              # Native share + download
     DownloadButton.tsx
-  /shared
-    StepNav.tsx                 # Reusable Back/Next nav for sub-step flows (Q1, Q7)
-    MultiSelectCard.tsx         # Card with checkbox indicator for multi-select questions
 /lib
-  schema.ts                     # ProvenanceResponse type + Zod schema
+  schema.ts                     # ProvenanceResponse type + Zod schema (target shapes Tally params map into)
   fingerprint-config.ts         # Mapping of answers to visual primitives
   grace-prompt.ts               # System prompt for Grace generation
-  storage.ts                    # localStorage helpers
-  /hooks
-    useRovingTabIndex.ts        # Reusable arrow-key navigation for checkbox groups
+  storage.ts                    # localStorage helpers (kept for now; not currently referenced after the Tally pivot)
 /public
   /assets                       # SVG primitives, fonts, etc.
 /docs
   requirements.md               # Feature spec and data schema
-  questionnaire-draft.md        # Question copy and format spec
+  questionnaire-draft.md        # Question copy reference (canonical copy now lives in the Tally form)
   backlog.md                    # Ideas and deferred features
   bugs.md                       # Bug tracker
   changelog.md                  # Session-by-session history
@@ -135,10 +117,10 @@ type ProvenanceResponse = {
 
   piece: { description: string; medium: MediumType; mediumOther?: string };
   seed: { types: SeedType[]; other?: string };
-  references: Array<{ id: ReferenceTileId; weight: number; position: { x: number; y: number } }>;
+  references: Array<{ id: ReferenceTileId; weight: 0.2 | 0.5 | 0.85 }>;
   teachers: Array<TeacherType>;
   ghost: { present: boolean; description?: string };
-  aiHelpers: Array<AIHelperType>;
+  aiHelpers: Array<AIHelperType>;            // empty = no helpers used
   aiGenerator: {
     used: boolean;
     kinds?: Array<AIGenerationKind>;
@@ -146,9 +128,9 @@ type ProvenanceResponse = {
     stage?: AIGenerationStage;
     trainingDataAwareness?: TrainingDataAwareness;
   };
-  directionExecution: { x: number; y: number };
-  collaborators: Array<CollaboratorType>;
-  ownership: { feltOwnership: number; why?: string };
+  directionExecution: number;                // integer 1-10 (1=director, 10=maker)
+  collaborators: Array<CollaboratorType>;    // empty = just me
+  ownership: { feltOwnership: number; why?: string };  // feltOwnership integer 1-10
 };
 ```
 
@@ -210,49 +192,31 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 - Build failures show in Vercel dashboard; check there before assuming a regression is local
 - Production environment is stricter than `next dev` — always run `npm run build` locally before pushing if a change is risky
 
+## Tally integration
+
+The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full-viewport iframe at /questionnaire via Tally's official embed.js script (loaded with next/script, strategy="afterInteractive").
+
+**Submit flow (V1):** Tally is configured (in its own dashboard, not in this codebase) to redirect to /result with the user's answers as URL parameters. /result reads them with `useSearchParams`, runs `parseTallyParams(URLSearchParams)` to coerce them into a `Partial<ProvenanceResponse>`, and renders the fingerprint and Grace.
+
+**`parseTallyParams` is currently a stub** — Tally's exact param names depend on the form's question IDs and option keys, which haven't been finalized. The stub returns `{}`. To wire it up, configure Tally's redirect with question answers as URL params, visit /result after submitting in dev (the dev-only debug block prints the raw param map), then fill in the mapping.
+
+**V2 plan:** replace the redirect-with-params hack with a Tally webhook → Next.js API route → durable storage (Supabase or Vercel KV). That gets the answers off the URL bar and enables shareable result URLs. See backlog.
+
 ## What to Prioritize
 
-**Week 12 (now):**
-- Repo setup, Vercel deploy, schema, page routing
-- Standard questions (Q1, Q2, Q4, Q6, Q9) — multi-select and single-select patterns
-- Q7 branched flow (yes/no, then sub-questions)
-- Placeholder fingerprint and placeholder Grace
-- Get one full straight-through path working
-
-**Week 13:**
-- Q3 spatial canvas with mobile/a11y fallback
-- Q8/Q10 2D position dots (shared component)
-- Real fingerprint visualization (V1 symbolic)
-- Real Grace generation with tuned prompt
-- Download PNG
-
-**Week 14:**
-- Social sharing (Web Share API)
-- Polish, mobile testing, accessibility
-- Symposium-ready
+**Now (Session 12+):**
+- Configure Tally redirect to /result with answers as URL params
+- Wire `parseTallyParams` once param names are known
+- Visual system delivery from Paola/Yash → real fingerprint composition
+- Real Grace prompt + /api/grace implementation
+- Download PNG, share, symposium polish
 
 ## Accessibility Floor
 
-- All questions must be navigable by keyboard
-- Q3 canvas must have a non-canvas fallback for screen readers and keyboard users (the three-bucket version)
-- Q8/Q10 position dots need keyboard alternatives (arrow keys to move, enter to confirm)
+- /result must be keyboard-navigable; the Grace must be selectable and copyable
 - All text contrast must meet WCAG AA
 - All images and SVG elements need alt text or aria-label
-- The Grace must be selectable and copyable
-
-## Interaction Patterns
-
-All questions use an explicit Next button. The single exception is Q3's mobile fallback (rapid-fire tile-by-tile), which auto-advances on tap because each tile is a sequential independent decision. Auto-advance was tested form-wide in Session 10 and reverted in Session 11 for consistency.
-
-**Multi-select questions** (Q2, Q4, Q6, Q9, Q7 Kinds) show a checkbox indicator on each card (via `MultiSelectCard`) and the subtitle "Check all that apply."
-
-**Single-select questions** (Q1 medium, Q7 gate/stage/awareness) use card-style radios with no indicator, plus an explicit Next button.
-
-**PositionDot questions** (Q8, Q10) show the Next button as soon as the dot has been interacted with.
-
-## Branched Questions
-
-Q7 uses internal sub-step state for its branched flow. The layout's back/next buttons are hidden on step 7; Q7 renders its own. The initial sub-step is derived from current data state (first incomplete field), so refreshing lands on the right sub-step without separate persistence. This pattern can be reused for any future branched questions.
+- The Tally form has its own accessibility profile; no in-codebase a11y work for the questions themselves
 
 ## Anti-Patterns
 
@@ -267,6 +231,7 @@ Do not:
 - Add accounts, auth, or login in V1
 - Collapse Q3's distinct reference categories back into broad buckets — the granularity is intentional
 - Use technical/categorical language in question copy — voice should be evocative and personal
+- Re-implement the questionnaire UI in Next.js — that's deliberately deferred to V2; until then, all question UX changes happen in Tally
 
 ## Voice and Tone
 

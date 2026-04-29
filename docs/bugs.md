@@ -4,6 +4,16 @@
 
 (none right now)
 
+## Resolved by removal (Session 12, 2026-04-29)
+
+These bugs lived in the custom-coded questionnaire that was deleted when the survey moved to Tally. They no longer apply, but are kept as a historical record.
+
+- Form-wide auto-advance caused inconsistent UX (single-select vs. multi-select pacing)
+- Auto-advance only triggers on second click, not first (interactedSinceMount guard)
+- Q3 fallback weight buttons in wrong order
+- Q2 first option focus ring missing (Tailwind v4 has-[:focus-visible] pattern)
+- Q2 arrow key navigation broken after radio→checkbox conversion (roving tabindex)
+
 ## Fixed
 
 ### 2026-04-25 -- Form-wide auto-advance caused inconsistent UX

@@ -1,5 +1,27 @@
 # Changelog
 
+## Session 12 -- 2026-04-29 -- Pivot to Tally + result page stub
+- Abandoned the custom-coded questionnaire. The survey now lives in Tally at https://tally.so/r/RGZO7p, embedded as a full-viewport iframe at /questionnaire.
+- Tally is configured (separately, in the Tally dashboard) to redirect to /result with answers as URL parameters on submit.
+- /app/questionnaire/page.tsx replaced with a single client component that loads tally.so/widgets/embed.js via next/script (strategy="afterInteractive") and renders the iframe.
+- /app/result/page.tsx scaffolded as a client component: reads useSearchParams(), passes them to a parseTallyParams() stub (returns {} for now), shows a placeholder + dev-only debug block listing raw params and parsed output. Does NOT call /api/grace yet.
+- /api/grace/route.ts stub kept; now imports ProvenanceResponse type to keep it in sync with the schema. No generation logic yet.
+- /app/page.tsx: removed "your answers stay on your device" line (no longer accurate with Tally hosting). Kept the rest.
+- Schema updates in /lib/schema.ts:
+  - Q3 references: dropped position; weight is now one of {0.2, 0.5, 0.85} (Tally produces three buckets, not a continuous canvas value)
+  - Q6 aiHelpers: removed 'none' from AIHelperType union; empty array signals "no helpers used"
+  - Q8 directionExecution: changed from {x, y} normalized 0-1 to a single integer 1-10
+  - Q9 collaborators: removed 'just-me' from CollaboratorType union; empty array signals "just me"
+  - Q10 ownership.feltOwnership: integer 1-10 instead of normalized 0-1
+  - Header comment notes these are the target shapes Tally params will be mapped into
+- Deleted (no longer needed):
+  - /app/questionnaire/[step]/ (the per-step routing)
+  - /app/questionnaire/layout.tsx (QuestionnaireProvider wrapper + footer hint)
+  - /components/questions/ (all 9 question components)
+  - /components/shared/StepNav.tsx, MultiSelectCard.tsx
+  - /lib/context.tsx, /lib/steps.ts, /lib/hooks/useRovingTabIndex.ts
+- Build passes cleanly with the new schema and stubs.
+
 ## Session 11.2 -- 2026-04-25 -- Q3 canvas layout balance
 - Tightened pool tile padding (py-1, text-[11px]) so 12 tiles take less vertical space
 - Canvas min-height 360px, max-height 600px (no aspect-ratio lock) so it stretches to match pool height

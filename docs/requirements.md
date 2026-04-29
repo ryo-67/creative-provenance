@@ -8,10 +8,12 @@ Built for the F(r)ictions: Creative Work in an Age of AI symposium on May 1, 202
 
 ## Core User Flow
 
-1. **Landing page** — sets context, names the project, has one CTA: "Begin"
-2. **Questionnaire** — 10 questions, ~5–7 minutes, mobile-responsive
-3. **Loading state** — fingerprint composition + Grace generation (~3–8 seconds)
-4. **Result page** — fingerprint, Grace, download/share, "begin again" option
+1. **Landing page** — sets context, names the project, has one CTA: "Begin" → /questionnaire
+2. **Questionnaire** — Tally form (https://tally.so/r/RGZO7p) embedded full-viewport at /questionnaire as an iframe via Tally's official embed script. ~5–7 minutes, mobile-responsive (Tally handles all the question UI, validation, and accessibility).
+3. **Submit redirect** — Tally is configured (in its dashboard, not in this codebase) to redirect to /result with the user's answers as URL parameters on submit.
+4. **Result page** — /result reads URL params, calls `parseTallyParams()` to coerce them into a `ProvenanceResponse`, generates the fingerprint, calls /api/grace for the Grace text, and offers download/share.
+
+The custom-coded reflective UI (sub-step flows, spatial canvas, position dots) was implemented in Sessions 1–11 and removed in Session 12 to ship faster for the symposium. Re-implementing it in Next.js is a V2 ambition — see `/docs/backlog.md`.
 
 ## Target Audience
 
@@ -26,7 +28,7 @@ All questions anchor to one specific recent piece the user picks at Q1.
 The questionnaire moves through three time horizons: the moment of starting (Q2), the period of making (Q3), and the years of training that shaped how the artist works (Q4). Each asks about different scales of contribution.
 
 ### Q1 — The piece
-- **Format**: sub-step flow (sub-step 0: description text input, sub-step 1: medium selection). Each sub-step is one screen. URL stays at /questionnaire/1; Q1 renders its own Back/Next buttons.
+- **Format**: text input (description) + single-select (medium) in Tally; "Something else" reveals an open text field
 - **Required**: yes
 - **Schema**: `piece: { description: string, medium: MediumType, mediumOther?: string }`
 
@@ -61,14 +63,11 @@ Twelve seed categories covering inner, structural, and external origins:
 - `other` — open text fallback
 
 ### Q3 — The reference shelf
-- **Format**: two modes detected via `matchMedia('(min-width: 768px)')`:
-  - **Desktop (>= 768px)**: spatial canvas with drag-and-drop. Pool of 12 tiles on left, canvas on right. Vertical axis encodes weight: `weight = max(0.1, 1 - y)` where y=0 is the top. Three visual zones (Really shaped it / Shaped it some / Barely there) separated by dashed dividers. X-axis is cosmetic (horizontal spread). Tiles sized 40-80px by weight.
-  - **Mobile (< 768px) / accessibility**: rapid-fire tile-by-tile flow. One tile at a time with 3 weight buttons + Skip. Auto-advances per tile on tap. Back/Next/Done for manual navigation.
-  - "Use simple version" toggle available on desktop for keyboard users.
-- **Required**: yes (at least one tile placed)
-- **Schema**: `references: Array<{ id: ReferenceTileId, weight: number, position: { x: number, y: number } }>`
-  - `weight`: 0.1 to 1 (canvas) or 0.2/0.5/0.85 (fallback buckets)
-  - `position`: normalized 0-1 canvas coordinates (canvas) or fixed bucket positions (fallback)
+- **Format (Tally)**: each reference tile gets a three-bucket weight selection in the Tally form (Really shaped it / Shaped it some / Barely there / Skip). The Tally form drives the UI; the spatial drag canvas is **deprecated for V1** (see backlog for V2 re-implementation).
+- **Required**: yes (at least one tile weighted)
+- **Schema**: `references: Array<{ id: ReferenceTileId, weight: 0.2 | 0.5 | 0.85 }>`
+  - `weight`: 0.2 (Barely there) | 0.5 (Shaped it some) | 0.85 (Really shaped it)
+  - No `position` field — Tally produces only the bucket selection, and visual placement is handled by the fingerprint composition in V1.
 
 Reference tiles are grouped (visually distinct sections in the UI) but data-flat:
 
@@ -115,11 +114,11 @@ Teacher categories:
 - **Schema**: `ghost: { present: boolean, description?: string }`
 
 ### Q6 — AI as quiet helper
-- **Format**: rapid yes/no checklist
-- **Required**: yes (at least one option, including "none of these")
-- **Schema**: `aiHelpers: Array<AIHelperType>`
+- **Format**: multi-select in Tally
+- **Required**: no (empty selection signals "none of these")
+- **Schema**: `aiHelpers: Array<AIHelperType>` — empty array = no helpers used
 
-Twelve quiet-helper categories:
+Eleven quiet-helper categories (the explicit `none` value was removed; absence is encoded by an empty array):
 - `background-removal` — background removal or smart subject selection
 - `generative-fill` — generative fill, content-aware fill, or smart heal
 - `auto-correction` — auto color correction, exposure, noise cleanup
@@ -131,10 +130,9 @@ Twelve quiet-helper categories:
 - `transcription` — voice-to-text, auto-transcription, captions
 - `recommendations` — generative font/palette/composition suggestions
 - `auto-tagging` — auto-tagging or auto-organization in asset library
-- `none` — none of these
 
 ### Q7 — AI as generator
-- **Format**: branched sub-step flow (True/False gate, then 3 sub-steps if True). Each sub-step is one screen. URL stays at /questionnaire/7; Q7 renders its own Back/Next buttons.
+- **Format**: branched flow in Tally — Yes/No gate, then conditional logic surfaces the three sub-questions (kinds, stage, training-data awareness) only when the gate is "Yes". Tally's logic jump handles this natively.
 - **Required**: yes (the branch is required if "true")
 - **Schema**:
   ```typescript
@@ -169,17 +167,16 @@ Training data awareness (single-select, only if `used: true`):
 - `licensed` — chose model trained on licensed/consenting data
 
 ### Q8 — Direction vs. execution
-- **Format**: drag a dot on a 2D field between two illustrated poles
+- **Format**: linear scale 1–10 in Tally (1 = Director, 10 = Maker)
 - **Required**: yes
-- **Schema**: `directionExecution: { x: number, y: number }` — both normalized 0–1
-  - Y-axis is reserved for V2 use; default to 0.5 in V1
+- **Schema**: `directionExecution: number` — integer 1–10
 
 ### Q9 — The other hands
-- **Format**: multi-select
-- **Required**: yes (at least one, including "just-me")
-- **Schema**: `collaborators: Array<CollaboratorType>`
+- **Format**: multi-select in Tally
+- **Required**: no (empty selection signals "just me")
+- **Schema**: `collaborators: Array<CollaboratorType>` — empty array = just me
 
-Collaborator categories:
+Seven collaborator categories (the explicit `just-me` value was removed; absence is encoded by an empty array):
 - `assistant` — studio assistant who handled what I couldn't get to
 - `fabricator` — fabricator, printer, technician who turned my file into a thing
 - `editor` — retoucher, colorist, editor who refined what I made
@@ -187,12 +184,11 @@ Collaborator categories:
 - `mentor` — mentor or teacher whose voice was in my head
 - `model` — model, performer, person whose likeness is in this
 - `commissioned-creator` — photographer, illustrator, or designer whose stock or commissioned work I built on
-- `just-me` — nobody, just me
 
 ### Q10 — The verdict
-- **Format**: drag a dot on a 2D field between two poles + optional text
-- **Required**: yes for the dot, no for the text
-- **Schema**: `ownership: { feltOwnership: number, why?: string }` — `feltOwnership` normalized 0–1
+- **Format**: linear scale 1–10 in Tally (1 = Not really mine, 10 = Completely mine) + optional "Why?" text
+- **Required**: yes for the scale, no for the text
+- **Schema**: `ownership: { feltOwnership: number, why?: string }` — `feltOwnership` integer 1–10
 
 ## Full Data Schema
 
@@ -257,8 +253,7 @@ type AIHelperType =
   | 'rotoscoping'
   | 'transcription'
   | 'recommendations'
-  | 'auto-tagging'
-  | 'none';
+  | 'auto-tagging';
 
 type AIGenerationKind =
   | 'text-to-image'
@@ -289,8 +284,7 @@ type CollaboratorType =
   | 'peer'
   | 'mentor'
   | 'model'
-  | 'commissioned-creator'
-  | 'just-me';
+  | 'commissioned-creator';
 
 type ProvenanceResponse = {
   // Metadata
@@ -314,8 +308,7 @@ type ProvenanceResponse = {
   // Q3
   references: Array<{
     id: ReferenceTileId;
-    weight: number;              // 0 to 1
-    position: { x: number; y: number };  // 0 to 1, normalized
+    weight: 0.2 | 0.5 | 0.85;    // Tally three-bucket weight
   }>;
 
   // Q4
@@ -327,7 +320,7 @@ type ProvenanceResponse = {
     description?: string;
   };
 
-  // Q6
+  // Q6 (empty array = no helpers used)
   aiHelpers: Array<AIHelperType>;
 
   // Q7
@@ -339,18 +332,15 @@ type ProvenanceResponse = {
     trainingDataAwareness?: TrainingDataAwareness;
   };
 
-  // Q8
-  directionExecution: {
-    x: number;                   // 0 (director) to 1 (maker)
-    y: number;                   // reserved, default 0.5
-  };
+  // Q8 (1 = director, 10 = maker)
+  directionExecution: number;
 
-  // Q9
+  // Q9 (empty array = just me)
   collaborators: Array<CollaboratorType>;
 
-  // Q10
+  // Q10 (1 = not mine, 10 = completely mine)
   ownership: {
-    feltOwnership: number;       // 0 (not mine) to 1 (completely mine)
+    feltOwnership: number;
     why?: string;
   };
 };

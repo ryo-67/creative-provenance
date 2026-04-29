@@ -1,3 +1,9 @@
+// Target schema for ProvenanceResponse.
+// The questionnaire is hosted on Tally (https://tally.so/r/RGZO7p) and redirects
+// to /result with answers as URL parameters. The shapes below are what
+// `parseTallyParams` (in /app/result/page.tsx) maps Tally's params into.
+// Until that mapping is wired, /result reads raw params and renders a stub.
+
 import { z } from 'zod';
 
 // --- Union types ---
@@ -71,7 +77,6 @@ export const AIHelperType = z.enum([
   'transcription',
   'recommendations',
   'auto-tagging',
-  'none',
 ]);
 export type AIHelperType = z.infer<typeof AIHelperType>;
 
@@ -111,19 +116,20 @@ export const CollaboratorType = z.enum([
   'mentor',
   'model',
   'commissioned-creator',
-  'just-me',
 ]);
 export type CollaboratorType = z.infer<typeof CollaboratorType>;
 
 // --- Composite schemas ---
 
+const ReferenceWeight = z.union([
+  z.literal(0.2),
+  z.literal(0.5),
+  z.literal(0.85),
+]);
+
 const ReferenceSchema = z.object({
   id: ReferenceTileId,
-  weight: z.number().min(0).max(1),
-  position: z.object({
-    x: z.number().min(0).max(1),
-    y: z.number().min(0).max(1),
-  }),
+  weight: ReferenceWeight,
 });
 
 const AIGeneratorSchema = z.object({
@@ -150,6 +156,8 @@ export const ProvenanceResponseSchema = z.object({
     other: z.string().optional(),
   }),
 
+  // Q3: weight is one of three discrete values from the Tally form.
+  // No spatial position — the custom drag canvas is deprecated.
   references: z.array(ReferenceSchema),
 
   teachers: z.array(TeacherType).min(1),
@@ -159,19 +167,20 @@ export const ProvenanceResponseSchema = z.object({
     description: z.string().optional(),
   }),
 
-  aiHelpers: z.array(AIHelperType).min(1),
+  // Q6: empty array signals "no helpers used" (Tally's "none of these"
+  // option resolves to an empty selection in the parsed shape).
+  aiHelpers: z.array(AIHelperType),
 
   aiGenerator: AIGeneratorSchema,
 
-  directionExecution: z.object({
-    x: z.number().min(0).max(1),
-    y: z.number().min(0).max(1),
-  }),
+  // Q8: integer 1-10 from a Tally linear-scale field.
+  directionExecution: z.number().int().min(1).max(10),
 
-  collaborators: z.array(CollaboratorType).min(1),
+  // Q9: empty array signals "just me."
+  collaborators: z.array(CollaboratorType),
 
   ownership: z.object({
-    feltOwnership: z.number().min(0).max(1),
+    feltOwnership: z.number().int().min(1).max(10),
     why: z.string().optional(),
   }),
 });
