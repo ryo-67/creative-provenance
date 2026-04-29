@@ -6,11 +6,17 @@
 
 ## Fixed
 
+### 2026-04-29 -- mapTallyToProvenance was reading the wrong envelope layer
+- Symptom: `/result?sid=X54L4bg` still rendered empty defaults after the Session 13.2 fix.
+- Cause: Tally's single-submission endpoint returns `{ questions, submission: { id, responses } }` — the responses array is one level deeper than the mapper was reading. `findAnswer` ran against an empty array because `extractResponses` checked `env.responses` and `env.submissions[0].responses` but never `env.submission.responses`.
+- Fix: split into `TallyInnerSubmission` (the real submission) and `TallySubmission` (the envelope). `extractInnerSubmission(env)` now finds the inner submission via `env.submission.responses` first. Metadata (`id`, `submittedAt`) is read from the inner submission too. Diagnostic logs added at the top of `mapTallyToProvenance` for verification.
+- Commit: included in the Session 13.3 push.
+
 ### 2026-04-29 -- mapTallyToProvenance returned empty/default values for every field
 - Symptom: `/result?sid=...` rendered the schema's defaults (`piece.description=""`, `aiHelpers=[]`, `aiGenerator.used=false`) for every field, even on real submissions like `X54L4bg`.
 - Cause: Tally's REST API holds the answer payload under `value` in some shapes; `findAnswer` was only reading `answer`. Lookup returned `undefined` for every question, so every mapped field collapsed to its default.
 - Fix: `findAnswer` now reads `answer` then falls back to `value`. Added `extractResponses` to also handle the `submission.submissions[0].responses` wrapped shape, plus a `console.warn` when no responses are extracted to surface future shape drift.
-- Commit: included in the Session 13.2 push.
+- Commit: included in the Session 13.2 push. (Note: this was a real but separate issue — the `value`/`answer` fallback is still useful insurance, but the actual cause of the empty-output symptom turned out to be the deeper envelope layer fixed in Session 13.3.)
 
 ### 2026-04-25 -- Form-wide auto-advance caused inconsistent UX
 - Symptom: Mixed interaction patterns (some questions auto-advance, others use Next) forced users to relearn the pattern at each question.

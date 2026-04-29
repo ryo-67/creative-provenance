@@ -33,16 +33,22 @@ interface TallyResponseItem {
   value?: unknown;
 }
 
-interface TallySubmission {
+interface TallyInnerSubmission {
   id?: string;
   formId?: string;
   submittedAt?: string;
   createdAt?: string;
-  // The single-submission endpoint returns `responses` at the top level;
-  // the list endpoint nests it under `submissions[i].responses`. We accept
-  // either path so the same mapper works for both.
   responses?: TallyResponseItem[];
-  submissions?: Array<{ responses?: TallyResponseItem[] } & TallySubmission>;
+}
+
+// The single-submission endpoint returns an envelope:
+//   { questions: [...], submission: { id, responses: [...] } }
+// We also tolerate older/wrapped shapes (`submissions[0].responses` from the
+// list endpoint, or `responses` at the top level) for resilience.
+interface TallySubmission extends TallyInnerSubmission {
+  submission?: TallyInnerSubmission;
+  submissions?: TallyInnerSubmission[];
+  questions?: unknown[];
 }
 
 export async function fetchSubmission(
@@ -250,12 +256,20 @@ function findAnswer(
   return item.answer !== undefined ? item.answer : item.value;
 }
 
-function extractResponses(submission: TallySubmission): TallyResponseItem[] {
-  if (Array.isArray(submission.responses)) return submission.responses;
-  // Some Tally endpoints wrap a single submission inside `submissions[0]`.
-  const first = submission.submissions?.[0];
-  if (first && Array.isArray(first.responses)) return first.responses;
-  return [];
+function extractInnerSubmission(env: TallySubmission): TallyInnerSubmission {
+  // The single-submission endpoint wraps the actual submission under .submission.
+  if (env.submission && Array.isArray(env.submission.responses)) {
+    return env.submission;
+  }
+  // Some endpoints expose responses at the top level.
+  if (Array.isArray(env.responses)) {
+    return env;
+  }
+  // The list endpoint nests submissions in an array.
+  const first = env.submissions?.[0];
+  if (first && Array.isArray(first.responses)) return first;
+  // Nothing matched; return the env so callers still get id/timestamps if any.
+  return env;
 }
 
 function asString(v: unknown): string | undefined {
@@ -315,21 +329,51 @@ function mapOne<T extends string>(
 // --- Main mapping ---
 
 export function mapTallyToProvenance(
-  submission: TallySubmission,
+  envelope: TallySubmission,
 ): Partial<ProvenanceResponse> {
-  const responses = extractResponses(submission);
+  // --- Diagnostic logging (temporary; remove once mapping is stable) ---
+  console.log('[tally] envelope top-level keys:', Object.keys(envelope));
+  console.log('[tally] envelope.submission exists:', envelope.submission !== undefined);
+  console.log(
+    '[tally] envelope.submission.responses exists:',
+    Array.isArray(envelope.submission?.responses),
+    'length:',
+    envelope.submission?.responses?.length ?? 0,
+  );
+  const sample = (envelope.submission?.responses ?? envelope.responses ?? []).slice(
+    0,
+    3,
+  );
+  console.log(
+    '[tally] first 3 responses:',
+    JSON.stringify(
+      sample.map((r) => ({
+        questionId: r.questionId,
+        answer: r.answer ?? r.value,
+      })),
+      null,
+      2,
+    ),
+  );
+  console.log('[tally] QUESTION_IDS keys:', Object.keys(QUESTION_IDS));
+  // --- End diagnostic logging ---
+
+  const inner = extractInnerSubmission(envelope);
+  const responses = inner.responses ?? [];
   const out: Partial<ProvenanceResponse> = {};
 
   if (responses.length === 0) {
     console.warn(
-      '[tally] no responses found in submission. Top-level keys:',
-      Object.keys(submission),
+      '[tally] no responses extracted. Envelope keys:',
+      Object.keys(envelope),
+      'inner keys:',
+      Object.keys(inner),
     );
   }
 
   // Metadata.
-  if (submission.id) out.id = submission.id;
-  const ts = submission.submittedAt ?? submission.createdAt;
+  if (inner.id) out.id = inner.id;
+  const ts = inner.submittedAt ?? inner.createdAt;
   if (ts) out.createdAt = ts;
   out.version = '1.0.0';
 

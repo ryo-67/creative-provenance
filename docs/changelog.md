@@ -1,5 +1,12 @@
 # Changelog
 
+## Session 13.3 -- 2026-04-29 -- Bugfix: mapTallyToProvenance was reading the wrong layer of the envelope
+- Symptom: even after Session 13.2's `value`/`answer` fallback, `/result?sid=X54L4bg` still rendered the schema's empty defaults for every field.
+- Cause: Tally's REST single-submission endpoint actually returns `{ questions: [...], submission: { id, responses: [...] } }` — the responses array is **one level deeper** than `mapTallyToProvenance` was reading. The function parameter was named `submission` but it was really the envelope; my code looked for `envelope.responses` and `envelope.submissions[0].responses`, but never `envelope.submission.responses`. Every `findAnswer` call ran against an empty array, and every mapped field collapsed to its default.
+- Fix in `lib/tally.ts`: split the type into `TallyInnerSubmission` (the actual submission with `id`/`responses`) and `TallySubmission` (the envelope, which has the inner `submission` field plus tolerated alternates). New `extractInnerSubmission(env)` finds the inner submission via `env.submission.responses`, falling back to `env.responses`, then `env.submissions[0]`. The mapper now reads metadata (`id`, `submittedAt`) from the inner submission too.
+- Added temporary diagnostic logs at the top of `mapTallyToProvenance`: envelope top-level keys, whether `.submission` and `.submission.responses` exist, the first three response items (questionId + answer only), and `Object.keys(QUESTION_IDS)`. These are explicitly tagged "temporary; remove once mapping is stable" — leave them through symposium prep so Vercel logs show what mapped on every real submission, then delete.
+- Build + lint clean.
+
 ## Session 13.2 -- 2026-04-29 -- Bugfix: mapTallyToProvenance returned empty values
 - Symptom: `/result?sid=...` rendered the schema's default/empty shape (e.g. `piece.description=""`, `aiHelpers=[]`, `aiGenerator.used=false`) for every field, even on submissions with real answers like sid `X54L4bg` (`piece="Test"`, `medium=["Something woven, sewn, or made of fiber"]`, `ghost="My toxic ex"`, `direction=7`, `ownership=7`).
 - Cause: the response items returned by Tally's REST API hold the answer payload under `value` in some shapes and under `answer` in others; `findAnswer` was only reading `answer`. When the field was `value`, every lookup returned `undefined` and every mapped field collapsed to its default.
