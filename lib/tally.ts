@@ -102,121 +102,127 @@ const QUESTION_IDS = {
 } as const;
 
 // --- Tally option text → schema literal ---
-// `null` = a valid Tally selection that intentionally maps to nothing in our
-// schema (e.g. "None of these", "Nobody — just me"). Any text that isn't a
-// key here logs a warning and is skipped.
+//
+// Every key is the EXACT option text the live Tally form sends. Pinned to
+// form RGZO7p — if a question is renamed or its option text edited in
+// Tally, update the matching constant.
+//
+// Right-side values are schema literals from lib/schema.ts (do not modify
+// the schema). Several values were corrected from the user-supplied list
+// to match the schema's actual union members.
+//
+// `null` = a valid Tally selection that intentionally maps to nothing in
+// our schema (e.g. "Nobody — just me"). Any text not in the table logs a
+// warning via mapMany / mapOne and is skipped.
+//
+// Tally may normalize curly apostrophes / em dashes to straight forms;
+// where a key contains either, a duplicate with the alternate variant is
+// added so both flavors match.
 
 const MEDIUM_TEXT_TO_SCHEMA: Record<string, MediumType | null> = {
-  'Something drawn or painted on paper or canvas (illustration, watercolor, oil, acrylic, ink, gouache)':
-    'painted',
-  'Something digital and 2D (digital illustration, photo manipulation, design)':
-    'digital-2d',
-  'Something rendered in 3D (CGI, modeling, digital sculpture, VR/AR)':
-    '3d-digital',
-  'Something carved, sculpted, or built (clay, wood, metal, stone, found objects)':
-    'sculpted',
-  'Something printed or pressed (printmaking, risograph, screen print, letterpress, photography in print)':
-    'printed',
-  'Something woven, sewn, or made of fiber (textile art, embroidery, weaving, soft sculpture)':
-    'fiber',
-  'Something that moves (animation, video, motion graphics, GIFs, interactive)':
-    'motion',
-  'Something layered or hybrid (mixed-media, collage, assemblage)': 'mixed-media',
-  'Something else': 'other',
+  'Something drawn or painted on paper or canvas': 'painted',
+  'Something digital and 2D': 'digital-2d',
+  'Something rendered in 3D': '3d-digital',
+  'Something carved, sculpted, or built': 'sculpted',
+  'Something printed or pressed': 'printed',
+  'Something woven, sewn, or made of fiber': 'fiber',
+  'Something that moves': 'motion',
+  'Something layered or hybrid': 'mixed-media',
+  'Something else...': 'other',
 };
 
 const SEED_TEXT_TO_SCHEMA: Record<string, SeedType | null> = {
   'Something I needed to get out of my body': 'body',
   "A memory that wouldn't leave me alone": 'memory',
-  'An image I saw that stuck — a face, a scene, a moment, something online':
-    'image',
+  'A memory that wouldn’t leave me alone': 'memory', // curly variant
+  'An image that stuck — a face, a scene, something online': 'image',
+  'An image that stuck - a face, a scene, something online': 'image', // hyphen variant
   'A conversation that lit something up': 'conversation',
-  'An obsession I keep returning to in my work': 'obsession',
-  'A craving to try a new technique or material': 'technique',
-  'A constraint I was given (a brief, a deadline, a leftover material)':
-    'constraint',
-  'A problem I was trying to solve, or an answer I was trying to find':
-    'problem',
-  'Anger, grief, or a critique of something in the world': 'critique',
+  'An obsession I keep returning to': 'obsession',
+  'A craving for a new technique or material': 'technique',
+  'A constraint (a brief, a deadline, a leftover material)': 'constraint',
+  'A problem to solve, an answer to find': 'problem',
+  'Anger, grief, a critique of something in the world': 'critique',
   'A dream, an accident, a coincidence': 'chance',
-  "I honestly can't trace it": 'unknown',
+  "I can't trace it": 'unknown',
+  'I can’t trace it': 'unknown', // curly variant
   Other: 'other',
 };
 
 const TEACHER_TEXT_TO_SCHEMA: Record<string, TeacherType | null> = {
-  'A school or program I went through': 'formal-education',
+  'School or a program': 'formal-education',
   'Years of figuring it out alone, with the internet as my teacher':
     'self-taught',
-  'A specific mentor or master who taught me directly': 'mentor',
-  'The artists I copied until their moves felt like my own': 'copying',
+  'A mentor who taught me directly': 'mentor',
+  'Artists I copied until their moves felt like my own': 'copying',
   'The crit room, the group chat, the friend who never lies': 'critique',
-  'An apprenticeship or studio job where I learned by doing': 'apprenticeship',
+  'An apprenticeship or studio job': 'apprenticeship',
   'Workshops, residencies, or intensives that shifted something': 'workshops',
-  'AI tools that showed me a technique by demonstrating it': 'ai-teacher',
+  'AI tools that demonstrated a technique': 'ai-teacher',
 };
 
 const AI_HELPER_TEXT_TO_SCHEMA: Record<string, AIHelperType | null> = {
   'Background removal or smart subject selection': 'background-removal',
-  'Generative fill, content-aware fill, or smart heal': 'generative-fill',
-  'Auto color correction, exposure, or noise cleanup': 'auto-correction',
+  'Generative fill or content-aware fill': 'generative-fill',
+  'Auto color correction or noise cleanup': 'auto-correction',
   'Upscaling or detail enhancement': 'upscaling',
-  'Search to find references (Google Images, visual search, Pinterest\'s "find similar")':
-    'search',
+  'Reference search (Google Images, visual search, "find similar")': 'search',
+  'Reference search (Google Images, visual search, “find similar”)': 'search', // curly double-quote variant
   'Spell check, smart guides, snap-to, auto-align': 'autosuggest',
-  'AI-assisted retouching (skin, sky replacement, face refinement)':
-    'retouching',
-  'Object isolation or rotoscoping in video tools': 'rotoscoping',
-  'Voice-to-text, auto-transcription, or auto-captions': 'transcription',
-  'Generative recommendations (font pairings, color palettes, composition suggestions)':
+  'AI retouching (skin, sky replacement, face refinement)': 'retouching',
+  'Object isolation or rotoscoping in video': 'rotoscoping',
+  'Voice-to-text, auto-transcription, captions': 'transcription',
+  'Generative suggestions (font pairings, palettes, composition)':
     'recommendations',
-  'Auto-tagging or auto-organization in my asset library': 'auto-tagging',
-  'None of these': null,
+  'Auto-tagging in my asset library': 'auto-tagging',
 };
 
 const AI_KIND_TEXT_TO_SCHEMA: Record<string, AIGenerationKind | null> = {
   'Text-to-image (Midjourney, DALL-E, Stable Diffusion, Firefly)':
     'text-to-image',
-  'Image-to-image, where I gave the AI my own work as a starting point (style transfer, img2img, ControlNet)':
+  'Image-to-image, using my own work as a starting point (style transfer, img2img, ControlNet)':
     'image-to-image',
-  'AI 3D generation (Meshy, Luma, CSM, generated textures)': '3d-generation',
-  'AI animation or motion (Runway, Pika, Kling)': 'motion',
-  'AI audio (Suno, Udio, ElevenLabs voices)': 'audio',
-  'AI text generation (concepts, titles, statements)': 'text',
+  '3D generation (Meshy, Luma, CSM, generated textures)': '3d-generation',
+  'Animation or motion (Runway, Pika, Kling)': 'motion',
+  'Audio (Suno, Udio, ElevenLabs)': 'audio',
+  'Text (concepts, titles, statements)': 'text',
   'Something else': 'other',
 };
 
 const AI_STAGE_TEXT_TO_SCHEMA: Record<string, AIGenerationStage | null> = {
-  "A starting point I looked at, riffed on, or got unstuck from — but didn't actually use in the file":
+  "A starting point I riffed on but didn't actually use in the file":
     'concept-only',
+  'A starting point I riffed on but didn’t actually use in the file':
+    'concept-only', // curly variant
   'A reference I drew over or used as a base layer': 'reference',
-  'Pieces I composited, modified, or reworked into the final': 'composited',
-  'Something I generated and kept mostly the way it came out': 'mostly-as-is',
-  'The whole piece — it started as AI output and I shaped it from there':
-    'all-ai',
+  'Pieces I composited or reworked into the final': 'composited',
+  'Something I generated and kept mostly as-is': 'mostly-as-is',
+  'The whole piece — I shaped it from AI output': 'all-ai',
+  'The whole piece - I shaped it from AI output': 'all-ai', // hyphen variant
 };
 
 const AI_AWARENESS_TEXT_TO_SCHEMA: Record<
   string,
   TrainingDataAwareness | null
 > = {
-  "Honestly haven't thought about it": 'no-idea',
-  'Suspect it was artists like me, without their consent': 'artists-like-me',
-  'Could name specific artists whose work is probably in there':
-    'specific-artists',
+  "Haven't thought about it": 'no-idea',
+  'Haven’t thought about it': 'no-idea', // curly variant
+  'Suspect artists like me, without their consent': 'artists-like-me',
+  'Could name specific artists probably in there': 'specific-artists',
   'Chose a model trained on licensed or consenting data': 'licensed',
 };
 
 const COLLABORATOR_TEXT_TO_SCHEMA: Record<string, CollaboratorType | null> = {
-  "The studio assistant who handled what I couldn't get to": 'assistant',
-  'The fabricator, printer, or technician who turned my file into a thing':
+  "A studio assistant who handled what I couldn't get to": 'assistant',
+  'A studio assistant who handled what I couldn’t get to': 'assistant', // curly variant
+  'A fabricator, printer, or technician who turned my file into a thing':
     'fabricator',
-  'The retoucher, colorist, or editor who refined what I made': 'editor',
-  'The peer whose offhand comment changed the whole direction': 'peer',
-  'The mentor or teacher whose voice was in my head': 'mentor',
+  'A retoucher, colorist, or editor who refined what I made': 'editor',
+  'A peer whose offhand comment changed the direction': 'peer',
+  'A mentor whose voice was in my head': 'mentor',
   'The model, the performer, the person whose likeness is in this': 'model',
-  'The photographer, illustrator, or designer whose stock or commissioned work I built on':
+  'A photographer, illustrator, or designer whose work I built on':
     'commissioned-creator',
-  'Nobody — this one was just me': null,
 };
 
 // --- Q3 reference matrix (questionId 91VjNG) ---
@@ -331,33 +337,6 @@ function mapOne<T extends string>(
 export function mapTallyToProvenance(
   envelope: TallySubmission,
 ): Partial<ProvenanceResponse> {
-  // --- Diagnostic logging (temporary; remove once mapping is stable) ---
-  console.log('[tally] envelope top-level keys:', Object.keys(envelope));
-  console.log('[tally] envelope.submission exists:', envelope.submission !== undefined);
-  console.log(
-    '[tally] envelope.submission.responses exists:',
-    Array.isArray(envelope.submission?.responses),
-    'length:',
-    envelope.submission?.responses?.length ?? 0,
-  );
-  const sample = (envelope.submission?.responses ?? envelope.responses ?? []).slice(
-    0,
-    3,
-  );
-  console.log(
-    '[tally] first 3 responses:',
-    JSON.stringify(
-      sample.map((r) => ({
-        questionId: r.questionId,
-        answer: r.answer ?? r.value,
-      })),
-      null,
-      2,
-    ),
-  );
-  console.log('[tally] QUESTION_IDS keys:', Object.keys(QUESTION_IDS));
-  // --- End diagnostic logging ---
-
   const inner = extractInnerSubmission(envelope);
   const responses = inner.responses ?? [];
   const out: Partial<ProvenanceResponse> = {};
@@ -370,15 +349,6 @@ export function mapTallyToProvenance(
       Object.keys(inner),
     );
   }
-
-  // --- Per-item raw dump (temporary; remove once mapping is verified) ---
-  // Logs every response item's questionId + raw answer BEFORE any mapping,
-  // so we see exactly what Tally sent regardless of TEXT_TO_SCHEMA hits.
-  for (const r of responses) {
-    const raw = r.answer !== undefined ? r.answer : r.value;
-    console.log(`[tally] q=${r.questionId} answer=${JSON.stringify(raw)}`);
-  }
-  // --- End per-item raw dump ---
 
   // Metadata.
   if (inner.id) out.id = inner.id;
