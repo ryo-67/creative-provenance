@@ -1,4 +1,4 @@
-# Creative Provenance
+# Creative Trace
 
 A web-based interactive questionnaire that helps visual artists trace the chain of human, organizational, and AI contributions in a single piece of their work. The output is a unique abstract "fingerprint" visualization plus an AI-generated "Grace" — a prayer-style text listing everyone and everything that shaped the piece.
 
@@ -6,7 +6,9 @@ Built for the **F(r)ictions: Creative Work in an Age of AI** symposium, May 1, 2
 
 ## Live Deployment
 
-**Production:** [creative-provenance.vercel.app](https://creative-provenance.vercel.app/)
+**Production:** [creativetrace.art](https://creativetrace.art/)
+
+The old Vercel URL [creative-provenance.vercel.app](https://creative-provenance.vercel.app/) is intentionally preserved as a live redirect to creativetrace.art (handled at the Vercel/DNS level).
 
 - Push to `main` triggers a production deploy automatically
 - Push to any other branch creates a preview deploy with its own URL
@@ -40,16 +42,17 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Project Structure
 
 ```
-app/                    # Next.js App Router pages and API routes
+app/
+  questionnaire/        # Tally embed (full-viewport iframe)
+  result/               # Reads Tally redirect URL params, renders fingerprint + Grace
+  api/grace/            # Claude API proxy for Grace generation
 components/
-  questions/            # One component per questionnaire question
-  fingerprint/          # SVG fingerprint visualization
+  fingerprint/          # SVG fingerprint visualization (placeholder)
   share/                # Share sheet and download
 lib/
-  schema.ts             # ProvenanceResponse type + Zod schema
+  schema.ts             # ProvenanceResponse type + Zod schema (target shapes Tally params map into)
   fingerprint-config.ts # Answer-to-visual-primitive mapping
   grace-prompt.ts       # System prompt for Grace generation
-  storage.ts            # localStorage helpers
 docs/                   # Project documentation
   requirements.md       # Feature spec and data schema
   changelog.md          # Session-by-session history

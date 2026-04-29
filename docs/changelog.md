@@ -1,5 +1,15 @@
 # Changelog
 
+## Session 12.1 -- 2026-04-29 -- Rename to Creative Trace
+- Project renamed from "Creative Provenance" to "Creative Trace" after securing the domain creativetrace.art.
+- Production now lives at https://creativetrace.art/. The previous Vercel URL (https://creative-provenance.vercel.app/) is intentionally preserved as a live redirect to the new domain, handled at the Vercel/DNS level — references to it should not be removed from code or docs.
+- Renamed in code: package.json `name`, root layout `metadata.title`, landing page heading, iframe `title` attribute on the Tally embed, localStorage key in lib/storage.ts (creative-provenance-response → creative-trace-response), filename pattern in requirements (creative-provenance-{timestamp}.png → creative-trace-{timestamp}.png), share-payload title.
+- Updated documentation: README, CLAUDE.md, /docs/requirements.md, /docs/questionnaire-draft.md, /docs/backlog.md.
+- Past changelog entries (Sessions 1a–11.2 and the Deploy entry) were intentionally NOT rewritten — they describe the project as it was named at the time.
+- The opening prompt at /docs/opening-prompt.md was also left untouched as a historical artifact.
+- The Tally form's title is edited inside Tally itself (not part of this codebase) and was not touched here.
+- Build passes cleanly.
+
 ## Session 12 -- 2026-04-29 -- Pivot to Tally + result page stub
 - Abandoned the custom-coded questionnaire. The survey now lives in Tally at https://tally.so/r/RGZO7p, embedded as a full-viewport iframe at /questionnaire.
 - Tally is configured (separately, in the Tally dashboard) to redirect to /result with answers as URL parameters on submit.

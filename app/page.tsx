@@ -5,7 +5,7 @@ export default function Home() {
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
       <div className="max-w-lg space-y-8">
         <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">
-          Creative Provenance
+          Creative Trace
         </h1>
         <p className="text-lg leading-relaxed text-zinc-600 dark:text-zinc-400">
           Trace the chain of hands, eyes, and algorithms that shaped your work.

@@ -4,7 +4,7 @@ This file gives Claude Code persistent context about this project. It should be 
 
 ## Project Overview
 
-**Creative Provenance** is a web-based interactive questionnaire that helps visual artists trace the chain of human, organizational, and AI contributions in a single piece of their work. The output is a unique abstract "fingerprint" visualization plus an AI-generated "Grace" — a prayer-style text listing everyone and everything that shaped the piece.
+**Creative Trace** is a web-based interactive questionnaire that helps visual artists trace the chain of human, organizational, and AI contributions in a single piece of their work. The output is a unique abstract "fingerprint" visualization plus an AI-generated "Grace" — a prayer-style text listing everyone and everything that shaped the piece.
 
 The project is built for the F(r)ictions: Creative Work in an Age of AI symposium on May 1, 2026, at The New School. Audience: working creative practitioners (illustrators, painters, sculptors, 3D artists, animators, mixed-media, fiber artists, printmakers), legal scholars, union representatives, and design students.
 
@@ -42,7 +42,7 @@ When starting a session, check /docs/changelog.md and /docs/bugs.md to see what 
 - It is not a survey for data collection
 - It is not commercial
 
-The project addresses a specific gap in the AI-creativity refusal landscape: existing tools handle "don't use my work" but offer no vocabulary for "here's what's mine in this work." Creative Provenance fills that gap by making the composition of creative labor legible.
+The project addresses a specific gap in the AI-creativity refusal landscape: existing tools handle "don't use my work" but offer no vocabulary for "here's what's mine in this work." Creative Trace fills that gap by making the composition of creative labor legible.
 
 ## Tech Stack
 
@@ -52,7 +52,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 - **Animation**: Framer Motion (only where needed)
 - **Visualization**: SVG (declarative, debuggable, scales infinitely)
 - **AI Generation**: Anthropic Claude API (Sonnet 4.6 default)
-- **Hosting**: Vercel free tier -- deployed at https://creative-provenance.vercel.app/
+- **Hosting**: Vercel free tier -- deployed at https://creativetrace.art/ (the old https://creative-provenance.vercel.app/ URL remains live as a redirect at the Vercel/DNS level)
 - **Storage** (V1): localStorage for session state; no backend persistence
 - **Storage** (V2, future): Supabase free tier for shareable URLs
 - **Image Export**: html-to-image or canvas-based PNG export
@@ -186,7 +186,7 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 
 ### Deployment
 
-- Push to `main` = production deploy at https://creative-provenance.vercel.app/
+- Push to `main` = production deploy at https://creativetrace.art/ (the legacy https://creative-provenance.vercel.app/ URL is kept as a live redirect)
 - Push to any other branch = preview deploy with its own URL
 - `ANTHROPIC_API_KEY` is set in Vercel environment variables for Production, Preview, and Development
 - Build failures show in Vercel dashboard; check there before assuming a regression is local

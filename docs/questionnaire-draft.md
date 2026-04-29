@@ -1,4 +1,4 @@
-# Creative Provenance Questionnaire — Draft (Revised v3)
+# Creative Trace Questionnaire — Draft (Revised v3)
 
 10 questions, ~5–7 minutes, anchored to one specific recent piece.
 

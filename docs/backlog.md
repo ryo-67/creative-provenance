@@ -16,7 +16,7 @@ Ideas, deferred features, and out-of-scope items that surfaced during developmen
 - Dev-only "skip to step N" navigation
 
 ## Pre-symposium polish
-- Custom domain (creative-provenance.art or similar) -- currently using vercel.app subdomain
+- ~~Custom domain~~ — secured creativetrace.art; old creative-provenance.vercel.app URL kept as live redirect
 - Privacy policy text on landing page (required because Claude API receives user input)
 - Symposium label/placard (title, group members, 2-3 sentence description)
 - QR code generation for printed symposium materials

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Creative Provenance',
+  title: 'Creative Trace',
   description:
     'Trace the chain of hands, eyes, and algorithms that shaped your work.',
 };

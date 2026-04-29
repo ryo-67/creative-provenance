@@ -1,6 +1,6 @@
 import type { ProvenanceResponse } from './schema';
 
-const STORAGE_KEY = 'creative-provenance-response';
+const STORAGE_KEY = 'creative-trace-response';
 
 function isBrowser(): boolean {
   return typeof window !== 'undefined';

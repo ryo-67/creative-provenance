@@ -1,4 +1,4 @@
-# Creative Provenance — Requirements
+# Creative Trace — Requirements
 
 ## Project Summary
 
@@ -471,12 +471,12 @@ The actual prompt will be tuned heavily during Week 13.
 
 ### Download
 - PNG export of the fingerprint at 2400x2400
-- File name: `creative-provenance-{timestamp}.png`
+- File name: `creative-trace-{timestamp}.png`
 - Always visible as primary CTA
 
 ### Native Share (mobile)
 - Web Share API (`navigator.share()`)
-- Share payload: `{ title: "My Creative Provenance", text: "[Grace excerpt]", files: [PNG] }`
+- Share payload: `{ title: "My Creative Trace", text: "[Grace excerpt]", files: [PNG] }`
 - Falls back to download if share API unavailable
 
 ### Copy Link (V2)
@@ -554,10 +554,10 @@ These are V2+ ideas worth tracking but not building now.
 
 ## Symposium-Specific Considerations
 
-The site is live at https://creative-provenance.vercel.app/ and will be displayed at the F(r)ictions symposium on May 1, 2026.
+The site is live at https://creativetrace.art/ and will be displayed at the F(r)ictions symposium on May 1, 2026. The legacy https://creative-provenance.vercel.app/ URL is kept as a live redirect (handled at the Vercel/DNS level).
 
 - Display setup: laptop or iPad on a table, plus printed fingerprints from test users as wall display
-- QR code on the printed display should point to https://creative-provenance.vercel.app/ (or custom domain if one is configured before the event)
+- QR code on the printed display should point to https://creativetrace.art/
 - Need a brief project label/placard: title, group members, 2-3 sentence description
 - Site must work on slow venue WiFi (test offline behavior -- fingerprint should still render even if Grace API fails)
 
