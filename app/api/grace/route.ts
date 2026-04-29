@@ -13,6 +13,7 @@ Write a grace for this piece. Rules:
 
 - Each line begins with "Thank you to..." or "Thank you for..."
 - One line per distinct contribution source. Be specific — use the actual details from the submission, not generic placeholders.
+- Bold the specific thing being thanked in each line using **markdown bold**. For example: Thank you to **your toxic ex**, whose presence in this work you neither invited nor could stop.
 - If there's a ghost (ghost.present=true), name it using ghost.description. Keep the maker's words.
 - If AI was used (aiGenerator.used=true), acknowledge both the tool and the training data tension (aiAwareness field).
 - If collaborators are present, thank them.

@@ -1,8 +1,53 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Fragment, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { ProvenanceResponse } from '@/lib/schema';
+
+// --- localStorage grace cache ---
+// Keyed by submission ID. Same sid → same Tally answers → same grace, so we
+// only ever pay for one Anthropic call per submission.
+
+function readCachedGrace(sid: string | null): string | null {
+  if (typeof window === 'undefined' || !sid) return null;
+  try {
+    return localStorage.getItem(`grace-${sid}`);
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedGrace(sid: string, grace: string): void {
+  try {
+    localStorage.setItem(`grace-${sid}`, grace);
+  } catch {
+    // localStorage full / disabled / private mode — silent fail; user just
+    // gets a fresh fetch on the next visit.
+  }
+}
+
+// Parse **markdown bold** spans into <strong>. Anything between matched
+// `**…**` becomes bold; everything else renders as plain text.
+function renderGraceLine(line: string): ReactNode[] {
+  const parts: ReactNode[] = [];
+  const regex = /\*\*([^*]+)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  let key = 0;
+  while ((match = regex.exec(line)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(
+        <Fragment key={key++}>{line.slice(lastIndex, match.index)}</Fragment>,
+      );
+    }
+    parts.push(<strong key={key++}>{match[1]}</strong>);
+    lastIndex = regex.lastIndex;
+  }
+  if (lastIndex < line.length) {
+    parts.push(<Fragment key={key++}>{line.slice(lastIndex)}</Fragment>);
+  }
+  return parts;
+}
 
 type FetchState =
   | { status: 'idle' }
@@ -34,7 +79,7 @@ function GraceLines({ grace }: { grace: string }) {
     <div className="space-y-2 italic leading-relaxed text-zinc-700 dark:text-zinc-200">
       {lines.map((line, i) => (
         <p key={i} className={i === ownershipIndex ? 'pt-6' : ''}>
-          {line}
+          {renderGraceLine(line)}
         </p>
       ))}
     </div>
@@ -51,7 +96,13 @@ function ResultContent() {
       ? { status: 'loading' }
       : { status: 'error', message: 'Missing sid query parameter' },
   );
-  const [graceState, setGraceState] = useState<GraceState>({ status: 'idle' });
+  // Initial graceState reads localStorage so a cached grace appears
+  // immediately on revisit. The Suspense boundary above (fallback={null})
+  // means this initializer only runs on the client, so localStorage is safe.
+  const [graceState, setGraceState] = useState<GraceState>(() => {
+    const cached = readCachedGrace(sid);
+    return cached ? { status: 'ok', grace: cached } : { status: 'idle' };
+  });
 
   useEffect(() => {
     if (!sid) return;
@@ -87,7 +138,12 @@ function ResultContent() {
   }, [sid]);
 
   useEffect(() => {
-    if (state.status !== 'ok') return;
+    if (state.status !== 'ok' || !sid) return;
+    // Skip the API call if we already have a cached grace (initial state
+    // already populated from localStorage). Re-checking here keeps the
+    // effect closure-free and avoids reading graceState.
+    if (readCachedGrace(sid)) return;
+
     let cancelled = false;
     fetch('/api/grace', {
       method: 'POST',
@@ -106,6 +162,7 @@ function ResultContent() {
           });
           return;
         }
+        writeCachedGrace(sid, body.grace);
         setGraceState({ status: 'ok', grace: body.grace });
       })
       .catch((err: unknown) => {
@@ -118,7 +175,7 @@ function ResultContent() {
     return () => {
       cancelled = true;
     };
-  }, [state]);
+  }, [state, sid]);
 
   const graceLoading =
     state.status === 'ok' && graceState.status === 'idle';

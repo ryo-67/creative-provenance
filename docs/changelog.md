@@ -1,5 +1,11 @@
 # Changelog
 
+## Session 14.1 -- 2026-04-29 -- Cache the grace + bold the subjects
+- **Client-side grace cache.** `/result?sid=X` now stores generated graces in `localStorage` under the key `grace-${sid}`. On page load, the initializer reads the cache and pre-populates `graceState` so the grace appears instantly on revisit. The fetch effect re-checks the cache and bails out before hitting `/api/grace` if a cached entry exists. After a successful generation, the new grace is written back to the cache. Same `sid` → same answers → same grace, so we only ever pay Anthropic once per submission. Stops spending API credits on every refresh and gives users a stable text.
+- The cache reader/writer is SSR-safe (typeof window guard) and tolerates `localStorage` being disabled (private browsing) — silent fail, falls through to a fresh fetch.
+- **Bold the subjects.** Added a rule to the system prompt in `app/api/grace/route.ts`: each line should bold the specific thing being thanked using `**markdown bold**`, with an explicit example (`Thank you to **your toxic ex**, …`).
+- `GraceLines` in `app/result/page.tsx` now parses `**…**` markdown bold spans and renders them as `<strong>` tags. Everything else stays italic. The renderer is regex-based (no markdown library), splits each line into alternating text + strong fragments, and is forgiving — text without bold spans renders unchanged.
+
 ## Session 14 -- 2026-04-29 -- Grace generation wired end-to-end
 - Implemented `/app/api/grace/route.ts`: POST handler that accepts `{ submission: Partial<ProvenanceResponse> }`, calls Anthropic's Messages API with model `claude-sonnet-4-6` (alias — tracks the latest 4.6 build, no pinned date suffix), max_tokens 500, and the new "thank you to..." grace system prompt. Returns `{ grace: string }`. 400 on missing submission, 500 on API errors.
 - System prompt frames the grace as "a prayer said before a meal" — a moment to pause and name what was given to you before you take the first bite. Each line begins with "Thank you to..." or "Thank you for...", one per distinct contribution source. Ends with two ownership lines: `"You feel this piece is [natural language of feltOwnership 1-10]." / "Sit with that."` This closing exists to surface the Q10 tension — felt ownership is what the maker *feels*, not what fed the work; the submission may contradict the score.
