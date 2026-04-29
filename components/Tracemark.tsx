@@ -553,12 +553,14 @@ export default function Tracemark({
       <Patch8 x={180} y={360} value={data.directionExecution} />
       <Patch9 x={360} y={360} collaborators={data.collaborators ?? []} />
 
-      {/* Outer grid border — drawn last so it sits on top of everything. */}
+      {/* Outer grid border — drawn last so it sits on top of everything.
+          Inset by half the stroke width so the line renders fully within
+          the viewBox instead of being clipped along the outside edge. */}
       <rect
-        x={0}
-        y={0}
-        width={540}
-        height={540}
+        x={STROKE_WIDTH / 2}
+        y={STROKE_WIDTH / 2}
+        width={540 - STROKE_WIDTH}
+        height={540 - STROKE_WIDTH}
         fill="none"
         stroke={STROKE}
         strokeWidth={STROKE_WIDTH}
