@@ -4,17 +4,13 @@
 
 (none right now)
 
-## Resolved by removal (Session 12, 2026-04-29)
-
-These bugs lived in the custom-coded questionnaire that was deleted when the survey moved to Tally. They no longer apply, but are kept as a historical record.
-
-- Form-wide auto-advance caused inconsistent UX (single-select vs. multi-select pacing)
-- Auto-advance only triggers on second click, not first (interactedSinceMount guard)
-- Q3 fallback weight buttons in wrong order
-- Q2 first option focus ring missing (Tailwind v4 has-[:focus-visible] pattern)
-- Q2 arrow key navigation broken after radio→checkbox conversion (roving tabindex)
-
 ## Fixed
+
+### 2026-04-29 -- mapTallyToProvenance returned empty/default values for every field
+- Symptom: `/result?sid=...` rendered the schema's defaults (`piece.description=""`, `aiHelpers=[]`, `aiGenerator.used=false`) for every field, even on real submissions like `X54L4bg`.
+- Cause: Tally's REST API holds the answer payload under `value` in some shapes; `findAnswer` was only reading `answer`. Lookup returned `undefined` for every question, so every mapped field collapsed to its default.
+- Fix: `findAnswer` now reads `answer` then falls back to `value`. Added `extractResponses` to also handle the `submission.submissions[0].responses` wrapped shape, plus a `console.warn` when no responses are extracted to surface future shape drift.
+- Commit: included in the Session 13.2 push.
 
 ### 2026-04-25 -- Form-wide auto-advance caused inconsistent UX
 - Symptom: Mixed interaction patterns (some questions auto-advance, others use Next) forced users to relearn the pattern at each question.
@@ -45,3 +41,13 @@ These bugs lived in the custom-coded questionnaire that was deleted when the sur
 - Cause: Native browser arrow nav is only provided for radio groups, not checkbox groups. Conversion to multi-select removed it.
 - Fix: Implemented roving tabindex pattern with manual focus management.
 - Commit: c2044c3
+
+## Resolved by removal (Session 12, 2026-04-29)
+
+These bugs lived in the custom-coded questionnaire that was deleted when the survey moved to Tally. They no longer apply, but are kept as a historical record.
+
+- Form-wide auto-advance caused inconsistent UX (single-select vs. multi-select pacing)
+- Auto-advance only triggers on second click, not first (interactedSinceMount guard)
+- Q3 fallback weight buttons in wrong order
+- Q2 first option focus ring missing (Tailwind v4 has-[:focus-visible] pattern)
+- Q2 arrow key navigation broken after radio→checkbox conversion (roving tabindex)

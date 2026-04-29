@@ -1,5 +1,12 @@
 # Changelog
 
+## Session 13.2 -- 2026-04-29 -- Bugfix: mapTallyToProvenance returned empty values
+- Symptom: `/result?sid=...` rendered the schema's default/empty shape (e.g. `piece.description=""`, `aiHelpers=[]`, `aiGenerator.used=false`) for every field, even on submissions with real answers like sid `X54L4bg` (`piece="Test"`, `medium=["Something woven, sewn, or made of fiber"]`, `ghost="My toxic ex"`, `direction=7`, `ownership=7`).
+- Cause: the response items returned by Tally's REST API hold the answer payload under `value` in some shapes and under `answer` in others; `findAnswer` was only reading `answer`. When the field was `value`, every lookup returned `undefined` and every mapped field collapsed to its default.
+- Fix in `lib/tally.ts`: `TallyResponseItem` now declares both `answer?: unknown` and `value?: unknown`. `findAnswer` prefers `answer` and falls back to `value`. Added `extractResponses(submission)` to also handle the wrapped shape `submission.submissions[0].responses` (some Tally endpoints nest the array there). Added a `console.warn` when no responses are extracted, listing the top-level submission keys, so future shape drift is obvious in the logs.
+- Verification hook: `app/api/tally-submission/route.ts` now logs the mapped output (`[tally] sid=... mapped: {...}`) so you can confirm against sid `X54L4bg` in dev/server logs after this deploy.
+- The QUESTION_IDS table itself was already keyed by the short Tally questionIds (`NVk1pG`, `qB6142`, etc.) — that part wasn't the bug.
+
 ## Session 13.1 -- 2026-04-29 -- Exact UUID-based Tally → schema mapping
 - Replaced the heuristic substring-matching `mapTallyToProvenance` in `lib/tally.ts` with an exact mapping pinned to the Tally form (RGZO7p).
 - Added `QUESTION_IDS` lookup keyed by the form's known question UUIDs (NVk1pG = piece, qB6142 = medium, QrLlKg = seed, 91VjNG = references, eA4W5q = teachers, WoyVJJ = ghost, axVqO9 = aiHelpers, 6koEDe = aiUsed gate, 7DGrXL = aiKinds, bkPQZe = aiStage, AJZerB = aiAwareness, B1NWE7 = directionExecution, kAqBb6 = collaborators, vBk5XA = feltOwnership, KobKpM = ownership.why).

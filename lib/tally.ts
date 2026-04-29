@@ -27,7 +27,10 @@ const TALLY_API_BASE = 'https://api.tally.so';
 
 interface TallyResponseItem {
   questionId?: string;
+  // Tally's REST API uses `value` for the actual answer payload; webhook
+  // payloads (and some older documentation) use `answer`. We accept either.
   answer?: unknown;
+  value?: unknown;
 }
 
 interface TallySubmission {
@@ -35,7 +38,11 @@ interface TallySubmission {
   formId?: string;
   submittedAt?: string;
   createdAt?: string;
+  // The single-submission endpoint returns `responses` at the top level;
+  // the list endpoint nests it under `submissions[i].responses`. We accept
+  // either path so the same mapper works for both.
   responses?: TallyResponseItem[];
+  submissions?: Array<{ responses?: TallyResponseItem[] } & TallySubmission>;
 }
 
 export async function fetchSubmission(
@@ -237,7 +244,18 @@ function findAnswer(
   responses: TallyResponseItem[],
   questionId: string,
 ): unknown {
-  return responses.find((r) => r.questionId === questionId)?.answer;
+  const item = responses.find((r) => r.questionId === questionId);
+  if (!item) return undefined;
+  // Prefer `answer`; fall back to `value` for REST shape variants.
+  return item.answer !== undefined ? item.answer : item.value;
+}
+
+function extractResponses(submission: TallySubmission): TallyResponseItem[] {
+  if (Array.isArray(submission.responses)) return submission.responses;
+  // Some Tally endpoints wrap a single submission inside `submissions[0]`.
+  const first = submission.submissions?.[0];
+  if (first && Array.isArray(first.responses)) return first.responses;
+  return [];
 }
 
 function asString(v: unknown): string | undefined {
@@ -299,8 +317,15 @@ function mapOne<T extends string>(
 export function mapTallyToProvenance(
   submission: TallySubmission,
 ): Partial<ProvenanceResponse> {
-  const responses = submission.responses ?? [];
+  const responses = extractResponses(submission);
   const out: Partial<ProvenanceResponse> = {};
+
+  if (responses.length === 0) {
+    console.warn(
+      '[tally] no responses found in submission. Top-level keys:',
+      Object.keys(submission),
+    );
+  }
 
   // Metadata.
   if (submission.id) out.id = submission.id;
