@@ -1,5 +1,16 @@
 # Changelog
 
+## Session 13.1 -- 2026-04-29 -- Exact UUID-based Tally → schema mapping
+- Replaced the heuristic substring-matching `mapTallyToProvenance` in `lib/tally.ts` with an exact mapping pinned to the Tally form (RGZO7p).
+- Added `QUESTION_IDS` lookup keyed by the form's known question UUIDs (NVk1pG = piece, qB6142 = medium, QrLlKg = seed, 91VjNG = references, eA4W5q = teachers, WoyVJJ = ghost, axVqO9 = aiHelpers, 6koEDe = aiUsed gate, 7DGrXL = aiKinds, bkPQZe = aiStage, AJZerB = aiAwareness, B1NWE7 = directionExecution, kAqBb6 = collaborators, vBk5XA = feltOwnership, KobKpM = ownership.why).
+- Added per-question `TEXT_TO_SCHEMA` constants that map each option's exact Tally text to the schema literal (medium, seed, teacher, aiHelper, aiKind, aiStage, aiAwareness, collaborator). `null` values mark intentional opt-outs ("None of these", "Nobody — just me") that resolve to empty arrays. Anything not in the table emits a `console.warn` and is skipped.
+- Q3 references mapped via the matrix row UUIDs (twelve fixed UUIDs → the schema's ReferenceTileId enum). Each row's bucket text ("Barely" / "A little" / "A lot") maps to weight 0.2 / 0.5 / 0.85. Only rows the respondent actually selected are included.
+- Q7 gate logic: if aiUsed answer is `["Yes"]`, branch fields (kinds, stage, awareness) are mapped; otherwise `aiGenerator = { used: false }` and the branch fields are omitted entirely.
+- Removed the "first submission" `console.log` from `fetchSubmission` and the `loggedRawShapeOnce` flag that gated it.
+- Removed the substring-matching helpers (`findField`, `resolveChoices`, `matchSlug`, `bucketFromLabel`) and the schema-literal constants they relied on. Replaced with `findAnswer(responses, questionId)` plus small `mapOne` / `mapMany` helpers.
+- Updated CLAUDE.md's "Tally integration" and "What to Prioritize" sections to reflect the REST fetch + UUID-pinned mapping (no more `parseTallyParams` references).
+- Build passes cleanly.
+
 ## Session 13 -- 2026-04-29 -- Tally REST fetch via /result?sid={submissionId}
 - Tally now redirects to `/result?sid={submissionId}` on completion. The result page fetches the full submission server-side via the Tally REST API instead of reading every answer from URL params.
 - Added `TALLY_API_KEY` to `.env.local` and `.env.example` (both as empty placeholders).

@@ -196,19 +196,17 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 
 The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full-viewport iframe at /questionnaire via Tally's official embed.js script (loaded with next/script, strategy="afterInteractive").
 
-**Submit flow (V1):** Tally is configured (in its own dashboard, not in this codebase) to redirect to /result with the user's answers as URL parameters. /result reads them with `useSearchParams`, runs `parseTallyParams(URLSearchParams)` to coerce them into a `Partial<ProvenanceResponse>`, and renders the fingerprint and Grace.
+**Submit flow (V1):** Tally is configured (in its own dashboard) to redirect to `/result?sid={submissionId}` on completion. `/result` reads the `sid`, calls `/api/tally-submission?sid=...`, which fetches the full submission server-side from `https://api.tally.so/forms/RGZO7p/submissions/{sid}` (auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` in `lib/tally.ts` to coerce the responses array into a `Partial<ProvenanceResponse>`.
 
-**`parseTallyParams` is currently a stub** — Tally's exact param names depend on the form's question IDs and option keys, which haven't been finalized. The stub returns `{}`. To wire it up, configure Tally's redirect with question answers as URL params, visit /result after submitting in dev (the dev-only debug block prints the raw param map), then fill in the mapping.
+**The mapping is pinned to the form** — `lib/tally.ts` contains the form's questionId UUIDs and a per-question `TEXT_TO_SCHEMA` table mapping each option's exact Tally text to the corresponding schema literal. If a question is renamed, reordered, or its option text edited in Tally, update the matching constant.
 
-**V2 plan:** replace the redirect-with-params hack with a Tally webhook → Next.js API route → durable storage (Supabase or Vercel KV). That gets the answers off the URL bar and enables shareable result URLs. See backlog.
+**V2 plan:** replace the REST fetch with a Tally webhook → Next.js API route → durable storage (Supabase or Vercel KV). That trades a synchronous fetch for at-most-once delivery and enables shareable result URLs. See backlog.
 
 ## What to Prioritize
 
-**Now (Session 12+):**
-- Configure Tally redirect to /result with answers as URL params
-- Wire `parseTallyParams` once param names are known
+**Now (Session 13+):**
 - Visual system delivery from Paola/Yash → real fingerprint composition
-- Real Grace prompt + /api/grace implementation
+- Real Grace prompt + /api/grace implementation (consumes the mapped ProvenanceResponse)
 - Download PNG, share, symposium polish
 
 ## Accessibility Floor
