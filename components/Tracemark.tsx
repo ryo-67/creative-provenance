@@ -45,8 +45,8 @@ const MEDIUM_COLOR: Record<MediumType, string> = {
   other: '#B5DD35',
 };
 
-const PATCH3_BASE = '#E6D4DA';
-const PATCH3_FILL = '#99A5F9';
+const PATCH3_BASE = '#99A5F9';
+const PATCH3_FILL = '#E6D4DA';
 const PATCH4_BASE = '#CB7C2B';
 const PATCH4_SELECTED = '#7BD0FD';
 const PATCH5_LIGHT = '#8CBBA1';
@@ -331,6 +331,8 @@ function Patch3({
               width={60}
               height={s.fillHeight}
               fill={PATCH3_FILL}
+              stroke={STROKE}
+              strokeWidth={STROKE_WIDTH}
             />
           ),
       )}
