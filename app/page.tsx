@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function Home() {
   return (
-    <main className="flex flex-1 flex-col px-6 py-16">
+    <main className="flex flex-1 flex-col px-6 py-10">
       <div className="mx-auto w-full max-w-[700px] space-y-8">
         <header className="space-y-6">
           <h1 className="text-5xl font-medium tracking-tight">
@@ -47,13 +47,19 @@ export default function Home() {
           >
             Trace your work →
           </Link>
-          <p className="mx-auto mt-4 max-w-[500px] text-[13px] leading-relaxed text-[#999]">
-            Your questionnaire responses are stored by Tally, our form
-            provider. To generate your grace, your responses are sent to
-            Anthropic’s Claude. Your data is not used for model training,
-            advertising, or any purpose beyond generating your Tracemark. We
-            do not collect your name, email, or any contact information.
-          </p>
+
+          <div className="mx-auto mt-8 max-w-[450px]">
+            <h2 className="text-[13px] font-medium text-[#999]">
+              How is your data used?
+            </h2>
+            <p className="mt-2 text-[13px] leading-relaxed text-[#999]">
+              Your questionnaire responses are stored by Tally, our form
+              provider. To generate your grace, your responses are sent to
+              Anthropic’s Claude. Your data is not used for model training,
+              advertising, or any purpose beyond generating your Tracemark.
+              We do not collect your name, email, or any contact information.
+            </p>
+          </div>
         </div>
       </div>
     </main>
