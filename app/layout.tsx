@@ -35,8 +35,8 @@ function FooterLink({
 
 function Footer() {
   return (
-    <footer className="mt-24 border-t border-[#eee] px-8 py-12 text-sm text-[#666]">
-      <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+    <footer className="mt-12 border-t border-[#eee] px-6 py-8 text-center text-sm text-[#666]">
+      <div className="mx-auto w-full max-w-[700px] space-y-2">
         <p className="leading-relaxed">
           Made by{' '}
           <FooterLink href="https://www.linkedin.com/in/royshoro/">
@@ -68,10 +68,8 @@ function Footer() {
           </FooterLink>
           .
         </p>
-        <div className="space-y-1 md:shrink-0 md:text-right">
-          <p>Created in Ethics of AI, Spring 2026</p>
-          <p>F(r)ictions: Creative Labor in the Age of AI · The New School</p>
-        </div>
+        <p>Created in Ethics of AI, Spring 2026</p>
+        <p>F(r)ictions: Creative Labor in the Age of AI · The New School</p>
       </div>
     </footer>
   );
