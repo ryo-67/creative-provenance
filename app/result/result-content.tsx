@@ -81,6 +81,121 @@ type SharePlatform = 'ios' | 'android' | 'desktop';
 const GRACE_INTRO =
   'You just named everything that fed this piece. A grace is what you say before a meal, when you pause to acknowledge what was given.';
 
+// --- Pattern path inlining for the download ---
+//
+// Cross-reference: app/api/og/route.tsx ships an identical helper.
+// Both the OG renderer (Satori) and the canvas-based download share
+// the same root cause — neither resolves <image href> refs to external
+// SVG files, so Patch 1 falls back to solid color. The fix is the
+// same: fetch the pattern at runtime, regex-extract its <path>
+// elements, inline them as <path> children. If the path-extraction
+// regex or the oversize/offset transform changes here, mirror it in
+// app/api/og/route.tsx.
+
+interface PatternPath {
+  d: string;
+  stroke?: string;
+  strokeWidth?: string;
+  strokeMiterlimit?: string;
+  fill?: string;
+}
+
+const PATTERN_CACHE = new Map<string, PatternPath[]>();
+
+async function getPatternPaths(
+  fileName: string,
+): Promise<PatternPath[] | null> {
+  const cached = PATTERN_CACHE.get(fileName);
+  if (cached) return cached;
+
+  try {
+    const res = await fetch(`/patterns/pattern-${fileName}.svg`);
+    if (!res.ok) return null;
+    const text = await res.text();
+
+    // Strip <defs>...</defs> first — pattern files put a clipPath rect
+    // in there that we don't want picked up as a renderable element.
+    const stripped = text.replace(/<defs[\s\S]*?<\/defs>/g, '');
+
+    const paths: PatternPath[] = [];
+    const pathRegex = /<path\b([^>]*?)\/?>/g;
+    let m: RegExpExecArray | null;
+    while ((m = pathRegex.exec(stripped)) !== null) {
+      const attrs = m[1];
+      const d = /\bd="([^"]*)"/.exec(attrs)?.[1];
+      if (!d) continue;
+      paths.push({
+        d,
+        stroke: /\bstroke="([^"]*)"/.exec(attrs)?.[1],
+        strokeWidth: /\bstroke-width="([^"]*)"/.exec(attrs)?.[1],
+        strokeMiterlimit: /\bstroke-miterlimit="([^"]*)"/.exec(attrs)?.[1],
+        fill: /\bfill="([^"]*)"/.exec(attrs)?.[1],
+      });
+    }
+
+    if (paths.length === 0) return null;
+    PATTERN_CACHE.set(fileName, paths);
+    return paths;
+  } catch (err) {
+    console.warn(
+      '[download] pattern fetch failed for pattern-%s.svg: %s',
+      fileName,
+      err instanceof Error ? err.message : String(err),
+    );
+    return null;
+  }
+}
+
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const XLINK_NS = 'http://www.w3.org/1999/xlink';
+
+// Find the Patch 1 <image href="/patterns/..."> in the cloned SVG and
+// swap it for a <g> of inlined <path> elements. The transform mirrors
+// the OG renderer: translate(-2.11,-2.11) scale(184.22/180 ≈ 1.02344)
+// places the pattern's built-in 6px border (path coord 2.06) on
+// Patch 1's boundary stroke center. shape-rendering="geometricPrecision"
+// re-enables anti-aliasing for the curved paths (the parent SVG uses
+// crispEdges, which would jag the cubic Beziers).
+async function inlinePatternForDownload(
+  cloned: SVGSVGElement,
+): Promise<void> {
+  const patternImage = Array.from(cloned.querySelectorAll('image')).find(
+    (img) => {
+      const href =
+        img.getAttribute('href') ??
+        img.getAttributeNS(XLINK_NS, 'href') ??
+        '';
+      return href.includes('/patterns/');
+    },
+  );
+  if (!patternImage) return;
+
+  const href =
+    patternImage.getAttribute('href') ??
+    patternImage.getAttributeNS(XLINK_NS, 'href') ??
+    '';
+  const fileName = /pattern-([^./]+)\.svg/.exec(href)?.[1];
+  if (!fileName) return;
+
+  const paths = await getPatternPaths(fileName);
+  if (!paths) return;
+
+  const g = document.createElementNS(SVG_NS, 'g');
+  g.setAttribute('transform', 'translate(-2.11,-2.11) scale(1.02344)');
+  g.setAttribute('shape-rendering', 'geometricPrecision');
+  for (const path of paths) {
+    const p = document.createElementNS(SVG_NS, 'path');
+    p.setAttribute('d', path.d);
+    if (path.stroke) p.setAttribute('stroke', path.stroke);
+    if (path.strokeWidth) p.setAttribute('stroke-width', path.strokeWidth);
+    if (path.strokeMiterlimit)
+      p.setAttribute('stroke-miterlimit', path.strokeMiterlimit);
+    p.setAttribute('fill', path.fill ?? 'none');
+    g.appendChild(p);
+  }
+  patternImage.parentNode?.replaceChild(g, patternImage);
+}
+
 function WhatToDoColumn({
   title,
   body,
@@ -134,6 +249,13 @@ async function downloadTracemarkPNG(
   if (!cloned.getAttribute('xmlns')) {
     cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
   }
+
+  // Inline Patch 1's pattern: canvas drawImage doesn't load <image href>
+  // refs to external SVG files, so without this Patch 1 would download
+  // as solid medium color. Failure here is non-fatal — the download
+  // proceeds without the pattern (Patch 1 stays solid).
+  await inlinePatternForDownload(cloned);
+
   const svgString = new XMLSerializer().serializeToString(cloned);
   const svgBlob = new Blob([svgString], {
     type: 'image/svg+xml;charset=utf-8',

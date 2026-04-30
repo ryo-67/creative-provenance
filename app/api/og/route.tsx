@@ -22,6 +22,12 @@
 // children inside Patch 1. dangerouslySetInnerHTML is not an option —
 // Satori turns JSX into a tree at render time, it does not parse raw
 // HTML strings. Parsed patterns are cached per warm function instance.
+//
+// Cross-reference: app/result/result-content.tsx ships an identical
+// helper for the canvas-based PNG download path (canvas drawImage has
+// the same external-<image> limitation as Satori). Both must stay
+// aligned on the path-extraction regex and the oversize/offset
+// transform values — change one, change both.
 
 import { ImageResponse } from 'next/og';
 import { fetchAndMapSubmission } from '@/lib/tally';
