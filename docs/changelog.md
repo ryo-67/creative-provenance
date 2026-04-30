@@ -1,5 +1,11 @@
 # Changelog
 
+## Session 33 -- 2026-04-30 -- Minimum 800ms 'Downloading...' state
+- **Bug**: Session 31's loading state was technically correct but flashed too quickly to register. The PNG pipeline (SVG serialize → cached pattern fetch → canvas draw → toBlob) often completes in <300ms on warm caches, so users clicked Download and saw a ~100ms blink before the label flipped back. Reads as flicker, not as feedback.
+- **Why not "wait for the download dialog"**: the browser's Save As dialog is OS-native. Once `<a>.click()` fires, JS gets no event when it opens or closes. There is no observable signal for "the dialog closed", so we can't gate UI on it.
+- **Fix (`app/result/result-content.tsx`)**: gate the success path of `handleDownload` behind a 800ms minimum-duration promise. `.then(() => minDuration)` chains the gate into the success branch only; on error, `.catch` runs without waiting and the toast appears immediately. Standard "loading flash prevention" pattern. The actual download is unaffected — the gate only delays clearing `isDownloading`.
+- Build + lint clean.
+
 ## Session 32 -- 2026-04-30 -- Delete dead placeholder files + empty dirs
 - **Deleted six placeholder files** left over from the pre-Tally architecture (Sessions 1–11): `components/fingerprint/Fingerprint.tsx`, `components/share/ShareSheet.tsx`, `components/share/DownloadButton.tsx`, `lib/fingerprint-config.ts`, `lib/grace-prompt.ts`, `lib/storage.ts`. The first five were single-line `//` comments. `lib/storage.ts` was 36 lines of dead `saveResponse` / `loadResponse` / `clearResponse` helpers keyed on `creative-trace-response` — the grace-cache helpers in `result-content.tsx` (keyed on `grace-v2-${sid}`) replaced this entirely after the Tally pivot. Pre-deletion grep confirmed nothing imports them.
 - **Removed three empty directories** that were also pre-Tally scaffolding: `components/fingerprint/` (and its empty `primitives/` child), `components/share/`, `components/shared/`, `lib/hooks/`, `public/assets/`. The current top-level layout is now `app/` + `components/` (2 files) + `docs/` + `lib/` (2 files) + `public/{patterns,illustrations}/` — matches the File Structure block in `CLAUDE.md`.

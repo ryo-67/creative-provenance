@@ -431,7 +431,16 @@ export default function ResultContent() {
   const handleDownload = () => {
     if (!tracemarkRef.current || !sid || isDownloading) return;
     setIsDownloading(true);
+    // Minimum-duration loading state. The PNG pipeline often completes
+    // in <300ms on warm caches, which makes the "Downloading..." label
+    // flash too quickly to register. Gate the success path behind 800ms
+    // so the feedback reads as intentional. Errors bypass the gate so
+    // the toast appears immediately on failure.
+    const minDuration = new Promise<void>((resolve) =>
+      setTimeout(resolve, 800),
+    );
     downloadTracemarkPNG(tracemarkRef.current, sid)
+      .then(() => minDuration)
       .catch(() => setToast('Could not download'))
       .finally(() => setIsDownloading(false));
   };
