@@ -1,5 +1,18 @@
 # Changelog
 
+## Session 22 -- 2026-04-29 -- Kill self-fetch, harden OG image for Satori
+- **Root cause**: the OG renderer at `/result/opengraph-image?sid=…` was 500ing on Vercel. Both it and `app/result/page.tsx`'s `generateMetadata` were doing internal HTTP hops back to `/api/tally-submission?sid=…` to read the submission. Internal self-fetch is fragile on Vercel — deployment-URL races, edge↔Node runtime gaps, missing auth on the inner request, and rate-limit interactions all surface as opaque 500s. The fix is to skip the HTTP hop entirely and call the Tally pipeline directly.
+- **`lib/tally.ts`**: new `fetchAndMapSubmission(sid)` export that wraps `fetchSubmission` + `mapTallyToProvenance` into one call. Errors propagate (no internal try/catch) so the API route can preserve its 404-vs-500 distinction. Edge-safe — only uses `fetch`, `process.env`, and `console.warn`.
+- **`app/api/tally-submission/route.ts`**: replaced the inline `fetchSubmission` + `mapTallyToProvenance` pair with a single call to `fetchAndMapSubmission`. Existing try/catch and 404/500 status handling unchanged from the client's perspective.
+- **`app/result/opengraph-image.tsx`**: removed the `fetch(VERCEL_URL/api/tally-submission)` call and the `baseUrl` plumbing; now imports `fetchAndMapSubmission` directly. Wrapped the entire handler in an outer try/catch that `console.error`s the message + stack before rethrowing — so future failures show up in Vercel logs as the actual cause instead of a generic 500.
+- **Satori-compatibility audit (same OG file)**: fixed two violations that could trigger silent rendering failures.
+  - `padding: '80px 40px 40px 40px'` (CSS shorthand string) → `paddingTop / Right / Bottom / Left` individual properties.
+  - `flex: 1` on the right column → explicit `width: 570` (1200 − 630 left col). Satori is happier with concrete pixel dimensions than flex-shorthand basis-0 inference.
+  - Also broke `padding: 45` on the left column into individual properties for consistency.
+  - Other Satori invariants verified: every multi-child container has `display: 'flex'`, all dimensions are pixels (no %, no `auto`), no `gap` on flex containers (margins used instead), and the inline `<svg>` only uses `<rect>`, `<line>`, `<polygon>` with attributes Satori supports.
+- **`app/result/page.tsx`** (`generateMetadata`): same self-fetch pattern was here too — refactored to call `fetchAndMapSubmission` directly. Dropped `baseUrl` and the `ProvenanceResponse` type import (no longer needed). On failure, `console.error`s the sid + message so the dynamic-title degradation is at least visible.
+- Build + lint clean.
+
 ## Session 21 -- 2026-04-29 -- Per-route tab titles, dark mode backlog entry
 - **`app/layout.tsx` metadata**: title is now an object — `{ default: 'Creative Trace', template: '%s · Creative Trace' }`. Routes that export their own title get suffixed with " · Creative Trace" automatically; routes that don't fall back to the default. Description updated to "Map the full chain of influences behind your work." (matches the landing subtitle). Also hoisted `metadataBase` to root (was previously only on `/result`) — silences the "metadataBase not set" warning that fired during static prerender of `/`, `/_not-found`, and `/questionnaire`. Every route now inherits the absolute base URL.
 - **`app/result/page.tsx`**: removed the now-redundant `metadataBase` from `generateMetadata` (inherited from root layout). Kept `baseUrl` as a local since the submission fetch still needs the absolute URL.

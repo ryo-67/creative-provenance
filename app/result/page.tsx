@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import SiteHeader from '@/components/SiteHeader';
-import type { ProvenanceResponse } from '@/lib/schema';
+import { fetchAndMapSubmission } from '@/lib/tally';
 import ResultContent from './result-content';
 
 // Server-side metadata so the OG / Twitter card meta tags reach the
@@ -15,30 +15,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const params = await searchParams;
   const sid = params.sid;
-  // metadataBase is inherited from the root layout. We still need
-  // the absolute baseUrl here for the server-side fetch below.
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
 
-  // Mirror the fetch in app/result/opengraph-image.tsx so the tab title
-  // can name the piece. We hit the same API route; both calls happen at
-  // request time, but they're in different runtimes (this is Node, OG
-  // is edge), so framework-level dedup doesn't apply — the cost is one
-  // extra Tally REST call per result-page request.
+  // Title can name the piece. Pulls directly via fetchAndMapSubmission
+  // instead of self-fetching /api/tally-submission — internal HTTP hops
+  // are flaky on Vercel (auth, edge↔node mismatch, deployment URL
+  // races) and silently turn into 500s.
   let pieceDescription = '';
   if (sid) {
     try {
-      const res = await fetch(
-        `${baseUrl}/api/tally-submission?sid=${encodeURIComponent(sid)}`,
-        { cache: 'no-store' },
+      const fetched = await fetchAndMapSubmission(sid);
+      pieceDescription = fetched.piece?.description ?? '';
+    } catch (err) {
+      console.error(
+        '[result/metadata] fetchAndMapSubmission failed for sid=%s: %s',
+        sid,
+        err instanceof Error ? err.message : String(err),
       );
-      if (res.ok) {
-        const fetched = (await res.json()) as Partial<ProvenanceResponse>;
-        pieceDescription = fetched.piece?.description ?? '';
-      }
-    } catch {
-      // Fall through to the generic title.
     }
   }
 

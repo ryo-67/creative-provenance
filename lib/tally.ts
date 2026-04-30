@@ -340,6 +340,27 @@ function mapOne<T extends string>(
   return table[text] ?? undefined;
 }
 
+// --- Combined fetch + map (server-side; works in Node and edge runtimes) ---
+//
+// The single entry point both /api/tally-submission and the OG image
+// renderer call. Pulls the submission from Tally and pipes it through
+// mapTallyToProvenance.
+//
+// Errors propagate (we don't swallow): the API route's own try/catch
+// preserves the 404 vs 500 distinction it already had, and the OG
+// renderer wraps the call in its own try/catch to fall back to
+// SAMPLE_DATA. Doing it this way lets one helper serve both call sites
+// without flattening "submission missing" into "any other failure".
+//
+// Edge-runtime safe: only uses fetch, process.env, and console.warn.
+
+export async function fetchAndMapSubmission(
+  sid: string,
+): Promise<Partial<ProvenanceResponse>> {
+  const submission = await fetchSubmission(sid);
+  return mapTallyToProvenance(submission);
+}
+
 // --- Main mapping ---
 
 export function mapTallyToProvenance(

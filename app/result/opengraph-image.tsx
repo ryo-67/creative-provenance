@@ -15,6 +15,7 @@
 // The other 8 patches carry most of the visual identity at 540×540.
 
 import { ImageResponse } from 'next/og';
+import { fetchAndMapSubmission } from '@/lib/tally';
 import type {
   AIGenerationKind,
   AIGenerationStage,
@@ -525,101 +526,121 @@ export default async function Image({
 }: {
   searchParams: { sid?: string };
 }) {
-  let data: Partial<ProvenanceResponse> = SAMPLE_DATA;
-  let pieceDescription = '';
+  try {
+    let data: Partial<ProvenanceResponse> = SAMPLE_DATA;
+    let pieceDescription = '';
 
-  const sid = searchParams.sid;
-  if (sid) {
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000';
-    try {
-      const res = await fetch(
-        `${baseUrl}/api/tally-submission?sid=${encodeURIComponent(sid)}`,
-        { cache: 'no-store' },
-      );
-      if (res.ok) {
-        const fetched = (await res.json()) as Partial<ProvenanceResponse>;
+    const sid = searchParams.sid;
+    if (sid) {
+      try {
+        const fetched = await fetchAndMapSubmission(sid);
         data = fetched;
         pieceDescription = fetched.piece?.description ?? '';
+      } catch (err) {
+        // Submission lookup failed (404, Tally outage, network). Log so
+        // it's visible in Vercel and fall back to SAMPLE_DATA.
+        console.error(
+          '[og-image] fetchAndMapSubmission failed for sid=%s: %s',
+          sid,
+          err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
+        );
       }
-    } catch {
-      // Fall through to SAMPLE_DATA / blank piece description.
     }
-  }
 
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: 1200,
-          height: 630,
-          display: 'flex',
-          backgroundColor: '#ffffff',
-        }}
-      >
-        {/* Left: Tracemark, ~630×630 with even padding */}
+    return new ImageResponse(
+      (
         <div
           style={{
-            width: 630,
+            width: 1200,
             height: 630,
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 45,
+            backgroundColor: '#ffffff',
           }}
         >
-          <TracemarkSVG data={data} />
-        </div>
-
-        {/* Right: wordmark + tagline (top), piece description (bottom) */}
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            padding: '80px 40px 40px 40px',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div
-              style={{
-                fontSize: 48,
-                fontWeight: 700,
-                color: '#37352F',
-                display: 'flex',
-              }}
-            >
-              Creative Trace
-            </div>
-            <div
-              style={{
-                marginTop: 16,
-                fontSize: 24,
-                color: '#666666',
-                display: 'flex',
-                lineHeight: 1.3,
-              }}
-            >
-              Map the full chain of influences behind your work.
-            </div>
+          {/* Left: Tracemark, 630×630 with even padding (paddings broken
+              into individual properties so Satori doesn't have to parse
+              CSS shorthand). */}
+          <div
+            style={{
+              width: 630,
+              height: 630,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingTop: 45,
+              paddingRight: 45,
+              paddingBottom: 45,
+              paddingLeft: 45,
+            }}
+          >
+            <TracemarkSVG data={data} />
           </div>
-          {pieceDescription && (
-            <div
-              style={{
-                fontSize: 18,
-                color: '#999999',
-                fontStyle: 'italic',
-                display: 'flex',
-              }}
-            >
-              for: {pieceDescription}
+
+          {/* Right: wordmark + tagline (top), piece description (bottom).
+              Explicit width: 570 (1200 - 630 left col) instead of flex:1
+              — Satori is happier with concrete pixel dimensions. */}
+          <div
+            style={{
+              width: 570,
+              height: 630,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              paddingTop: 80,
+              paddingRight: 40,
+              paddingBottom: 40,
+              paddingLeft: 40,
+            }}
+          >
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div
+                style={{
+                  fontSize: 48,
+                  fontWeight: 700,
+                  color: '#37352F',
+                  display: 'flex',
+                }}
+              >
+                Creative Trace
+              </div>
+              <div
+                style={{
+                  marginTop: 16,
+                  fontSize: 24,
+                  color: '#666666',
+                  display: 'flex',
+                  lineHeight: 1.3,
+                }}
+              >
+                Map the full chain of influences behind your work.
+              </div>
             </div>
-          )}
+            {pieceDescription && (
+              <div
+                style={{
+                  fontSize: 18,
+                  color: '#999999',
+                  fontStyle: 'italic',
+                  display: 'flex',
+                }}
+              >
+                for: {pieceDescription}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    ),
-    { ...size },
-  );
+      ),
+      { ...size },
+    );
+  } catch (err) {
+    // Outermost guard. Anything that escapes the inner try (Satori
+    // rendering failure, ImageResponse construction error, etc.) lands
+    // here. Log to Vercel; rethrow so the route still 500s — but the
+    // log makes the underlying cause visible instead of opaque.
+    console.error(
+      '[og-image] handler failed: %s',
+      err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
+    );
+    throw err;
+  }
 }

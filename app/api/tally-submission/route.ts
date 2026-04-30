@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchSubmission, mapTallyToProvenance } from '@/lib/tally';
+import { fetchAndMapSubmission } from '@/lib/tally';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,8 +13,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const submission = await fetchSubmission(sid);
-    const mapped = mapTallyToProvenance(submission);
+    const mapped = await fetchAndMapSubmission(sid);
     return NextResponse.json(mapped);
   } catch (err) {
     const status =
