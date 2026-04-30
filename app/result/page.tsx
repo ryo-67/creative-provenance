@@ -356,7 +356,7 @@ function ResultContent() {
           >
             {/* Tracemark renders directly on the white page background.
                 The download function reads the inner SVG via querySelector. */}
-            <div ref={tracemarkRef} className="flex justify-center">
+            <div ref={tracemarkRef}>
               {tracemarkReady ? (
                 <Tracemark
                   data={state.data}
@@ -375,7 +375,7 @@ function ResultContent() {
             </div>
 
             {tracemarkReady && (
-              <div className="mx-auto mt-6 flex w-full max-w-[540px] gap-2">
+              <div className="mt-6 flex w-full max-w-[540px] gap-2">
                 <button
                   type="button"
                   onClick={handleDownload}
