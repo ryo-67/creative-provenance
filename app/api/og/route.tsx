@@ -39,6 +39,7 @@ import type {
   MediumType,
   ProvenanceResponse,
   ReferenceTileId,
+  SeedType,
   TeacherType,
   TrainingDataAwareness,
 } from '@/lib/schema';
@@ -279,9 +280,11 @@ const SAMPLE_DATA: Partial<ProvenanceResponse> = {
 function TracemarkSVG({
   data,
   patternPaths,
+  size = 540,
 }: {
   data: Partial<ProvenanceResponse>;
   patternPaths: PatternPath[] | null;
+  size?: number;
 }) {
   const medium = data.piece?.medium;
   const mediumFill = (medium && MEDIUM_COLOR[medium]) ?? MEDIUM_COLOR.other;
@@ -319,8 +322,8 @@ function TracemarkSVG({
 
   return (
     <svg
-      width="540"
-      height="540"
+      width={size}
+      height={size}
       viewBox="0 0 540 540"
       xmlns="http://www.w3.org/2000/svg"
       shapeRendering="crispEdges"
@@ -644,11 +647,306 @@ function TracemarkSVG({
   );
 }
 
+// --- Landing OG sample generation ---
+//
+// Duplicated from app/page.tsx so the OG file stays self-contained
+// (mirrors the duplication already in place for the Tracemark
+// constants). If buildSample logic ever changes meaningfully, both
+// files update together.
+
+const SEEDS: SeedType[] = [
+  'body',
+  'memory',
+  'image',
+  'conversation',
+  'obsession',
+  'technique',
+  'constraint',
+  'problem',
+  'critique',
+  'chance',
+  'unknown',
+  'other',
+];
+
+const MEDIUMS: MediumType[] = [
+  'painted',
+  'digital-2d',
+  '3d-digital',
+  'sculpted',
+  'printed',
+  'fiber',
+  'motion',
+  'mixed-media',
+  'other',
+];
+
+const ALL_REFERENCE_TILES: ReferenceTileId[] = [
+  'artist-portfolios',
+  'curated-channels',
+  'algorithmic-feeds',
+  'search-results',
+  'music',
+  'film-literature',
+  'built-environment',
+  'natural-world',
+  'heritage',
+  'everyday-life',
+  'imagination',
+  'ai-moodboards',
+];
+
+const ALL_HELPERS: AIHelperType[] = [
+  'background-removal',
+  'generative-fill',
+  'auto-correction',
+  'upscaling',
+  'search',
+  'autosuggest',
+  'retouching',
+  'rotoscoping',
+  'transcription',
+  'recommendations',
+  'auto-tagging',
+];
+
+const ALL_COLLABORATORS: CollaboratorType[] = [
+  'assistant',
+  'fabricator',
+  'editor',
+  'peer',
+  'mentor',
+  'model',
+  'commissioned-creator',
+];
+
+const TEACHER_SETS: TeacherType[][] = [
+  ['formal-education', 'mentor', 'critique'],
+  ['self-taught', 'copying', 'workshops'],
+  ['apprenticeship', 'mentor', 'workshops'],
+  ['copying', 'critique'],
+  ['workshops', 'critique', 'self-taught', 'ai-teacher'],
+  ['formal-education', 'critique', 'mentor', 'apprenticeship'],
+  ['self-taught', 'ai-teacher'],
+  ['formal-education', 'self-taught', 'mentor', 'copying', 'workshops'],
+];
+
+const AI_KIND_SETS: AIGenerationKind[][] = [
+  ['text-to-image'],
+  ['image-to-image', '3d-generation'],
+  ['text-to-image', 'audio', 'text'],
+  ['motion', 'audio'],
+  ['text-to-image', 'image-to-image', '3d-generation'],
+  ['text', 'other'],
+  ['audio'],
+  ['text-to-image', 'image-to-image', 'motion', 'audio', 'text'],
+];
+
+const AI_STAGES: AIGenerationStage[] = [
+  'concept-only',
+  'reference',
+  'composited',
+  'mostly-as-is',
+  'all-ai',
+];
+
+const AI_AWARENESS: TrainingDataAwareness[] = [
+  'no-idea',
+  'artists-like-me',
+  'specific-artists',
+  'licensed',
+];
+
+const REFERENCE_PROFILES: Array<Array<0 | 0.2 | 0.5 | 0.85>> = [
+  [0.85, 0.85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0.85, 0.85, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.85],
+  [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2],
+  [0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85],
+  [0.85, 0.85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.85],
+  [0, 0, 0.85, 0.5, 0, 0, 0, 0, 0, 0, 0.85, 0],
+  [0, 0, 0, 0, 0.85, 0, 0.85, 0, 0.85, 0, 0, 0],
+  [0.85, 0.5, 0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0],
+  [0, 0, 0.5, 0.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0, 0.5],
+  [0.85, 0.5, 0.85, 0.5, 0.85, 0.5, 0.85, 0.5, 0.85, 0.5, 0.85, 0.5],
+  [0.5, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0.2, 0.2, 0.85, 0.85, 0.5, 0.5, 0.85, 0.85, 0, 0],
+  [0.5, 0, 0, 0.5, 0.2, 0.2, 0, 0, 0.5, 0, 0.85, 0.2],
+];
+
+const HELPER_COUNTS = [0, 3, 1, 8, 5, 0, 11, 2, 4, 7, 0, 6, 1, 9, 3, 0];
+const COLLAB_COUNTS = [2, 0, 5, 1, 3, 7, 0, 4, 1, 2, 5, 3, 0, 4, 2, 6];
+const DIRECTIONS = [3, 8, 1, 6, 10, 4, 9, 2, 7, 5, 8, 1, 10, 3, 6, 4];
+const AI_USED_FLAGS = [
+  true, false, true, true, false, true, false, true,
+  true, false, true, false, true, true, false, true,
+];
+
+function buildReferences(
+  i: number,
+): Array<{ id: ReferenceTileId; weight: 0.2 | 0.5 | 0.85 }> {
+  const profile = REFERENCE_PROFILES[i % REFERENCE_PROFILES.length];
+  const out: Array<{ id: ReferenceTileId; weight: 0.2 | 0.5 | 0.85 }> = [];
+  for (let idx = 0; idx < ALL_REFERENCE_TILES.length; idx++) {
+    const w = profile[idx];
+    if (w === 0.2 || w === 0.5 || w === 0.85) {
+      out.push({ id: ALL_REFERENCE_TILES[idx], weight: w });
+    }
+  }
+  return out;
+}
+
+function buildHelpers(i: number): AIHelperType[] {
+  const count = Math.min(
+    HELPER_COUNTS[i % HELPER_COUNTS.length],
+    ALL_HELPERS.length,
+  );
+  if (count === 0) return [];
+  const offset = (i * 7) % ALL_HELPERS.length;
+  const out: AIHelperType[] = [];
+  for (let j = 0; j < count; j++) {
+    out.push(ALL_HELPERS[(offset + j) % ALL_HELPERS.length]);
+  }
+  return out;
+}
+
+function buildCollaborators(i: number): CollaboratorType[] {
+  const count = Math.min(
+    COLLAB_COUNTS[i % COLLAB_COUNTS.length],
+    ALL_COLLABORATORS.length,
+  );
+  if (count === 0) return [];
+  const offset = (i * 3) % ALL_COLLABORATORS.length;
+  const out: CollaboratorType[] = [];
+  for (let j = 0; j < count; j++) {
+    out.push(ALL_COLLABORATORS[(offset + j) % ALL_COLLABORATORS.length]);
+  }
+  return out;
+}
+
+function buildSample(i: number): Partial<ProvenanceResponse> {
+  const aiUsed = AI_USED_FLAGS[i % AI_USED_FLAGS.length];
+  return {
+    piece: { description: '', medium: MEDIUMS[i % MEDIUMS.length] },
+    seed: { types: [SEEDS[(i * 7) % SEEDS.length]] },
+    references: buildReferences(i),
+    teachers: TEACHER_SETS[i % TEACHER_SETS.length],
+    aiHelpers: buildHelpers(i),
+    aiGenerator: aiUsed
+      ? {
+          used: true,
+          kinds: AI_KIND_SETS[i % AI_KIND_SETS.length],
+          stage: AI_STAGES[i % AI_STAGES.length],
+          trainingDataAwareness: AI_AWARENESS[i % AI_AWARENESS.length],
+        }
+      : { used: false },
+    directionExecution: DIRECTIONS[i % DIRECTIONS.length],
+    collaborators: buildCollaborators(i),
+  };
+}
+
 // --- Route handler ---
 
 export async function GET(request: Request) {
   try {
-    const sid = new URL(request.url).searchParams.get('sid');
+    const url = new URL(request.url);
+    const sid = url.searchParams.get('sid');
+    const isLanding = url.searchParams.get('landing') === '1';
+
+    if (isLanding) {
+      // Landing OG: 5 visually-distinct sample Tracemarks at 200px
+      // each, in a horizontal row below the wordmark + tagline.
+      const baseUrl = buildOgBaseUrl();
+      const sampleIndices = [0, 3, 6, 9, 12];
+      const samples = sampleIndices.map((i) => buildSample(i));
+      const landingPatternPaths = await Promise.all(
+        samples.map((s) => {
+          const seed = s.seed?.types?.[0];
+          return seed
+            ? getPatternPaths(seed, baseUrl)
+            : Promise.resolve(null);
+        }),
+      );
+
+      return new ImageResponse(
+        (
+          <div
+            style={{
+              width: 1200,
+              height: 630,
+              display: 'flex',
+              flexDirection: 'column',
+              backgroundColor: '#F5F5F5',
+            }}
+          >
+            {/* Top: wordmark + tagline */}
+            <div
+              style={{
+                width: 1200,
+                height: 180,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                paddingTop: 50,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 56,
+                  fontWeight: 700,
+                  color: '#37352F',
+                  display: 'flex',
+                }}
+              >
+                Creative Trace
+              </div>
+              <div
+                style={{
+                  marginTop: 12,
+                  fontSize: 24,
+                  color: '#666666',
+                  display: 'flex',
+                }}
+              >
+                Map the full chain of influences behind your work.
+              </div>
+            </div>
+
+            {/* Bottom: row of 5 sample Tracemarks */}
+            <div
+              style={{
+                width: 1200,
+                height: 450,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              {samples.map((sample, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    display: 'flex',
+                    marginLeft: idx === 0 ? 0 : 20,
+                  }}
+                >
+                  <TracemarkSVG
+                    data={sample}
+                    patternPaths={landingPatternPaths[idx]}
+                    size={200}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        ),
+        { ...SIZE },
+      );
+    }
+
+    // --- sid path (existing) ---
 
     let data: Partial<ProvenanceResponse> = SAMPLE_DATA;
     let pieceDescription = '';

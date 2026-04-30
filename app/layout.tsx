@@ -29,6 +29,18 @@ export const metadata: Metadata = {
     template: '%s · Creative Trace',
   },
   description: 'Map the full chain of influences behind your work.',
+  openGraph: {
+    title: 'Creative Trace',
+    description: 'Map the full chain of influences behind your work.',
+    type: 'website',
+    images: [{ url: '/api/og?landing=1' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Creative Trace',
+    description: 'Map the full chain of influences behind your work.',
+    images: ['/api/og?landing=1'],
+  },
 };
 
 // `primary` variant darkens to body-text color (#37352F) so the
