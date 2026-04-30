@@ -324,7 +324,7 @@ function ResultContent() {
   };
 
   return (
-    <main className="flex flex-1 flex-col px-6 pt-12 pb-20 md:pt-20">
+    <main className="flex flex-1 flex-col px-4 pt-12 pb-20 md:px-8 md:pt-20">
       <div className="mx-auto w-full max-w-[1200px]">
         <header className="mb-8 md:mb-12">
           <h1 className="text-4xl font-medium tracking-tight md:text-5xl">
@@ -347,11 +347,11 @@ function ResultContent() {
                 grid (all base colors) as a skeleton; once data arrives it
                 fills in. The buttons row sits in the same `w-fit` wrapper
                 so it spans exactly the Tracemark's rendered width. */}
-            <div className="w-fit">
+            <div className="w-full max-w-full md:w-fit">
               <div ref={tracemarkRef}>
                 <Tracemark
                   data={tracemarkReady ? state.data : {}}
-                  className="h-auto w-auto max-h-[65vh]"
+                  className="w-full md:w-auto md:max-h-[65vh]"
                 />
               </div>
 

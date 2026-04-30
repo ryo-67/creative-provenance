@@ -638,7 +638,7 @@ export default function Tracemark({
       xmlns="http://www.w3.org/2000/svg"
       role="img"
       aria-label="Tracemark"
-      className={className}
+      className={`block h-auto max-w-full ${className ?? ''}`}
       shapeRendering="crispEdges"
     >
       {/* Patch 0 — always opaque, identifies the mark even when empty */}
