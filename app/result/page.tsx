@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Download, Link as LinkIcon, Share } from 'lucide-react';
+import SiteHeader from '@/components/SiteHeader';
 import Tracemark from '@/components/Tracemark';
 import type { ProvenanceResponse } from '@/lib/schema';
 
@@ -496,8 +497,11 @@ function ResultContent() {
 
 export default function ResultPage() {
   return (
-    <Suspense fallback={null}>
-      <ResultContent />
-    </Suspense>
+    <>
+      <SiteHeader />
+      <Suspense fallback={null}>
+        <ResultContent />
+      </Suspense>
+    </>
   );
 }

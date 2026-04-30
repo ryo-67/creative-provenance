@@ -220,25 +220,28 @@ function buildSample(i: number): Partial<ProvenanceResponse> {
 const SAMPLES = Array.from({ length: 16 }, (_, i) => buildSample(i));
 
 function HeroGrid() {
-  // Two grids (mobile / desktop) so each breakpoint gets the right cell
-  // count and tracemark size. Both centered with `mx-auto w-max` and
-  // clipped by the wrapper's overflow-hidden when wider than viewport.
+  // Full-width band with overflow-hidden. The inner flex justify-center
+  // wrapper centers the visible grid horizontally — when the grid's
+  // intrinsic width exceeds the viewport (mobile), it bleeds equally
+  // off both sides instead of just the right edge.
   return (
     <div
       aria-hidden
-      className="overflow-hidden bg-[#F5F5F5] pt-20 pb-20 md:pt-24"
+      className="w-full overflow-hidden bg-[#F5F5F5] pt-20 pb-20 md:pt-24"
     >
-      {/* Mobile: 4 cols × 3 rows = 12 marks at 100px */}
-      <div className="mx-auto grid w-max grid-cols-4 gap-2 md:hidden">
-        {SAMPLES.slice(0, 12).map((sample, i) => (
-          <Tracemark key={i} data={sample} size={100} />
-        ))}
-      </div>
-      {/* Desktop: 8 cols × 2 rows = 16 marks at 140px */}
-      <div className="mx-auto hidden w-max grid-cols-8 gap-3 md:grid">
-        {SAMPLES.slice(0, 16).map((sample, i) => (
-          <Tracemark key={i} data={sample} size={140} />
-        ))}
+      <div className="flex justify-center">
+        {/* Mobile: 4 cols × 3 rows = 12 marks at 100px */}
+        <div className="grid w-max grid-cols-4 gap-2 md:hidden">
+          {SAMPLES.slice(0, 12).map((sample, i) => (
+            <Tracemark key={i} data={sample} size={100} />
+          ))}
+        </div>
+        {/* Desktop: 8 cols × 2 rows = 16 marks at 140px */}
+        <div className="hidden w-max grid-cols-8 gap-3 md:grid">
+          {SAMPLES.slice(0, 16).map((sample, i) => (
+            <Tracemark key={i} data={sample} size={140} />
+          ))}
+        </div>
       </div>
     </div>
   );
