@@ -11,6 +11,41 @@ Ideas, deferred features, and out-of-scope items that surfaced during developmen
 - Generative variation in fingerprint composition
 - Comparing fingerprints across users
 
+### Embeddable Tracemark with link-back
+
+The "What to do with your Tracemark" section encourages adding the mark to portfolios, social posts, and gallery wall text. Currently users only have a PNG download — a static image with no path back to the live result page. This breaks the project's provenance thesis: the trail dead-ends at a JPEG instead of leading to the full attribution.
+
+**Phase 2 implementation:**
+
+Add an "Embed" button on the result page next to Download and Copy link. Opens a modal showing two embed options:
+
+1. HTML snippet for portfolio sites:
+
+   ```html
+   <a href="https://creativetrace.art/result?sid={sid}" target="_blank"
+      rel="noopener" title="View Creative Trace">
+     <img src="https://creativetrace.art/api/tracemark.png?sid={sid}"
+          alt="Creative Trace for [piece description]"
+          width="200" height="200" />
+   </a>
+   ```
+
+2. Markdown snippet for README files and Notion:
+
+   ```markdown
+   [![Creative Trace](https://creativetrace.art/api/tracemark.png?sid={sid})](https://creativetrace.art/result?sid={sid})
+   ```
+
+Both with copy-to-clipboard buttons.
+
+**Required infra:**
+
+- New endpoint `/api/tracemark.png` that server-renders the Tracemark PNG for any sid (similar to the OG endpoint but square format and without the wordmark/tagline). 1080×1080 default; query param `?size=N` for custom dimensions (cap at 2400 to prevent abuse).
+- The PNG endpoint reuses the same SVG-to-PNG pipeline as the Download button, just server-side.
+- Cache headers: `Cache-Control: public, max-age=86400` (1 day) since the mark is deterministic per sid.
+
+**Net behavior:** anyone who embeds the mark on their portfolio is automatically linking back to the live result. The mark becomes a provenance link, not a dead image. Aligns the product with the project's core thesis about traceability.
+
 ## V1 Polish (if time permits)
 - Reset button in UI (currently console-only)
 - Dev-only "skip to step N" navigation
