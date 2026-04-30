@@ -35,13 +35,13 @@ const STROKE = '#000000';
 
 const MEDIUM_COLOR: Record<MediumType, string> = {
   painted: '#983153',
-  'digital-2d': '#F87014',
+  'digital-2d': '#3E51C0',
   '3d-digital': '#FFAA00',
-  sculpted: '#CB7C2B',
-  printed: '#E98FC6',
+  sculpted: '#E98FC6',
+  printed: '#7BD0FD',
   fiber: '#E6D4DA',
-  motion: '#567550',
-  'mixed-media': '#8CBBA1',
+  motion: '#8CBBA1',
+  'mixed-media': '#F87014',
   other: '#B5DD35',
 };
 

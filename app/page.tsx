@@ -14,9 +14,10 @@ import type {
 } from '@/lib/schema';
 
 // --- Hero sample Tracemarks ---
-// 16 marks, deterministic per index. Prime-modulo cycling on each axis
-// (medium / teachers / helpers / references / collaborators / AI fields)
-// keeps adjacent cells from repeating.
+// 16 marks, each with a hand-tuned profile so every patch reads as
+// visually distinct from its neighbors. Each axis (medium, references,
+// teachers, helpers, AI generator, direction, collaborators) is varied
+// independently — no two samples share the same combination of densities.
 
 const MEDIUMS: MediumType[] = [
   'painted',
@@ -30,6 +31,45 @@ const MEDIUMS: MediumType[] = [
   'other',
 ];
 
+const ALL_REFERENCE_TILES: ReferenceTileId[] = [
+  'artist-portfolios',
+  'curated-channels',
+  'algorithmic-feeds',
+  'search-results',
+  'music',
+  'film-literature',
+  'built-environment',
+  'natural-world',
+  'heritage',
+  'everyday-life',
+  'imagination',
+  'ai-moodboards',
+];
+
+const ALL_HELPERS: AIHelperType[] = [
+  'background-removal',
+  'generative-fill',
+  'auto-correction',
+  'upscaling',
+  'search',
+  'autosuggest',
+  'retouching',
+  'rotoscoping',
+  'transcription',
+  'recommendations',
+  'auto-tagging',
+];
+
+const ALL_COLLABORATORS: CollaboratorType[] = [
+  'assistant',
+  'fabricator',
+  'editor',
+  'peer',
+  'mentor',
+  'model',
+  'commissioned-creator',
+];
+
 const TEACHER_SETS: TeacherType[][] = [
   ['formal-education', 'mentor', 'critique'],
   ['self-taught', 'copying', 'workshops'],
@@ -38,68 +78,18 @@ const TEACHER_SETS: TeacherType[][] = [
   ['workshops', 'critique', 'self-taught', 'ai-teacher'],
   ['formal-education', 'critique', 'mentor', 'apprenticeship'],
   ['self-taught', 'ai-teacher'],
-];
-
-const HELPER_SETS: AIHelperType[][] = [
-  [],
-  ['background-removal'],
-  ['generative-fill', 'auto-correction'],
-  ['upscaling', 'retouching', 'recommendations'],
-  ['search', 'autosuggest', 'transcription'],
-  ['background-removal', 'auto-correction', 'upscaling', 'retouching'],
-  ['generative-fill', 'recommendations', 'auto-tagging'],
-];
-
-const REFERENCE_SETS: Array<
-  Array<{ id: ReferenceTileId; weight: 0.2 | 0.5 | 0.85 }>
-> = [
-  [
-    { id: 'artist-portfolios', weight: 0.85 },
-    { id: 'music', weight: 0.5 },
-  ],
-  [
-    { id: 'algorithmic-feeds', weight: 0.85 },
-    { id: 'search-results', weight: 0.85 },
-  ],
-  [
-    { id: 'heritage', weight: 0.85 },
-    { id: 'natural-world', weight: 0.5 },
-  ],
-  [
-    { id: 'film-literature', weight: 0.5 },
-    { id: 'imagination', weight: 0.85 },
-  ],
-  [
-    { id: 'ai-moodboards', weight: 0.85 },
-    { id: 'curated-channels', weight: 0.5 },
-  ],
-  [
-    { id: 'built-environment', weight: 0.85 },
-    { id: 'everyday-life', weight: 0.5 },
-    { id: 'music', weight: 0.5 },
-  ],
-  [
-    { id: 'artist-portfolios', weight: 0.5 },
-    { id: 'curated-channels', weight: 0.85 },
-    { id: 'film-literature', weight: 0.5 },
-  ],
-];
-
-const COLLAB_SETS: CollaboratorType[][] = [
-  [],
-  ['peer'],
-  ['fabricator', 'editor'],
-  ['mentor'],
-  ['model'],
-  ['assistant', 'commissioned-creator'],
-  ['peer', 'editor', 'fabricator'],
+  ['formal-education', 'self-taught', 'mentor', 'copying', 'workshops'],
 ];
 
 const AI_KIND_SETS: AIGenerationKind[][] = [
   ['text-to-image'],
   ['image-to-image', '3d-generation'],
-  ['text-to-image', 'audio'],
+  ['text-to-image', 'audio', 'text'],
   ['motion', 'audio'],
+  ['text-to-image', 'image-to-image', '3d-generation'],
+  ['text', 'other'],
+  ['audio'],
+  ['text-to-image', 'image-to-image', 'motion', 'audio', 'text'],
 ];
 
 const AI_STAGES: AIGenerationStage[] = [
@@ -117,14 +107,87 @@ const AI_AWARENESS: TrainingDataAwareness[] = [
   'licensed',
 ];
 
+// Per-sample weights for each of the 12 reference tiles. 0 = absent,
+// 0.2/0.5/0.85 = the three Tally bucket levels. Each row paints a
+// different Patch 3 silhouette (different sections rise to different
+// heights). Designed so adjacent samples don't share a profile.
+const REFERENCE_PROFILES: Array<Array<0 | 0.2 | 0.5 | 0.85>> = [
+  [0.85, 0.85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],          // 0  artists-only, full
+  [0, 0, 0.85, 0.85, 0, 0, 0, 0, 0, 0, 0, 0],          // 1  feeds-only, full
+  [0, 0, 0, 0, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0, 0], // 2  world-only, full
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.85, 0],             // 3  imagination only
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.85],             // 4  ai moodboards only
+  [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2], // 5  uniform low
+  [0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85, 0.85], // 6  uniform full
+  [0.85, 0.85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.85],       // 7  artists + AI
+  [0, 0, 0.85, 0.5, 0, 0, 0, 0, 0, 0, 0.85, 0],        // 8  feeds + imagination
+  [0, 0, 0, 0, 0.85, 0, 0.85, 0, 0.85, 0, 0, 0],       // 9  partial world
+  [0.85, 0.5, 0, 0, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0, 0], // 10 artists + world mid
+  [0, 0, 0.5, 0.5, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0, 0.5], // 11 feeds + light world + AI
+  [0.85, 0.5, 0.85, 0.5, 0.85, 0.5, 0.85, 0.5, 0.85, 0.5, 0.85, 0.5], // 12 alternating high/mid
+  [0.5, 0.5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],            // 13 just artists, mid
+  [0, 0, 0.2, 0.2, 0.85, 0.85, 0.5, 0.5, 0.85, 0.85, 0, 0], // 14 light feeds + heavy world
+  [0.5, 0, 0, 0.5, 0.2, 0.2, 0, 0, 0.5, 0, 0.85, 0.2], // 15 scattered
+];
+
+const HELPER_COUNTS = [0, 3, 1, 8, 5, 0, 11, 2, 4, 7, 0, 6, 1, 9, 3, 0];
+const COLLAB_COUNTS = [2, 0, 5, 1, 3, 7, 0, 4, 1, 2, 5, 3, 0, 4, 2, 6];
+const DIRECTIONS = [3, 8, 1, 6, 10, 4, 9, 2, 7, 5, 8, 1, 10, 3, 6, 4];
+const AI_USED_FLAGS = [
+  true, false, true, true, false, true, false, true,
+  true, false, true, false, true, true, false, true,
+];
+
+function buildReferences(
+  i: number,
+): Array<{ id: ReferenceTileId; weight: 0.2 | 0.5 | 0.85 }> {
+  const profile = REFERENCE_PROFILES[i % REFERENCE_PROFILES.length];
+  const out: Array<{ id: ReferenceTileId; weight: 0.2 | 0.5 | 0.85 }> = [];
+  for (let idx = 0; idx < ALL_REFERENCE_TILES.length; idx++) {
+    const w = profile[idx];
+    if (w === 0.2 || w === 0.5 || w === 0.85) {
+      out.push({ id: ALL_REFERENCE_TILES[idx], weight: w });
+    }
+  }
+  return out;
+}
+
+function buildHelpers(i: number): AIHelperType[] {
+  const count = Math.min(
+    HELPER_COUNTS[i % HELPER_COUNTS.length],
+    ALL_HELPERS.length,
+  );
+  if (count === 0) return [];
+  const offset = (i * 7) % ALL_HELPERS.length;
+  const out: AIHelperType[] = [];
+  for (let j = 0; j < count; j++) {
+    out.push(ALL_HELPERS[(offset + j) % ALL_HELPERS.length]);
+  }
+  return out;
+}
+
+function buildCollaborators(i: number): CollaboratorType[] {
+  const count = Math.min(
+    COLLAB_COUNTS[i % COLLAB_COUNTS.length],
+    ALL_COLLABORATORS.length,
+  );
+  if (count === 0) return [];
+  const offset = (i * 3) % ALL_COLLABORATORS.length;
+  const out: CollaboratorType[] = [];
+  for (let j = 0; j < count; j++) {
+    out.push(ALL_COLLABORATORS[(offset + j) % ALL_COLLABORATORS.length]);
+  }
+  return out;
+}
+
 function buildSample(i: number): Partial<ProvenanceResponse> {
-  const aiUsed = i % 3 === 0;
+  const aiUsed = AI_USED_FLAGS[i % AI_USED_FLAGS.length];
   return {
     piece: { description: '', medium: MEDIUMS[i % MEDIUMS.length] },
     seed: { types: ['memory'] },
-    references: REFERENCE_SETS[(i * 5) % REFERENCE_SETS.length],
-    teachers: TEACHER_SETS[(i * 2) % TEACHER_SETS.length],
-    aiHelpers: HELPER_SETS[(i * 3) % HELPER_SETS.length],
+    references: buildReferences(i),
+    teachers: TEACHER_SETS[i % TEACHER_SETS.length],
+    aiHelpers: buildHelpers(i),
     aiGenerator: aiUsed
       ? {
           used: true,
@@ -133,8 +196,8 @@ function buildSample(i: number): Partial<ProvenanceResponse> {
           trainingDataAwareness: AI_AWARENESS[i % AI_AWARENESS.length],
         }
       : { used: false },
-    directionExecution: ((i * 3) % 10) + 1,
-    collaborators: COLLAB_SETS[(i * 7) % COLLAB_SETS.length],
+    directionExecution: DIRECTIONS[i % DIRECTIONS.length],
+    collaborators: buildCollaborators(i),
   };
 }
 
