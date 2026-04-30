@@ -121,7 +121,12 @@ function Footer() {
           .
         </p>
         <p>Created in Ethics of AI, Spring 2026</p>
-        <p>F(r)ictions: Creative Labor in the Age of AI · The New School</p>
+        <p>
+          <FooterLink href="https://event.newschool.edu/frictionscreativeworkinanageof">
+            F(r)ictions: Creative Labor in the Age of AI
+          </FooterLink>
+          {' · The New School'}
+        </p>
       </div>
     </footer>
   );
