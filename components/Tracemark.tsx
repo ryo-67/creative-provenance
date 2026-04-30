@@ -32,7 +32,7 @@ import type {
 // --- Geometry ---
 
 const UNIT = 30; // 540px / 18 units
-const STROKE_WIDTH = UNIT / 6; // = 5px — used for every stroke
+const STROKE_WIDTH = UNIT / 5; // = 6px — matches the built-in stroke in the Patch 1 pattern SVGs
 const STROKE = '#000000';
 
 // --- Colors ---
