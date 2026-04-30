@@ -93,7 +93,7 @@ function Footer() {
           ).
         </p>
         <p>
-          Together we call ourselves the{' '}
+          Together, we call ourselves the{' '}
           <FooterLink
             href="https://www.youtube.com/watch?v=oTHj7_Q5fKA"
             variant="primary"
