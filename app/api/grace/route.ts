@@ -41,7 +41,9 @@ Voice rules (follow strictly):
 - No rule-of-three stacking unless the items are genuinely distinct. Two items is fine.
 - No meta-narrator voice. Don't say "the deep sources" or "the quiet labor". Just name the thing.
 - Short lines. Each "thank you" line should be one sentence, two at most. If a line runs past 20 words, split or cut.
-- The tone is warm and direct, not poetic or literary. It should sound like a person talking, not a poem being performed.`;
+- The tone is warm and direct, not poetic or literary. It should sound like a person talking, not a poem being performed.
+- When referring to the "model" collaborator, always say "the person whose likeness is in this" or "the performer", never just "the model" which is ambiguous with AI models in this context.
+- When referring to AI helper tools (background removal, upscaling, search, etc.), do not say they "did the work". Say they "handled the parts I didn't want to do by hand" or similar phrasing that preserves the maker's agency.`;
 
 interface AnthropicTextBlock {
   type?: string;
