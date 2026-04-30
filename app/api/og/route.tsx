@@ -16,10 +16,12 @@
 // renders a subset of CSS/SVG and works best with self-contained inline
 // markup, so we keep the OG renderer independent of the React version.
 //
-// TODO (phase 2): inline the seed-pattern SVG content so Patch 1 shows
-// the right pattern overlay in the OG. Satori does not load external
-// <image href> refs, so for now Patch 1 renders as a solid medium color.
-// The other 8 patches carry most of the visual identity at 540×540.
+// Patch 1's seed pattern is inlined: at edge runtime we fetch the
+// pattern SVG (Satori does not load external <image href> refs), parse
+// out its <path> elements via regex, and render them as JSX <path>
+// children inside Patch 1. dangerouslySetInnerHTML is not an option —
+// Satori turns JSX into a tree at render time, it does not parse raw
+// HTML strings. Parsed patterns are cached per warm function instance.
 
 import { ImageResponse } from 'next/og';
 import { fetchAndMapSubmission } from '@/lib/tally';
@@ -38,6 +40,81 @@ import type {
 export const runtime = 'edge';
 
 const SIZE = { width: 1200, height: 630 };
+
+// --- Pattern fetch + parse (edge-runtime safe) ---
+
+interface PatternPath {
+  d: string;
+  stroke?: string;
+  strokeWidth?: string;
+  strokeMiterlimit?: string;
+  fill?: string;
+}
+
+// Cached per warm invocation. `null` value = "we tried and it failed";
+// keeps a missing pattern from re-fetching every request.
+const PATTERN_CACHE = new Map<string, PatternPath[] | null>();
+
+// Same logic as result/page.tsx metadataBase: prod uses the apex
+// domain, previews use VERCEL_URL, dev uses localhost.
+function buildOgBaseUrl(): string {
+  if (process.env.VERCEL_ENV === 'production') return 'https://creativetrace.art';
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
+}
+
+async function getPatternPaths(
+  seedType: string,
+  baseUrl: string,
+): Promise<PatternPath[] | null> {
+  if (PATTERN_CACHE.has(seedType)) return PATTERN_CACHE.get(seedType) ?? null;
+
+  // Schema's 'chance' literal maps to pattern-dream.svg — file is named
+  // after the user-facing label, mirrors components/Tracemark.tsx.
+  const fileName =
+    seedType === 'chance' ? 'pattern-dream' : `pattern-${seedType}`;
+
+  try {
+    const res = await fetch(`${baseUrl}/patterns/${fileName}.svg`);
+    if (!res.ok) {
+      PATTERN_CACHE.set(seedType, null);
+      return null;
+    }
+    const text = await res.text();
+
+    // Strip <defs>...</defs> first — pattern files put a clipPath rect
+    // in there that we don't want picked up as a renderable element.
+    const stripped = text.replace(/<defs[\s\S]*?<\/defs>/g, '');
+
+    const paths: PatternPath[] = [];
+    const pathRegex = /<path\b([^>]*?)\/?>/g;
+    let m: RegExpExecArray | null;
+    while ((m = pathRegex.exec(stripped)) !== null) {
+      const attrs = m[1];
+      const d = /\bd="([^"]*)"/.exec(attrs)?.[1];
+      if (!d) continue;
+      paths.push({
+        d,
+        stroke: /\bstroke="([^"]*)"/.exec(attrs)?.[1],
+        strokeWidth: /\bstroke-width="([^"]*)"/.exec(attrs)?.[1],
+        strokeMiterlimit: /\bstroke-miterlimit="([^"]*)"/.exec(attrs)?.[1],
+        fill: /\bfill="([^"]*)"/.exec(attrs)?.[1],
+      });
+    }
+
+    const result = paths.length > 0 ? paths : null;
+    PATTERN_CACHE.set(seedType, result);
+    return result;
+  } catch (err) {
+    console.warn(
+      '[og] pattern fetch failed for %s: %s',
+      seedType,
+      err instanceof Error ? err.message : String(err),
+    );
+    PATTERN_CACHE.set(seedType, null);
+    return null;
+  }
+}
 
 // --- Tracemark constants (mirrors components/Tracemark.tsx) ---
 
@@ -193,7 +270,13 @@ const SAMPLE_DATA: Partial<ProvenanceResponse> = {
 
 // --- Inline Tracemark SVG renderer ---
 
-function TracemarkSVG({ data }: { data: Partial<ProvenanceResponse> }) {
+function TracemarkSVG({
+  data,
+  patternPaths,
+}: {
+  data: Partial<ProvenanceResponse>;
+  patternPaths: PatternPath[] | null;
+}) {
   const medium = data.piece?.medium;
   const mediumFill = (medium && MEDIUM_COLOR[medium]) ?? MEDIUM_COLOR.other;
 
@@ -248,9 +331,30 @@ function TracemarkSVG({ data }: { data: Partial<ProvenanceResponse> }) {
         />
       </g>
 
-      {/* Patch 1 — medium color (pattern overlay omitted in OG; see TODO) */}
+      {/* Patch 1 — medium color + (optional) seed pattern overlay */}
       <g transform="translate(60,0)">
         <rect width={180} height={180} fill={mediumFill} />
+        {patternPaths && (
+          // Mirrors the live <image> overlay's oversize/offset trick:
+          // pattern viewBox is 180×180 with a built-in 6px border at
+          // corner 2.06. Scaling by 184.22/180 ≈ 1.02344 then translating
+          // by -2.11 lands the pattern's border center on Patch 1's
+          // boundary stroke center (path coord 2.06 × 1.02344 − 2.11 ≈ 0).
+          // The boundary <rect> below is drawn AFTER the pattern, so it
+          // sits on top of any sub-pixel bleed at the edges.
+          <g transform="translate(-2.11,-2.11) scale(1.02344)">
+            {patternPaths.map((p, i) => (
+              <path
+                key={`pat-${i}`}
+                d={p.d}
+                stroke={p.stroke}
+                strokeWidth={p.strokeWidth}
+                strokeMiterlimit={p.strokeMiterlimit}
+                fill={p.fill ?? 'none'}
+              />
+            ))}
+          </g>
+        )}
         <rect
           width={180}
           height={180}
@@ -550,6 +654,15 @@ export async function GET(request: Request) {
       }
     }
 
+    // Pattern overlay for Patch 1. SAMPLE_DATA always carries a seed,
+    // so the fallback path also gets a pattern. Failure here is
+    // non-fatal — getPatternPaths logs and returns null, Patch 1
+    // gracefully renders solid color.
+    const seedType = data.seed?.types?.[0];
+    const patternPaths = seedType
+      ? await getPatternPaths(seedType, buildOgBaseUrl())
+      : null;
+
     return new ImageResponse(
       (
         <div
@@ -576,7 +689,7 @@ export async function GET(request: Request) {
               paddingLeft: 45,
             }}
           >
-            <TracemarkSVG data={data} />
+            <TracemarkSVG data={data} patternPaths={patternPaths} />
           </div>
 
           {/* Right: wordmark + tagline (top), piece description (bottom).
