@@ -52,12 +52,6 @@ Currently /questionnaire iframes Tally's hosted form page. Phase 2: embed via Ta
 - Reset button in UI (currently console-only)
 - Dev-only "skip to step N" navigation
 
-## UX polish
-
-### Download button loading state
-
-The Download button triggers async PNG generation (SVG serialize → pattern fetch → canvas draw → toBlob → download). On slow devices this takes 1-2 seconds with no visual feedback. Add a brief loading state: disable the button, swap text to "Downloading...", re-enable on completion or error.
-
 ## Pre-symposium polish
 - Privacy policy text on landing page (required because Claude API receives user input)
 - Symposium label/placard (title, group members, 2-3 sentence description)

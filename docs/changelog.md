@@ -1,5 +1,11 @@
 # Changelog
 
+## Session 31 -- 2026-04-30 -- Download button loading state
+- **`app/result/result-content.tsx`**: new `isDownloading` boolean state alongside the existing `toast` / `state` / `graceState` / `platform` calls. `handleDownload` now early-returns if `isDownloading` is true (prevents double-clicks), sets `isDownloading` true before kicking off `downloadTracemarkPNG`, clears it in `.finally` so both success and failure paths re-enable the button.
+- **Download button**: gains `disabled={isDownloading}`. Tailwind classes extended with `disabled:cursor-not-allowed disabled:opacity-60` so the disabled state reads visually. Label flips between `Download` and `Downloading...` based on the state. Icon stays the same — disabled state + label change is enough feedback without introducing a spinner.
+- **`docs/backlog.md`**: removed the "Download button loading state" entry from the UX polish section — now shipped. UX polish section is empty so it was dropped along with the entry.
+- Build + lint clean.
+
 ## Session 30 -- 2026-04-30 -- Result page error boundary + API route logging audit
 - **`app/result/error-boundary.tsx` (new)**: client-component class boundary. `componentDidCatch` logs the message + stack + React component stack via `console.error('[result] error boundary caught:', ...)` so symposium-day failures surface in Vercel logs. UI fallback: a centered "Something went wrong loading your Tracemark" page with a "Start a new trace" button linking back to `/`. Same outline-button styling as the landing CTA.
 - **`app/result/page.tsx`**: wraps the existing `<Suspense fallback={null}>` with `<ResultErrorBoundary>`. Anything that throws inside the result content tree (Tracemark, Grace, download/share handlers) is caught and the recovery UI takes over instead of crashing the page.

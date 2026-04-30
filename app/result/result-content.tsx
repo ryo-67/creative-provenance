@@ -334,6 +334,7 @@ export default function ResultContent() {
     return cached ? { status: 'ok', grace: cached } : { status: 'idle' };
   });
   const [toast, setToast] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   // Detect platform once at mount. The Suspense fallback above means this
   // initializer only runs on the client, so navigator.userAgent is safe.
   const [platform] = useState<SharePlatform>(() => {
@@ -428,10 +429,11 @@ export default function ResultContent() {
   const shareLabel = platform === 'desktop' ? 'Copy link' : 'Share';
 
   const handleDownload = () => {
-    if (!tracemarkRef.current || !sid) return;
-    void downloadTracemarkPNG(tracemarkRef.current, sid).catch(() =>
-      setToast('Could not download'),
-    );
+    if (!tracemarkRef.current || !sid || isDownloading) return;
+    setIsDownloading(true);
+    downloadTracemarkPNG(tracemarkRef.current, sid)
+      .catch(() => setToast('Could not download'))
+      .finally(() => setIsDownloading(false));
   };
 
   const handleShare = async () => {
@@ -500,10 +502,11 @@ export default function ResultContent() {
                   <button
                     type="button"
                     onClick={handleDownload}
-                    className="inline-flex h-12 flex-1 items-center justify-center gap-2 bg-black px-4 text-lg text-white transition-opacity hover:opacity-90"
+                    disabled={isDownloading}
+                    className="inline-flex h-12 flex-1 items-center justify-center gap-2 bg-black px-4 text-lg text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Download size={20} strokeWidth={2.5} aria-hidden />
-                    Download
+                    {isDownloading ? 'Downloading...' : 'Download'}
                   </button>
                   <button
                     type="button"
