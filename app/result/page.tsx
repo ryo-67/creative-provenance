@@ -348,7 +348,7 @@ function ResultContent() {
           </p>
         )}
 
-        <div className="md:grid md:grid-cols-[6fr_4fr] md:gap-8">
+        <div className="md:grid md:grid-cols-[6fr_4fr] md:gap-10">
           {/* Left column: Tracemark + actions + caption. Sticky on desktop. */}
           <section
             aria-label="Tracemark"
@@ -364,7 +364,7 @@ function ResultContent() {
                 />
               ) : (
                 <div
-                  className="flex aspect-square w-full max-w-[540px] items-center justify-center text-sm text-[#999]"
+                  className="flex aspect-square w-full items-center justify-center text-sm text-[#999]"
                   aria-live="polite"
                 >
                   {state.status === 'loading'
@@ -375,7 +375,7 @@ function ResultContent() {
             </div>
 
             {tracemarkReady && (
-              <div className="mt-6 flex w-full max-w-[540px] gap-2">
+              <div className="mt-6 flex w-full gap-2">
                 <button
                   type="button"
                   onClick={handleDownload}
