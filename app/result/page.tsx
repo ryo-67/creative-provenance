@@ -348,7 +348,7 @@ function ResultContent() {
           </p>
         )}
 
-        <div className="md:grid md:grid-cols-[6fr_4fr] md:gap-12">
+        <div className="md:grid md:grid-cols-[6fr_4fr] md:gap-8">
           {/* Left column: Tracemark + actions + caption. Sticky on desktop. */}
           <section
             aria-label="Tracemark"
@@ -360,7 +360,7 @@ function ResultContent() {
               {tracemarkReady ? (
                 <Tracemark
                   data={state.data}
-                  className="h-auto w-full max-w-[540px]"
+                  className="h-auto w-full"
                 />
               ) : (
                 <div
