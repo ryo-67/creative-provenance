@@ -26,19 +26,26 @@ export const metadata: Metadata = {
   description: 'Map the full chain of influences behind your work.',
 };
 
+// `primary` variant darkens to body-text color (#37352F) so the
+// author names + SPY Kids stand out as primary anchors. Default
+// stays at #666 — same hierarchy level as the surrounding sentence,
+// Portfolio links read as supporting metadata.
 function FooterLink({
   href,
   children,
+  variant = 'default',
 }: {
   href: string;
   children: React.ReactNode;
+  variant?: 'default' | 'primary';
 }) {
+  const color = variant === 'primary' ? 'text-[#37352F]' : 'text-[#666]';
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="text-[#999] no-underline hover:underline"
+      className={`${color} no-underline hover:underline`}
     >
       {children}
     </a>
@@ -47,11 +54,14 @@ function FooterLink({
 
 function Footer() {
   return (
-    <footer className="mt-8 px-6 py-6 text-center text-[13px] text-[#999]">
+    <footer className="mt-8 px-6 py-6 text-center text-[13px] text-[#666]">
       <div className="mx-auto w-full max-w-[1100px] space-y-2">
         <p className="leading-relaxed">
           Made by{' '}
-          <FooterLink href="https://www.linkedin.com/in/royshoro/">
+          <FooterLink
+            href="https://www.linkedin.com/in/royshoro/"
+            variant="primary"
+          >
             Shoro Roy
           </FooterLink>{' '}
           (
@@ -59,7 +69,10 @@ function Footer() {
             Portfolio
           </FooterLink>
           ),{' '}
-          <FooterLink href="https://www.linkedin.com/in/pmachuca/">
+          <FooterLink
+            href="https://www.linkedin.com/in/pmachuca/"
+            variant="primary"
+          >
             Paola Machuca Hernández
           </FooterLink>{' '}
           (
@@ -67,7 +80,10 @@ function Footer() {
             Portfolio
           </FooterLink>
           ), and{' '}
-          <FooterLink href="https://www.linkedin.com/in/yash-pawar-94913b121/">
+          <FooterLink
+            href="https://www.linkedin.com/in/yash-pawar-94913b121/"
+            variant="primary"
+          >
             Yash Pawar
           </FooterLink>{' '}
           (
@@ -78,7 +94,10 @@ function Footer() {
         </p>
         <p>
           Together we call ourselves the{' '}
-          <FooterLink href="https://www.youtube.com/watch?v=oTHj7_Q5fKA">
+          <FooterLink
+            href="https://www.youtube.com/watch?v=oTHj7_Q5fKA"
+            variant="primary"
+          >
             SPY Kids
           </FooterLink>
           .
