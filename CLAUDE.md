@@ -46,24 +46,24 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router) + TypeScript
-- **Styling**: Tailwind CSS
-- **State**: React useState + Context API (no Redux, no Zustand)
-- **Animation**: Framer Motion (only where needed)
+- **Framework**: Next.js 16 (App Router) + TypeScript
+- **Styling**: Tailwind CSS 4
+- **State**: Local React useState only (no Redux, no Zustand, no Context)
 - **Visualization**: SVG (declarative, debuggable, scales infinitely)
-- **AI Generation**: Anthropic Claude API (Sonnet 4.6 default)
-- **Hosting**: Vercel free tier -- deployed at https://creativetrace.art/ (the old https://creative-provenance.vercel.app/ URL remains live as a redirect at the Vercel/DNS level)
-- **Storage** (V1): localStorage for session state; no backend persistence
+- **AI Generation**: Anthropic Claude API (`claude-sonnet-4-6` — alias tracks latest 4.6 build)
+- **OG Image**: `next/og` `ImageResponse` at `/api/og` (edge runtime, Satori renderer)
+- **Hosting**: Vercel free tier — deployed at https://creativetrace.art/ (the old https://creative-provenance.vercel.app/ URL remains live as a redirect at the Vercel/DNS level)
+- **Storage** (V1): localStorage for grace cache; no backend persistence
 - **Storage** (V2, future): Supabase free tier for shareable URLs
-- **Image Export**: html-to-image or canvas-based PNG export
-- **Sharing**: Web Share API (mobile native share sheet) + download fallback
+- **Image Export**: canvas-based SVG-to-PNG with inline pattern paths (in `result-content.tsx`)
+- **Sharing**: Web Share API (mobile native share sheet) + clipboard fallback
 
 ## Architectural Principles
 
 1. **Mobile responsiveness is mandatory.** The site must work on iOS Safari and Android Chrome. Test early, test often.
 2. **Data schema is the source of truth.** All components read from and write to a single typed `ProvenanceResponse` shape. Do not duplicate state.
 3. **Soft proportions, not hard percentages.** No sliders that imply numerical measurement. Use 2D positioning, drag-to-stack, presence/absence.
-4. **The fingerprint is hardcoded symbolic in V1.** A finite set of visual primitives composed from answers. Generative composition is V2.
+4. **The Tracemark is a deterministic 18×18 SVG grid.** Same answers produce the same mark. Component: `components/Tracemark.tsx`.
 5. **No browser storage in artifacts beyond localStorage.** Do not use sessionStorage or cookies for V1.
 6. **API key never client-side.** Claude API calls go through a Next.js API route that proxies the request.
 7. **Minimal dependencies.** Each new package needs justification. Default to "we can build this without a library."
@@ -72,35 +72,37 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 
 ```
 /app
-  layout.tsx                    # Root layout with metadata
-  page.tsx                      # Landing page
+  layout.tsx                  # Root layout, metadata, viewport, Footer
+  page.tsx                    # Landing page with hero grid
+  globals.css                 # Tailwind 4 imports + CSS vars
+  icon.svg                    # Favicon (pattern-obsession)
   /questionnaire
-    page.tsx                    # Tally embed (full-viewport iframe + embed.js loader)
+    page.tsx                  # Tally embed (full-viewport iframe)
   /result
-    page.tsx                    # Reads URL params from Tally redirect, parseTallyParams stub, renders fingerprint + Grace
+    page.tsx                  # Server component: generateMetadata + Suspense
+    result-content.tsx        # Client: fetch, grace, download, share
   /api
     /grace
-      route.ts                  # Proxied call to Claude API (currently a stub)
+      route.ts                # Claude API proxy for Grace generation
+    /tally-submission
+      route.ts                # Fetches + maps Tally submission by sid
+    /og
+      route.tsx               # OG image renderer (edge, Satori)
 /components
-  /fingerprint
-    Fingerprint.tsx             # Master SVG composition (placeholder, awaiting visual system)
-    primitives/                 # Individual visual primitives per source type
-  /share
-    ShareSheet.tsx              # Native share + download
-    DownloadButton.tsx
+  Tracemark.tsx               # 18×18 SVG grid: 9 patches, skeleton mode
+  SiteHeader.tsx              # Minimal wordmark header for non-landing routes
 /lib
-  schema.ts                     # ProvenanceResponse type + Zod schema (target shapes Tally params map into)
-  fingerprint-config.ts         # Mapping of answers to visual primitives
-  grace-prompt.ts               # System prompt for Grace generation
-  storage.ts                    # localStorage helpers (kept for now; not currently referenced after the Tally pivot)
+  schema.ts                   # ProvenanceResponse type + Zod (LOCKED)
+  tally.ts                    # fetchSubmission + mapTallyToProvenance +
+                              # fetchAndMapSubmission + TEXT_TO_SCHEMA maps
 /public
-  /assets                       # SVG primitives, fonts, etc.
+  /patterns                   # 12 seed pattern SVGs
 /docs
-  requirements.md               # Feature spec and data schema
-  questionnaire-draft.md        # Question copy reference (canonical copy now lives in the Tally form)
-  backlog.md                    # Ideas and deferred features
-  bugs.md                       # Bug tracker
-  changelog.md                  # Session-by-session history
+  requirements.md
+  questionnaire-draft.md
+  backlog.md
+  bugs.md
+  changelog.md
 ```
 
 ## Data Schema
@@ -134,50 +136,58 @@ type ProvenanceResponse = {
 };
 ```
 
-All union types and exact value lists are in `/docs/requirements.md` and should be defined as TypeScript string literal unions in `/lib/schema.ts`.
+All union types and exact value lists are in `/docs/requirements.md` and are defined as TypeScript string literal unions in `/lib/schema.ts`.
 
 ## Visual System
 
-The fingerprint is composed of four channels:
+The Tracemark is a 9-patch SVG grid arranged in three horizontal bands of 180px height inside an 18×18-unit canvas (540×540px at 1u=30px). Each patch encodes a different slice of the `ProvenanceResponse`:
 
-1. **Shape vocabulary** (Q2, Q3, Q4, Q9): each source type maps to a visual primitive
-2. **Arrangement** (Q3 position, Q4 density): how primitives are laid out
-3. **Texture and finish** (Q6, Q7 kinds + stage): AI presence affects pixelation, dithering, color temperature
-4. **Atmosphere** (Q5, Q8, Q10): emotional channel — clarity, ghost element, line quality
+- Patch 0: black anchor (constant)
+- Patch 1: medium color (Q1) + seed pattern overlay (Q2, drawn from 12 SVGs in `/public/patterns/`)
+- Patch 3: reference weights (Q3, 5-section bar chart)
+- Patch 4: teachers (Q4, 8-cell grid)
+- Patch 5: AI as generator yes/no (Q7, diagonal triangle)
+- Patch 6: AI helpers (Q6, 12-cell grid)
+- Patch 7: AI generator details (Q7, 16-cell grid)
+- Patch 8: direction-vs-execution bar (Q8, 1–10)
+- Patch 9: collaborators (Q9, 8-cell grid)
 
-Q3 has 12 reference tiles, Q2 has 12 seed types, Q4 has 8 teacher types — the primitive library is correspondingly larger than V1's earlier draft. A separate visual system spec will be provided by Paola and Yash. Until that lands, use placeholder shapes (basic geometric forms) and color-code by category. Placeholder mappings are in `/docs/requirements.md`.
+Implementation: `components/Tracemark.tsx`. Each patch is split into a `PatchNFills` component (rendered inside an opacity-controlled group) and a `PatchNStrokes` component (always visible). Skeleton mode: when `data` is empty, fills are hidden; only strokes show. When data arrives, fills transition to opacity 1 over 500ms — same SVG geometry, no layout shift.
+
+The Tracemark is also rendered server-side at `/api/og` (Satori) and inlined into the canvas-based PNG download (in `result-content.tsx`). Both reuse the patch geometry but inline pattern paths instead of `<image href>` refs because neither Satori nor canvas `drawImage` resolves external SVG image references — see the cross-reference comments in `app/api/og/route.tsx` and `result-content.tsx`.
 
 ## Grace Generation
 
-The Grace is a personalized "thank you to..." prayer — explicitly framed as a *grace said before a meal*: a moment to pause and name what was given to you before you take the first bite. Generated by Claude Sonnet 4.6 from the mapped `ProvenanceResponse`, on a successful Tally submission load.
+The Grace is a personalized "thank you to..." prayer — explicitly framed as a *grace said before a meal*: a moment to pause and name what was given before the maker takes the first bite. Generated by Claude Sonnet 4.6 from the mapped `ProvenanceResponse`.
 
-Each grace is a sequence of "Thank you to..." / "Thank you for..." lines (5–9 of them), one per distinct contribution source from the submission, ending with two ownership lines:
+Each grace is a sequence of "Thank you to..." / "Thank you for..." lines (5–9 of them), one per distinct contribution source from the submission, ending with two ownership lines in first-person voice:
 
 ```
-You feel this piece is [almost entirely yours].
-Sit with that.
+I feel this piece is [almost entirely mine].
+Let me sit with that.
 ```
 
 The ownership closing surfaces the **Q10 (feltOwnership) tension** deliberately: feltOwnership is what the maker *feels* about the work, which may contradict everything the submission shows actually fed it. That tension is why ownership is held in the grace's closing — not folded into the visual signature.
 
-The system prompt is inlined in `/app/api/grace/route.ts` (constant `SYSTEM_PROMPT`). Iterate on it heavily. Test with multiple sample responses.
+The system prompt is inlined as the `SYSTEM_PROMPT` constant in `/app/api/grace/route.ts`. Voice rules (no em dashes, no inflated language, no rule-of-three stacking, model-collaborator disambiguation, AI-helper agency phrasing, etc.) are embedded directly in the system prompt. Iterate there.
 
 ### API Configuration
 
-- Model: `claude-sonnet-4-6` (alias — tracks the latest 4.6 build)
+- Model: `claude-sonnet-4-6` (alias — tracks latest 4.6 build)
 - Endpoint: `https://api.anthropic.com/v1/messages`
 - Auth: `x-api-key: ${process.env.ANTHROPIC_API_KEY}` + `anthropic-version: 2023-06-01`
 - Max tokens: 500
 - System prompt is marked `cache_control: { type: "ephemeral" }` so repeat traffic only pays for the user-specific JSON tokens.
-- Rate limiting: not implemented yet (V2 — Vercel KV or in-memory cache).
+- Rate limiting: per-IP in-memory sliding window, 5 requests / 60s. Backstop: trim to half if the IP map exceeds 1000 entries.
+- Cache: client-side `localStorage`, key `grace-v2-${sid}`. Same sid → same answers → same grace, so we only ever pay for one Anthropic call per submission.
 
 ## Sharing
 
 - **Primary path**: Web Share API (`navigator.share()`) on mobile — handles Instagram, WhatsApp, Messages, Twitter, etc.
-- **Fallback path**: Direct download of fingerprint as PNG (always visible)
-- **Future (V2)**: Shareable URLs with unique slugs
+- **Fallback path**: clipboard copy on desktop (where `navigator.share` isn't available); plus the always-visible Download PNG.
+- **Future (V2)**: Shareable URLs with unique slugs.
 
-Do not build per-platform share buttons for V1. The native share sheet covers the use cases.
+Do not build per-platform share buttons for V1. The native share sheet covers the use cases. Platform detection in `result-content.tsx` only swaps the icon and label between iOS / Android / desktop — not the action.
 
 ## Development Workflow
 
@@ -191,27 +201,41 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 
 - Push to `main` = production deploy at https://creativetrace.art/ (the legacy https://creative-provenance.vercel.app/ URL is kept as a live redirect)
 - Push to any other branch = preview deploy with its own URL
-- `ANTHROPIC_API_KEY` is set in Vercel environment variables for Production, Preview, and Development
+- `ANTHROPIC_API_KEY` and `TALLY_API_KEY` are set in Vercel environment variables for Production, Preview, and Development
 - Build failures show in Vercel dashboard; check there before assuming a regression is local
 - Production environment is stricter than `next dev` — always run `npm run build` locally before pushing if a change is risky
 
 ## Tally integration
 
-The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full-viewport iframe at /questionnaire via Tally's official embed.js script (loaded with next/script, strategy="afterInteractive").
+The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full-viewport iframe at `/questionnaire` via Tally's official embed.js script (loaded with `next/script`, `strategy="afterInteractive"`).
 
-**Submit flow (V1):** Tally is configured (in its own dashboard) to redirect to `/result?sid={submissionId}` on completion. `/result` reads the `sid`, calls `/api/tally-submission?sid=...`, which fetches the full submission server-side from `https://api.tally.so/forms/RGZO7p/submissions/{sid}` (auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` in `lib/tally.ts` to coerce the responses array into a `Partial<ProvenanceResponse>`.
+**Submit flow:** Tally redirects to `/result?sid={submissionId}`. The result page calls `/api/tally-submission?sid=...`, which calls `fetchAndMapSubmission` from `lib/tally.ts`. That function fetches the full submission server-side from Tally's REST API (`https://api.tally.so/forms/RGZO7p/submissions/{sid}`, auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` using the form's known question UUIDs and per-question `TEXT_TO_SCHEMA` tables. If option text changes in Tally, update the matching constant in `lib/tally.ts`.
 
-**The mapping is pinned to the form** — `lib/tally.ts` contains the form's questionId UUIDs and a per-question `TEXT_TO_SCHEMA` table mapping each option's exact Tally text to the corresponding schema literal. If a question is renamed, reordered, or its option text edited in Tally, update the matching constant.
+**Text matching is normalize-then-match**: incoming Tally text is lowercased + collapsed (curly quotes / em dashes / curly ellipsis → ASCII) before comparing against table keys, so a single canonical key per option suffices — no straight-quote duplicates needed.
 
 **V2 plan:** replace the REST fetch with a Tally webhook → Next.js API route → durable storage (Supabase or Vercel KV). That trades a synchronous fetch for at-most-once delivery and enables shareable result URLs. See backlog.
 
 ## What to Prioritize
 
-**Now (Session 14+):**
-- Visual system delivery from Paola/Yash → real fingerprint composition
-- Iterate on the Grace system prompt against real submissions; tune voice, length, tension-handling
-- Rate limit on /api/grace before symposium (currently unguarded)
-- Download PNG, share, symposium polish
+**Done (shipped for symposium):**
+- Tally form → redirect with sid
+- Tally API fetch → UUID-based mapping → ProvenanceResponse
+- Tracemark visualization (9 patches, 12 seed patterns, skeleton mode)
+- Grace generation + localStorage caching + voice rules
+- Download PNG with inline pattern paths
+- Share (navigator.share + clipboard fallback)
+- OG image for link previews (with inline patterns)
+- Landing page with hero grid + How it works
+- Result page two-column layout + What to do section
+- Rate limiting on `/api/grace` (per-instance, 5/60s)
+- Favicon (pattern-obsession)
+- Per-route tab titles
+- Footer with author credits
+
+**Post-symposium:**
+- Delete dead placeholder files
+- Cluster-wide rate limiting (Vercel KV / Upstash Redis)
+- See `/docs/backlog.md` for full list
 
 ## Accessibility Floor
 
@@ -234,6 +258,8 @@ Do not:
 - Collapse Q3's distinct reference categories back into broad buckets — the granularity is intentional
 - Use technical/categorical language in question copy — voice should be evocative and personal
 - Re-implement the questionnaire UI in Next.js — that's deliberately deferred to V2; until then, all question UX changes happen in Tally
+- Reference `parseTallyParams` — it was deleted in Session 12. The mapping lives in `lib/tally.ts` (`fetchAndMapSubmission` / `mapTallyToProvenance`).
+- Add `dark:` class variants — single light theme by design (see `/docs/backlog.md` for what dark mode would require).
 
 ## Voice and Tone
 
