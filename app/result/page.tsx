@@ -355,49 +355,53 @@ function ResultContent() {
             className="md:sticky md:top-8 md:self-start"
           >
             {/* Tracemark renders directly on the white page background.
-                The download function reads the inner SVG via querySelector. */}
-            <div ref={tracemarkRef}>
-              {tracemarkReady ? (
-                <Tracemark
-                  data={state.data}
-                  className="h-auto w-full"
-                />
-              ) : (
-                <div
-                  className="flex aspect-square w-full items-center justify-center text-sm text-[#999]"
-                  aria-live="polite"
-                >
-                  {state.status === 'loading'
-                    ? 'Tracemark — loading…'
-                    : 'Tracemark — awaiting submission'}
+                The download function reads the inner SVG via querySelector.
+                Wrapped in a max-w-[65vh] container so the buttons row below
+                stays aligned with the height-capped Tracemark above. */}
+            <div className="max-w-[65vh]">
+              <div ref={tracemarkRef}>
+                {tracemarkReady ? (
+                  <Tracemark
+                    data={state.data}
+                    className="h-auto w-auto max-h-[65vh]"
+                  />
+                ) : (
+                  <div
+                    className="flex aspect-square w-full items-center justify-center text-sm text-[#999]"
+                    aria-live="polite"
+                  >
+                    {state.status === 'loading'
+                      ? 'Tracemark — loading…'
+                      : 'Tracemark — awaiting submission'}
+                  </div>
+                )}
+              </div>
+
+              {tracemarkReady && (
+                <div className="mt-6 flex w-full gap-2">
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    className="inline-flex h-12 flex-1 items-center justify-center gap-2 bg-black px-4 text-lg text-white transition-opacity hover:opacity-90"
+                  >
+                    <Download size={20} strokeWidth={2.5} aria-hidden />
+                    Download
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="inline-flex h-12 flex-1 items-center justify-center gap-2 border-[3px] border-black bg-transparent px-4 text-lg text-black transition-colors hover:bg-black/5"
+                  >
+                    {platform === 'desktop' ? (
+                      <LinkIcon size={20} strokeWidth={2.5} aria-hidden />
+                    ) : (
+                      <Share size={20} strokeWidth={2.5} aria-hidden />
+                    )}
+                    {shareLabel}
+                  </button>
                 </div>
               )}
             </div>
-
-            {tracemarkReady && (
-              <div className="mt-6 flex w-full gap-2">
-                <button
-                  type="button"
-                  onClick={handleDownload}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 bg-black px-4 text-lg text-white transition-opacity hover:opacity-90"
-                >
-                  <Download size={20} strokeWidth={2.5} aria-hidden />
-                  Download
-                </button>
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="inline-flex h-12 flex-1 items-center justify-center gap-2 border-[3px] border-black bg-transparent px-4 text-lg text-black transition-colors hover:bg-black/5"
-                >
-                  {platform === 'desktop' ? (
-                    <LinkIcon size={20} strokeWidth={2.5} aria-hidden />
-                  ) : (
-                    <Share size={20} strokeWidth={2.5} aria-hidden />
-                  )}
-                  {shareLabel}
-                </button>
-              </div>
-            )}
           </section>
 
           {/* Right column: grace intro + grace box. Stacks below on mobile. */}
