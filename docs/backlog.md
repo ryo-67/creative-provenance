@@ -102,10 +102,6 @@ Key is `grace-v2-${sid}`. Each system prompt change requires a manual bump. Cons
 
 `app/questionnaire/page.tsx` sets both `data-tally-src` and `src` on the iframe. If embed.js ever changes its attribute name, the form could load twice. Low risk, monitor.
 
-### Error boundary on result page
-
-No React error boundary wraps the Tracemark + Grace sections. If the component throws on unexpected data, the page crashes. Add an `ErrorBoundary` with a fallback message.
-
 ## Visual polish
 
 ### Patch 8 direction bar stroke

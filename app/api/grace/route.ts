@@ -87,12 +87,15 @@ function checkRateLimit(ip: string): boolean {
 }
 
 export async function POST(request: Request) {
-  if (!checkRateLimit(getIP(request))) {
+  const ip = getIP(request);
+  if (!checkRateLimit(ip)) {
+    console.error('[grace] rate limit hit for ip=%s', ip);
     return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
   }
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.error('[grace] missing env var: ANTHROPIC_API_KEY');
     return NextResponse.json(
       { error: 'ANTHROPIC_API_KEY is not set' },
       { status: 500 },
@@ -104,12 +107,17 @@ export async function POST(request: Request) {
     body = (await request.json()) as {
       submission?: Partial<ProvenanceResponse>;
     };
-  } catch {
+  } catch (err) {
+    console.error(
+      '[grace] invalid JSON body:',
+      err instanceof Error ? err.message : String(err),
+    );
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
   const submission = body.submission;
   if (!submission || typeof submission !== 'object') {
+    console.error('[grace] missing submission in request body');
     return NextResponse.json(
       { error: 'Missing submission in request body' },
       { status: 400 },
@@ -147,6 +155,11 @@ export async function POST(request: Request) {
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => '');
+      console.error(
+        '[grace] Anthropic API error %d: %s',
+        res.status,
+        errBody.slice(0, 500),
+      );
       return NextResponse.json(
         {
           error: `Anthropic API error ${res.status}: ${errBody.slice(0, 500)}`,
@@ -160,6 +173,10 @@ export async function POST(request: Request) {
       json.content?.find((b) => b.type === 'text')?.text?.trim() ?? '';
 
     if (!grace) {
+      console.error(
+        '[grace] Anthropic returned no grace text. Raw content:',
+        JSON.stringify(json.content ?? null).slice(0, 500),
+      );
       return NextResponse.json(
         { error: 'Anthropic returned no grace text' },
         { status: 500 },
@@ -169,6 +186,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ grace });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error(
+      '[grace] fetch threw:',
+      err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
+    );
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

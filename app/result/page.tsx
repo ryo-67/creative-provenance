@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import SiteHeader from '@/components/SiteHeader';
 import { fetchAndMapSubmission } from '@/lib/tally';
 import ResultContent from './result-content';
+import ResultErrorBoundary from './error-boundary';
 
 // Server-side metadata so the OG / Twitter card meta tags reach the
 // document head before the client component hydrates. The OG image
@@ -75,9 +76,11 @@ export default function ResultPage() {
   return (
     <>
       <SiteHeader />
-      <Suspense fallback={null}>
-        <ResultContent />
-      </Suspense>
+      <ResultErrorBoundary>
+        <Suspense fallback={null}>
+          <ResultContent />
+        </Suspense>
+      </ResultErrorBoundary>
     </>
   );
 }

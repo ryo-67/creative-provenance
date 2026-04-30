@@ -24,6 +24,11 @@ export async function GET(request: Request) {
         ? 404
         : 500;
     const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error(
+      '[tally-submission] sid=%s failed:',
+      sid,
+      err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
+    );
     return NextResponse.json({ error: message }, { status });
   }
 }
