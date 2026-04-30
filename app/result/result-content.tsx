@@ -79,7 +79,7 @@ type GraceState =
 type SharePlatform = 'ios' | 'android' | 'desktop';
 
 const GRACE_INTRO =
-  'You just named everything that fed this piece. A grace is what you say before a meal, when you pause to acknowledge what was given. This is yours.';
+  'You just named everything that fed this piece. A grace is what you say before a meal, when you pause to acknowledge what was given.';
 
 function WhatToDoColumn({
   title,
@@ -393,7 +393,7 @@ export default function ResultContent() {
                   className="mt-6 flex h-12 w-full items-center justify-center text-sm text-[#666]"
                   aria-live="polite"
                 >
-                  Loading your submission…
+                  Making your mark…
                 </div>
               )}
             </div>
