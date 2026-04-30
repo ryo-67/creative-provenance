@@ -8,10 +8,22 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
+// metadataBase resolves any relative URLs in metadata (file-convention
+// og:image, favicons, etc.) to absolute ones. Set at the root so every
+// route inherits — silences the "metadataBase not set" warning during
+// static generation. VERCEL_URL is the deployment-specific host on
+// Vercel (preview + prod); local dev falls back to localhost.
 export const metadata: Metadata = {
-  title: 'Creative Trace',
-  description:
-    'An interactive questionnaire that maps the provenance of a creative work — the mentors, references, tools, and generative systems that shaped it.',
+  metadataBase: new URL(
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000',
+  ),
+  title: {
+    default: 'Creative Trace',
+    template: '%s · Creative Trace',
+  },
+  description: 'Map the full chain of influences behind your work.',
 };
 
 function FooterLink({

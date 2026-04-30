@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import SiteHeader from '@/components/SiteHeader';
+import type { ProvenanceResponse } from '@/lib/schema';
 import ResultContent from './result-content';
 
 // Server-side metadata so the OG / Twitter card meta tags reach the
@@ -14,19 +15,39 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const params = await searchParams;
   const sid = params.sid;
-  // metadataBase resolves the relative og:image URL to an absolute one.
-  // VERCEL_URL is the deployment-specific URL on Vercel (preview + prod);
-  // local dev falls back to localhost. Without this, Next.js warns and
-  // silently uses http://localhost:3000.
-  const metadataBase = new URL(
-    process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000',
-  );
+  // metadataBase is inherited from the root layout. We still need
+  // the absolute baseUrl here for the server-side fetch below.
+  const baseUrl = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
+
+  // Mirror the fetch in app/result/opengraph-image.tsx so the tab title
+  // can name the piece. We hit the same API route; both calls happen at
+  // request time, but they're in different runtimes (this is Node, OG
+  // is edge), so framework-level dedup doesn't apply — the cost is one
+  // extra Tally REST call per result-page request.
+  let pieceDescription = '';
+  if (sid) {
+    try {
+      const res = await fetch(
+        `${baseUrl}/api/tally-submission?sid=${encodeURIComponent(sid)}`,
+        { cache: 'no-store' },
+      );
+      if (res.ok) {
+        const fetched = (await res.json()) as Partial<ProvenanceResponse>;
+        pieceDescription = fetched.piece?.description ?? '';
+      }
+    } catch {
+      // Fall through to the generic title.
+    }
+  }
+
+  const title = pieceDescription
+    ? `Tracemark for ${pieceDescription}`
+    : 'Your Tracemark';
 
   return {
-    metadataBase,
-    title: 'Your Creative Trace',
+    title,
     description: 'A visual map of everything that shaped this piece.',
     openGraph: {
       title: 'My Creative Trace',

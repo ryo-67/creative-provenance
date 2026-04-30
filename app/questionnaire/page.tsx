@@ -1,6 +1,9 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Script from 'next/script';
+
+export const metadata: Metadata = {
+  title: 'Trace your work',
+};
 
 export default function QuestionnairePage() {
   return (
