@@ -15,10 +15,6 @@ export async function GET(request: Request) {
   try {
     const submission = await fetchSubmission(sid);
     const mapped = mapTallyToProvenance(submission);
-    console.log(
-      `[tally] sid=${sid} mapped:`,
-      JSON.stringify(mapped, null, 2),
-    );
     return NextResponse.json(mapped);
   } catch (err) {
     const status =

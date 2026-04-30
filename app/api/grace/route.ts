@@ -54,7 +54,43 @@ interface AnthropicResponse {
   content?: AnthropicTextBlock[];
 }
 
+// --- Rate limiting (per-IP, in-memory) ---
+// Sliding 60s window, 5 requests per IP. Backstop: trim the oldest half
+// of the map if it exceeds 1000 entries so it can't grow unbounded.
+
+const rateLimits = new Map<string, number[]>();
+const WINDOW_MS = 60_000;
+const MAX_REQUESTS = 5;
+
+function getIP(req: Request): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return req.headers.get('x-real-ip') ?? 'unknown';
+}
+
+function checkRateLimit(ip: string): boolean {
+  if (rateLimits.size > 1000) {
+    const entries = Array.from(rateLimits.entries());
+    rateLimits.clear();
+    for (const [k, v] of entries.slice(Math.floor(entries.length / 2))) {
+      rateLimits.set(k, v);
+    }
+  }
+  const now = Date.now();
+  const timestamps = (rateLimits.get(ip) ?? []).filter(
+    (t) => now - t < WINDOW_MS,
+  );
+  if (timestamps.length >= MAX_REQUESTS) return false;
+  timestamps.push(now);
+  rateLimits.set(ip, timestamps);
+  return true;
+}
+
 export async function POST(request: Request) {
+  if (!checkRateLimit(getIP(request))) {
+    return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return NextResponse.json(

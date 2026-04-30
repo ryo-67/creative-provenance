@@ -146,7 +146,15 @@ const SEED_TEXT_TO_SCHEMA: Record<string, SeedType | null> = {
   'A dream, an accident, a coincidence': 'chance',
   "I can't trace it": 'unknown',
   'I can’t trace it': 'unknown', // curly variant
+  // "Other" — Tally may send any of these depending on whether the form
+  // has the open-text suffix and how the option was authored. The seed
+  // mapping below also has a non-empty fallback to 'other' for any text
+  // that doesn't match here, so future drift won't silently break the
+  // pattern overlay.
   Other: 'other',
+  'Other...': 'other',
+  'Other…': 'other',
+  'Other (please specify)': 'other',
 };
 
 const TEACHER_TEXT_TO_SCHEMA: Record<string, TeacherType | null> = {
@@ -368,8 +376,14 @@ export function mapTallyToProvenance(
   };
 
   // Q2 — seed (QrLlKg, single-select array → wrap in single-element array).
+  // Defensive fallback: if Tally sends a non-empty seed text that isn't in
+  // SEED_TEXT_TO_SCHEMA, mapOne already console.warns the unmapped text;
+  // we then map to 'other' so the pattern overlay still picks something
+  // sane instead of leaving seed undefined.
   const seedText = asStringArray(findAnswer(responses, QUESTION_IDS.seed))[0];
-  const seedType = mapOne(seedText, SEED_TEXT_TO_SCHEMA, 'seed');
+  const seedType: SeedType | undefined =
+    mapOne(seedText, SEED_TEXT_TO_SCHEMA, 'seed') ??
+    (seedText ? 'other' : undefined);
   if (seedType) {
     out.seed = { types: [seedType] };
   }

@@ -20,7 +20,7 @@ import type { ProvenanceResponse } from '@/lib/schema';
 function readCachedGrace(sid: string | null): string | null {
   if (typeof window === 'undefined' || !sid) return null;
   try {
-    return localStorage.getItem(`grace-${sid}`);
+    return localStorage.getItem(`grace-v2-${sid}`);
   } catch {
     return null;
   }
@@ -28,7 +28,7 @@ function readCachedGrace(sid: string | null): string | null {
 
 function writeCachedGrace(sid: string, grace: string): void {
   try {
-    localStorage.setItem(`grace-${sid}`, grace);
+    localStorage.setItem(`grace-v2-${sid}`, grace);
   } catch {
     // localStorage full / disabled / private mode — silent fail; user just
     // gets a fresh fetch on the next visit.
@@ -335,11 +335,11 @@ function ResultContent() {
           </p>
         </header>
 
-        <div className="md:grid md:grid-cols-[6fr_4fr] md:gap-10">
-          {/* Left column: Tracemark + actions + caption. Sticky on desktop. */}
+        <div className="flex flex-col md:flex-row md:gap-12">
+          {/* Left column: Tracemark + actions. Sticky on desktop. */}
           <section
             aria-label="Tracemark"
-            className="md:sticky md:top-8 md:self-start"
+            className="md:sticky md:top-8 md:w-fit md:flex-shrink-0 md:self-start"
           >
             {/* Tracemark renders directly on the white page background.
                 The download function reads the inner SVG via querySelector.
@@ -400,13 +400,17 @@ function ResultContent() {
             </div>
           </section>
 
-          {/* Right column: grace intro + grace box. Stacks below on mobile. */}
-          <section aria-label="Grace" className="mt-12 md:mt-0">
-            <p className="mb-6 text-sm leading-relaxed text-[#666]">
-              {GRACE_INTRO}
-            </p>
+          {/* Right column: grace intro + grace box. Stacks below on mobile.
+              Inner wrapper caps reading width at 600px and centers it
+              within the flex-1 column so the grace doesn't stretch wide
+              on big screens. */}
+          <section aria-label="Grace" className="mt-12 md:mt-0 md:flex-1">
+            <div className="mx-auto max-w-[600px]">
+              <p className="mb-6 text-sm leading-relaxed text-[#666]">
+                {GRACE_INTRO}
+              </p>
 
-            <div className="border-l-[3px] border-black bg-[#F8F7F6] p-4 md:p-6">
+              <div className="border-l-[3px] border-black bg-[#F8F7F6] p-4 md:p-6">
               {graceLoading && (
                 <p className="text-sm text-[#999]" aria-live="polite">
                   Composing your grace…
@@ -425,6 +429,7 @@ function ResultContent() {
                   Waiting for your submission…
                 </p>
               )}
+              </div>
             </div>
           </section>
         </div>
