@@ -80,7 +80,25 @@ type GraceState =
 type SharePlatform = 'ios' | 'android' | 'desktop';
 
 const GRACE_INTRO =
-  'A grace is a prayer said before a meal — a moment to pause and name what was given to you before you take the first bite. This is yours. Read it, and sit with what fed this piece.';
+  'You just named everything that fed this piece. A grace is what you say before a meal, when you pause to acknowledge what was given. This is yours.';
+
+function WhatToDoColumn({
+  title,
+  body,
+}: {
+  title: string;
+  body: string;
+}) {
+  return (
+    <div className="flex-1">
+      <div className="flex aspect-video items-center justify-center bg-[#F5F5F5] text-sm text-[#999]">
+        Image
+      </div>
+      <h3 className="mt-4 text-base font-medium">{title}</h3>
+      <p className="mt-1 text-sm leading-relaxed text-[#666]">{body}</p>
+    </div>
+  );
+}
 
 function GraceLines({ grace }: { grace: string }) {
   const lines = grace
@@ -367,7 +385,7 @@ function ResultContent() {
                   className="inline-flex h-12 flex-1 items-center justify-center gap-2 bg-black px-4 text-lg text-white transition-opacity hover:opacity-90"
                 >
                   <Download size={20} strokeWidth={2.5} aria-hidden />
-                  Download PNG
+                  Download
                 </button>
                 <button
                   type="button"
@@ -419,6 +437,29 @@ function ResultContent() {
             </div>
           </section>
         </div>
+
+        <section
+          aria-label="What to do with your Tracemark"
+          className="mt-16 md:mt-24"
+        >
+          <h2 className="mb-8 text-2xl font-medium">
+            What to do with your Tracemark
+          </h2>
+          <div className="flex flex-col gap-10 md:flex-row md:gap-8">
+            <WhatToDoColumn
+              title="Portfolio or project page"
+              body="Place it next to the piece as a provenance statement. It tells viewers exactly what went into the work."
+            />
+            <WhatToDoColumn
+              title="Social media watermark"
+              body="Add it as a small mark on posts of your work. It signals that you’ve traced your process."
+            />
+            <WhatToDoColumn
+              title="Gallery or exhibition"
+              body="Print it alongside the piece blurb. It becomes part of the wall text, a visual footnote."
+            />
+          </div>
+        </section>
 
         {isDev && (
           <section className="mt-16 space-y-4 rounded-lg border border-[#eee] bg-[#fafafa] p-4 text-xs">

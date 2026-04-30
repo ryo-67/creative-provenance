@@ -138,24 +138,49 @@ function buildSample(i: number): Partial<ProvenanceResponse> {
   };
 }
 
-const SAMPLE_COUNT = 16; // 8 cols × 2 rows
-const SAMPLES = Array.from({ length: SAMPLE_COUNT }, (_, i) => buildSample(i));
+const SAMPLES = Array.from({ length: 16 }, (_, i) => buildSample(i));
 
 function HeroGrid() {
-  // 8 cols × 140px + 7 × 12px gap = 1204px natural width. The
-  // overflow-hidden wrapper clips edges on narrower viewports so the
-  // grid reads as a "sample field" continuing past the page. Soft gray
-  // background sets the section apart from the white text below.
+  // Two grids (mobile / desktop) so each breakpoint gets the right cell
+  // count and tracemark size. Both centered with `mx-auto w-max` and
+  // clipped by the wrapper's overflow-hidden when wider than viewport.
   return (
     <div
       aria-hidden
-      className="overflow-hidden bg-[#F5F5F5] py-20 md:py-24"
+      className="overflow-hidden bg-[#F5F5F5] pt-20 pb-20 md:pt-24"
     >
-      <div className="mx-auto grid w-max grid-cols-8 gap-3">
-        {SAMPLES.map((sample, i) => (
+      {/* Mobile: 4 cols × 3 rows = 12 marks at 100px */}
+      <div className="mx-auto grid w-max grid-cols-4 gap-2 md:hidden">
+        {SAMPLES.slice(0, 12).map((sample, i) => (
+          <Tracemark key={i} data={sample} size={100} />
+        ))}
+      </div>
+      {/* Desktop: 8 cols × 2 rows = 16 marks at 140px */}
+      <div className="mx-auto hidden w-max grid-cols-8 gap-3 md:grid">
+        {SAMPLES.slice(0, 16).map((sample, i) => (
           <Tracemark key={i} data={sample} size={140} />
         ))}
       </div>
+    </div>
+  );
+}
+
+// --- "How it works" steps ---
+
+function HowItWorksStep({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="flex-1">
+      <div className="flex aspect-square items-center justify-center bg-[#F5F5F5] text-sm text-[#999]">
+        Image
+      </div>
+      <h3 className="mt-4 text-base font-medium">{title}</h3>
+      <p className="mt-1 text-sm leading-relaxed text-[#666]">{subtitle}</p>
     </div>
   );
 }
@@ -167,12 +192,11 @@ export default function Home() {
 
       <div className="px-6 pb-16 md:pb-20">
         <div className="mx-auto w-full max-w-[800px]">
-          <h1 className="mb-4 text-5xl font-medium tracking-tight">
+          <h1 className="mt-16 mb-4 text-5xl font-medium tracking-tight">
             Creative Trace
           </h1>
           <p className="text-2xl font-light leading-snug text-[#666]">
-            This project maps the full chain of human, technological, and
-            cultural influences that shape a work of art.
+            Map the full chain of influences behind your work.
           </p>
 
           <div className="mt-10 space-y-8 text-base leading-relaxed">
@@ -191,30 +215,44 @@ export default function Home() {
               documented chain of ownership and origin. Here, we extend it
               to the creative process itself: mentors, memories, cultural
               references, platforms, tools, and generative systems. Your
-              answers produce a Tracemark, a visual mark encoding where
-              your work came from and what role AI played in it.
-            </p>
-            <p>
-              For creative workers navigating contracts, credits, and
-              authorship questions right now, this is a way to name your
-              contribution and honor everyone else’s.
+              answers produce a Tracemark, a visual mark that encodes where
+              your work came from, and a Grace, a short reflective text
+              naming everything that fed it.
             </p>
           </div>
 
+          <section className="mt-16">
+            <h2 className="mb-8 text-lg font-medium">How it works</h2>
+            <div className="flex flex-col gap-10 md:flex-row md:gap-8">
+              <HowItWorksStep
+                title="Answer"
+                subtitle="Ten questions about a piece you’ve made."
+              />
+              <HowItWorksStep
+                title="Receive your Tracemark"
+                subtitle="A unique visual mark of your creative process."
+              />
+              <HowItWorksStep
+                title="Read your Grace"
+                subtitle="A reflection naming every influence that shaped the work."
+              />
+            </div>
+          </section>
+
           <Link
             href="/questionnaire"
-            className="mt-12 inline-flex h-12 w-full items-center justify-center gap-2 bg-black px-6 text-lg text-white transition-opacity hover:opacity-90"
+            className="mx-auto mt-12 flex h-12 w-full max-w-[500px] items-center justify-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black hover:text-white"
           >
             Trace your work
             <ArrowRight size={20} strokeWidth={2.5} aria-hidden />
           </Link>
 
-          <h2 className="mt-12 mb-3 text-lg font-medium">
+          <h2 className="mt-16 mb-2 text-base font-medium text-[#666]">
             How is your data used?
           </h2>
-          <p className="text-base leading-relaxed">
+          <p className="text-sm leading-relaxed text-[#999]">
             Your questionnaire responses are stored by Tally, our form
-            provider. To generate your grace, your responses are sent to
+            provider. To generate your Grace, your responses are sent to
             Anthropic’s Claude. Your data is not used for model training,
             advertising, or any purpose beyond generating your Tracemark. We
             do not collect your name, email, or any contact information.
