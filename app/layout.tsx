@@ -26,6 +26,11 @@ export const metadata: Metadata = {
   description: 'Map the full chain of influences behind your work.',
 };
 
+export const viewport: Viewport = {
+  themeColor: '#ffffff',
+};
+
+
 // `primary` variant darkens to body-text color (#37352F) so the
 // author names + SPY Kids stand out as primary anchors. Default
 // stays at #999 — same hierarchy level as the surrounding sentence,
