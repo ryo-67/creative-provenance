@@ -356,25 +356,16 @@ function ResultContent() {
           >
             {/* Tracemark renders directly on the white page background.
                 The download function reads the inner SVG via querySelector.
-                Wrapped in a max-w-[65vh] container so the buttons row below
-                stays aligned with the height-capped Tracemark above. */}
-            <div className="max-w-[65vh]">
+                The Tracemark always renders — pre-load it shows the empty
+                grid (all base colors) as a skeleton; once data arrives it
+                fills in. The buttons row sits in the same `w-fit` wrapper
+                so it spans exactly the Tracemark's rendered width. */}
+            <div className="w-fit">
               <div ref={tracemarkRef}>
-                {tracemarkReady ? (
-                  <Tracemark
-                    data={state.data}
-                    className="h-auto w-auto max-h-[65vh]"
-                  />
-                ) : (
-                  <div
-                    className="flex aspect-square w-full items-center justify-center text-sm text-[#999]"
-                    aria-live="polite"
-                  >
-                    {state.status === 'loading'
-                      ? 'Tracemark — loading…'
-                      : 'Tracemark — awaiting submission'}
-                  </div>
-                )}
+                <Tracemark
+                  data={tracemarkReady ? state.data : {}}
+                  className="h-auto w-auto max-h-[65vh]"
+                />
               </div>
 
               {tracemarkReady && (

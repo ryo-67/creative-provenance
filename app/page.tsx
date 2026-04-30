@@ -9,6 +9,7 @@ import type {
   MediumType,
   ProvenanceResponse,
   ReferenceTileId,
+  SeedType,
   TeacherType,
   TrainingDataAwareness,
 } from '@/lib/schema';
@@ -18,6 +19,21 @@ import type {
 // visually distinct from its neighbors. Each axis (medium, references,
 // teachers, helpers, AI generator, direction, collaborators) is varied
 // independently — no two samples share the same combination of densities.
+
+const SEEDS: SeedType[] = [
+  'body',
+  'memory',
+  'image',
+  'conversation',
+  'obsession',
+  'technique',
+  'constraint',
+  'problem',
+  'critique',
+  'chance',
+  'unknown',
+  'other',
+];
 
 const MEDIUMS: MediumType[] = [
   'painted',
@@ -184,7 +200,7 @@ function buildSample(i: number): Partial<ProvenanceResponse> {
   const aiUsed = AI_USED_FLAGS[i % AI_USED_FLAGS.length];
   return {
     piece: { description: '', medium: MEDIUMS[i % MEDIUMS.length] },
-    seed: { types: ['memory'] },
+    seed: { types: [SEEDS[(i * 7) % SEEDS.length]] },
     references: buildReferences(i),
     teachers: TEACHER_SETS[i % TEACHER_SETS.length],
     aiHelpers: buildHelpers(i),

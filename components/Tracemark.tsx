@@ -21,6 +21,7 @@ import type {
   MediumType,
   ProvenanceResponse,
   ReferenceTileId,
+  SeedType,
   TeacherType,
   TrainingDataAwareness,
 } from '@/lib/schema';
@@ -43,6 +44,23 @@ const MEDIUM_COLOR: Record<MediumType, string> = {
   motion: '#8CBBA1',
   'mixed-media': '#F87014',
   other: '#B5DD35',
+};
+
+// Seed → pattern asset. The schema's 'chance' literal maps to
+// pattern-dream.svg (the file is named after the user-facing label).
+const SEED_PATTERN: Record<SeedType, string> = {
+  body: '/patterns/pattern-body.svg',
+  memory: '/patterns/pattern-memory.svg',
+  image: '/patterns/pattern-image.svg',
+  conversation: '/patterns/pattern-conversation.svg',
+  obsession: '/patterns/pattern-obsession.svg',
+  technique: '/patterns/pattern-technique.svg',
+  constraint: '/patterns/pattern-constraint.svg',
+  problem: '/patterns/pattern-problem.svg',
+  critique: '/patterns/pattern-critique.svg',
+  chance: '/patterns/pattern-dream.svg',
+  unknown: '/patterns/pattern-unknown.svg',
+  other: '/patterns/pattern-other.svg',
 };
 
 const PATCH3_BASE = '#99A5F9';
@@ -277,12 +295,16 @@ function Patch1({
   x,
   y,
   medium,
-}: PatchProps & { medium?: MediumType }) {
+  seed,
+}: PatchProps & { medium?: MediumType; seed?: SeedType }) {
   const fill = (medium && MEDIUM_COLOR[medium]) ?? MEDIUM_COLOR.other;
+  const patternUrl = seed ? SEED_PATTERN[seed] : null;
   return (
     <g transform={`translate(${x},${y})`}>
       <rect width={180} height={180} fill={fill} />
-      {/* TODO: overlay pattern SVG from seed.types[0] once pattern assets arrive */}
+      {patternUrl && (
+        <image href={patternUrl} x={0} y={0} width={180} height={180} />
+      )}
       <PatchBorder width={180} height={180} />
     </g>
   );
@@ -559,7 +581,12 @@ export default function Tracemark({
     >
       {/* Row 1 (y=0, h=180) */}
       <Patch0 x={0} y={0} />
-      <Patch1 x={60} y={0} medium={data.piece?.medium} />
+      <Patch1
+        x={60}
+        y={0}
+        medium={data.piece?.medium}
+        seed={data.seed?.types?.[0]}
+      />
       <Patch3 x={240} y={0} references={data.references ?? []} />
 
       {/* Row 2 (y=180, h=180) */}
