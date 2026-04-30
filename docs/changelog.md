@@ -1,5 +1,17 @@
 # Changelog
 
+## Session 23 -- 2026-04-29 -- Move OG image off file convention to /api/og
+- **Root cause**: Next.js 16's `opengraph-image.tsx` file convention does NOT receive `searchParams` — only route params. Our handler was reading `searchParams.sid`, which was always `undefined`, so every request fell through to a 500 (or to the SAMPLE_DATA fallback with a blank piece description, depending on which guard hit). The convention is architecturally wrong for our case because the sid is a query string, not a path segment.
+- **`app/api/og/route.tsx` (new)**: regular GET route handler with `export const runtime = 'edge'`. Reads `sid` via `new URL(request.url).searchParams.get('sid')` (the route-handler shape we own fully). Wraps the entire body in try/catch — inner catch handles a failed Tally fetch and falls back to `SAMPLE_DATA`; outer catch handles Satori or `ImageResponse` failures and returns a 500 with `console.error` logging the message + stack so Vercel logs show the underlying cause. All Tracemark constants, `TracemarkSVG`, and the OG layout are moved over verbatim from the old file (Satori shorthand fixes from session 22 preserved).
+- **`app/api/og/route.tsx` is `.tsx`, not `.ts`**: the file contains JSX, so the Turbopack parser needs the `.tsx` extension. Next.js App Router accepts `route.tsx` for route handlers — same convention as `route.ts`, just with JSX support.
+- **`app/result/opengraph-image.tsx` deleted**: the file-convention version was broken; removing it stops the framework from registering `/result/opengraph-image` as a route. Route table now shows `ƒ /api/og` instead.
+- **`app/result/page.tsx` `generateMetadata`**:
+  - `openGraph.images` and `twitter.images` URLs changed from `/result/opengraph-image?sid=…` to `/api/og?sid=…`.
+  - Added `metadataBase` override that points at `https://creativetrace.art` when `VERCEL_ENV === 'production'`. Preview deploys still use `VERCEL_URL`; local dev still uses `http://localhost:3000`. The root layout's metadataBase uses VERCEL_URL even in prod (which would resolve to a deployment-specific subdomain instead of the apex), so this override is required for crawlers to see absolute creativetrace.art URLs.
+  - Updated comment block to reflect the new architecture.
+- **Verification**: `npm run build` route table shows `ƒ /api/og` and no `/result/opengraph-image`. After deploy, hitting `https://creativetrace.art/api/og?sid=X54LzlP` should return a PNG; `<meta property="og:image">` on `/result?sid=X` should be `https://creativetrace.art/api/og?sid=X`.
+- Build + lint clean.
+
 ## Session 22 -- 2026-04-29 -- Kill self-fetch, harden OG image for Satori
 - **Root cause**: the OG renderer at `/result/opengraph-image?sid=…` was 500ing on Vercel. Both it and `app/result/page.tsx`'s `generateMetadata` were doing internal HTTP hops back to `/api/tally-submission?sid=…` to read the submission. Internal self-fetch is fragile on Vercel — deployment-URL races, edge↔Node runtime gaps, missing auth on the inner request, and rate-limit interactions all surface as opaque 500s. The fix is to skip the HTTP hop entirely and call the Tally pipeline directly.
 - **`lib/tally.ts`**: new `fetchAndMapSubmission(sid)` export that wraps `fetchSubmission` + `mapTallyToProvenance` into one call. Errors propagate (no internal try/catch) so the API route can preserve its 404-vs-500 distinction. Edge-safe — only uses `fetch`, `process.env`, and `console.warn`.

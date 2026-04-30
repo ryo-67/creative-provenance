@@ -4,6 +4,13 @@
 // alongside the wordmark + tagline. Used by iMessage, Slack, Twitter, and
 // other crawlers when the result URL is shared.
 //
+// This used to live at app/result/opengraph-image.tsx using the Next.js
+// file convention. That convention does NOT pass searchParams in Next 16 —
+// only route params — so reading sid from searchParams was always
+// undefined and every request fell through to a 500. Switched to a
+// regular route handler so we own the Request fully and can read the
+// query string ourselves.
+//
 // The patch geometry and color constants are duplicated from
 // components/Tracemark.tsx — Satori (the engine ImageResponse uses)
 // renders a subset of CSS/SVG and works best with self-contained inline
@@ -29,9 +36,8 @@ import type {
 } from '@/lib/schema';
 
 export const runtime = 'edge';
-export const alt = 'Your Creative Trace Tracemark';
-export const size = { width: 1200, height: 630 };
-export const contentType = 'image/png';
+
+const SIZE = { width: 1200, height: 630 };
 
 // --- Tracemark constants (mirrors components/Tracemark.tsx) ---
 
@@ -519,18 +525,15 @@ function TracemarkSVG({ data }: { data: Partial<ProvenanceResponse> }) {
   );
 }
 
-// --- Default Image export ---
+// --- Route handler ---
 
-export default async function Image({
-  searchParams,
-}: {
-  searchParams: { sid?: string };
-}) {
+export async function GET(request: Request) {
   try {
+    const sid = new URL(request.url).searchParams.get('sid');
+
     let data: Partial<ProvenanceResponse> = SAMPLE_DATA;
     let pieceDescription = '';
 
-    const sid = searchParams.sid;
     if (sid) {
       try {
         const fetched = await fetchAndMapSubmission(sid);
@@ -540,7 +543,7 @@ export default async function Image({
         // Submission lookup failed (404, Tally outage, network). Log so
         // it's visible in Vercel and fall back to SAMPLE_DATA.
         console.error(
-          '[og-image] fetchAndMapSubmission failed for sid=%s: %s',
+          '[og] fetchAndMapSubmission failed for sid=%s: %s',
           sid,
           err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
         );
@@ -630,17 +633,17 @@ export default async function Image({
           </div>
         </div>
       ),
-      { ...size },
+      { ...SIZE },
     );
   } catch (err) {
     // Outermost guard. Anything that escapes the inner try (Satori
     // rendering failure, ImageResponse construction error, etc.) lands
-    // here. Log to Vercel; rethrow so the route still 500s — but the
-    // log makes the underlying cause visible instead of opaque.
+    // here. Log to Vercel so the failure shows up as the underlying
+    // cause instead of an opaque 500.
     console.error(
-      '[og-image] handler failed: %s',
+      '[og] handler failed: %s',
       err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
     );
-    throw err;
+    return new Response('Failed to render OG image', { status: 500 });
   }
 }
