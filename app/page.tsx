@@ -223,13 +223,13 @@ export default function Home() {
 
           <Link
             href="/questionnaire"
-            className="mx-auto mt-12 flex h-12 w-full max-w-[500px] items-center justify-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black hover:text-white"
+            className="mt-16 mb-16 flex h-12 w-full items-center justify-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black hover:text-white"
           >
             Trace your work
             <ArrowRight size={20} strokeWidth={2.5} aria-hidden />
           </Link>
 
-          <section className="mt-16">
+          <section>
             <h2 className="mb-8 text-lg font-medium">How it works</h2>
             <div className="flex flex-col gap-10 md:flex-row md:gap-8">
               <HowItWorksStep

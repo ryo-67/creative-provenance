@@ -354,12 +354,9 @@ function ResultContent() {
             aria-label="Tracemark"
             className="md:sticky md:top-8 md:self-start"
           >
-            {/* Display-only background card. The download function reads the
-                inner SVG via querySelector, so this bg is not captured. */}
-            <div
-              ref={tracemarkRef}
-              className="flex justify-center bg-[#F5F5F5] p-6 md:p-8"
-            >
+            {/* Tracemark renders directly on the white page background.
+                The download function reads the inner SVG via querySelector. */}
+            <div ref={tracemarkRef} className="flex justify-center">
               {tracemarkReady ? (
                 <Tracemark
                   data={state.data}
@@ -401,12 +398,6 @@ function ResultContent() {
                 </button>
               </div>
             )}
-
-            <p className="mx-auto mt-4 max-w-[540px] text-center text-sm leading-relaxed text-[#666]">
-              This is your Tracemark. Each patch maps a different part of
-              how this piece was made: who taught you, what you soaked in,
-              what tools you used, and who shaped it alongside you.
-            </p>
           </section>
 
           {/* Right column: grace intro + grace box. Stacks below on mobile. */}
