@@ -46,6 +46,10 @@ Both with copy-to-clipboard buttons.
 
 **Net behavior:** anyone who embeds the mark on their portfolio is automatically linking back to the live result. The mark becomes a provenance link, not a dead image. Aligns the product with the project's core thesis about traceability.
 
+### Custom Tally embed wrapper
+
+Currently /questionnaire iframes Tally's hosted form page. Phase 2: embed via Tally's iframe URL inside our own Next.js page wrapper. Gain ownership of the surrounding experience — header, loading state, error states, consistent styling with the rest of the site. Reference: https://tally.so/help/embed-form-in-website
+
 ## V1 Polish (if time permits)
 - Reset button in UI (currently console-only)
 - Dev-only "skip to step N" navigation
@@ -70,14 +74,31 @@ Both with copy-to-clipboard buttons.
 
 Current implementation uses an in-memory Map scoped to the Next.js function instance. Vercel reuses warm instances but doesn't share state across cold ones, so the effective limit is `5 per 60 seconds × instance count`. Fine for symposium-scale traffic. Insufficient if the project goes viral or sees sustained load. Swap to Vercel KV or Upstash Redis for true cluster-wide enforcement.
 
+## Technical debt
+
+### Project structure cleanup
+
+Initial project scaffolding has drifted over the build. Multiple empty placeholder files remain from the pre-Tally architecture (components/fingerprint/Fingerprint.tsx, components/share/ShareSheet.tsx, components/share/DownloadButton.tsx, lib/fingerprint-config.ts, lib/grace-prompt.ts) — all single-line comments, not actually used. Audit pass needed:
+- Delete empty/unused files (the placeholders above)
+- Update CLAUDE.md file structure section to reflect current reality (no /components/fingerprint, no /components/share, etc.)
+- Document Patch component naming convention (PatchNFills/PatchNStrokes in single Tracemark.tsx file) so future sessions don't re-fragment
+
 ## Visual polish
 
 ### Patch 1 stroke weight parity
 
 Pattern SVGs render with a 6px built-in border that overlays Patch 1's 5px boundary stroke. The pattern's stroke wins the overlay, so Patch 1 edges may read marginally heavier than other patches. Two paths to parity if it ever needs fixing: bump global STROKE_WIDTH from 5 to 6, or strip borders from pattern SVGs in Figma and rely on Patch 1's own stroke alone.
 
+### Patch 8 direction bar stroke
+
+The Patch 8 direction-execution bar (filled `#567550` sage) renders without top/bottom stroke. Every other filled element in the Tracemark has a black stroke. Fix: in Patch8Strokes, add two horizontal `<line>` elements at the bar's top and bottom y coordinates (y=60 and y=120, spanning x1=0 to x2=barWidth), rendered BEFORE the column dividers so the verticals continue uninterrupted through the bar region. No left/right strokes — those would double up with column dividers. Patch8Strokes will need the same `value` prop as Patch8Fills to derive barWidth.
+
+### Replace placeholder illustrations
+
+Six gray "Image" placeholder rectangles ship for the symposium (3 in "How it works" on landing, 3 in "What to do with your Tracemark" on result). Post-symposium: replace with proper UI screenshots or Figma mockups, NOT AI-generated images. Generation attempts produced inconsistent style across sets. When real assets ship, add attribution line if any AI tools are used in the production pipeline.
+
 ### Dark mode support
 
-The site is a single light theme today. Adding a dark mode is non-trivial because the visual system is calibrated for light backgrounds: many of the lighter Tracemark fills (`#E6D4DA`, `#F8F7F6`, the light Patch 3 fill) lose contrast or vanish entirely on a dark canvas; the seed-pattern SVGs in Patch 1 use black strokes that disappear against `#000` or near-black backgrounds; and the Grace box's `#F8F7F6` warm off-white reads as a glaring slab on dark. The questionnaire route currently has a stray `dark:bg-zinc-950` class on the iframe wrapper — that's the only dark-mode-aware code in the codebase, and it's inconsistent with the rest of the app.
+The site is a single light theme today. Adding a dark mode is non-trivial because the visual system is calibrated for light backgrounds: many of the lighter Tracemark fills (`#E6D4DA`, `#F8F7F6`, the light Patch 3 fill) lose contrast or vanish entirely on a dark canvas; the seed-pattern SVGs in Patch 1 use black strokes that disappear against `#000` or near-black backgrounds; and the Grace box's `#F8F7F6` warm off-white reads as a glaring slab on dark. The codebase has no `dark:` variants anywhere — single light theme by design.
 
 Implementation requirements before this can ship: (1) full WCAG AA contrast testing across landing, questionnaire, and result, including the footer; (2) a decision on how the Tracemark adapts — invert strokes only, swap the whole palette, or render unchanged on a light card-within-dark; (3) Grace box redesign for dark (the 3px black left accent + warm off-white fill needs a dark-theme equivalent that doesn't fight the body bg); (4) pattern SVG handling — either ship dark-stroke + light-stroke variants or switch strokes to `currentColor` and source from a CSS variable. Estimated as a multi-session design + implementation pass, not a single prompt. Defer until project gets traction beyond symposium.

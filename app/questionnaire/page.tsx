@@ -13,7 +13,7 @@ const TALLY_FORM_URL = 'https://tally.so/r/RGZO7p';
 
 export default function QuestionnairePage() {
   return (
-    <div className="fixed inset-0 bg-white dark:bg-zinc-950">
+    <div className="fixed inset-0 bg-white">
       <iframe
         data-tally-src={TALLY_FORM_URL}
         src={TALLY_FORM_URL}
