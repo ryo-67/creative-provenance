@@ -110,7 +110,7 @@ function GraceLines({ grace }: { grace: string }) {
   // the body of thank-yous.
   const ownershipIndex = lines.length - 2;
   return (
-    <div className="space-y-4 text-[13px] leading-[1.8] text-[#666] md:space-y-5 md:text-[15px]">
+    <div className="space-y-4 text-sm leading-[1.8] text-[#666] md:space-y-5">
       {lines.map((line, i) => (
         <p key={i} className={i === ownershipIndex ? 'pt-5 md:pt-6' : ''}>
           {renderGraceLine(line)}
@@ -325,7 +325,7 @@ function ResultContent() {
 
   return (
     <main className="flex flex-1 flex-col px-6 pt-12 pb-20 md:pt-20">
-      <div className="mx-auto w-full max-w-[1100px]">
+      <div className="mx-auto w-full max-w-[1200px]">
         <header className="mb-8 md:mb-12">
           <h1 className="text-4xl font-medium tracking-tight md:text-5xl">
             Your Tracemark

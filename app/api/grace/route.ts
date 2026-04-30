@@ -33,7 +33,15 @@ Write a grace for this piece. Rules:
 - No preamble, no sign-off, no explanation. Just the grace.
 - Each line should be on its own line.
 - Do not use the word "Amen."
-- Tone: warm, direct, unflinching. Mirror, don't judge.`;
+- Tone: warm, direct, unflinching. Mirror, don't judge.
+
+Voice rules (follow strictly):
+- No em dashes. Use commas, periods, or "and" instead.
+- No inflated language. No "boundless", "relentlessly", "deep soaking", "twin engines". Say what you mean plainly.
+- No rule-of-three stacking unless the items are genuinely distinct. Two items is fine.
+- No meta-narrator voice. Don't say "the deep sources" or "the quiet labor". Just name the thing.
+- Short lines. Each "thank you" line should be one sentence, two at most. If a line runs past 20 words, split or cut.
+- The tone is warm and direct, not poetic or literary. It should sound like a person talking, not a poem being performed.`;
 
 interface AnthropicTextBlock {
   type?: string;

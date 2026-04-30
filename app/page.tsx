@@ -221,6 +221,14 @@ export default function Home() {
             </p>
           </div>
 
+          <Link
+            href="/questionnaire"
+            className="mx-auto mt-12 flex h-12 w-full max-w-[500px] items-center justify-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black hover:text-white"
+          >
+            Trace your work
+            <ArrowRight size={20} strokeWidth={2.5} aria-hidden />
+          </Link>
+
           <section className="mt-16">
             <h2 className="mb-8 text-lg font-medium">How it works</h2>
             <div className="flex flex-col gap-10 md:flex-row md:gap-8">
@@ -238,14 +246,6 @@ export default function Home() {
               />
             </div>
           </section>
-
-          <Link
-            href="/questionnaire"
-            className="mx-auto mt-12 flex h-12 w-full max-w-[500px] items-center justify-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black hover:text-white"
-          >
-            Trace your work
-            <ArrowRight size={20} strokeWidth={2.5} aria-hidden />
-          </Link>
 
           <h2 className="mt-16 mb-2 text-base font-medium text-[#666]">
             How is your data used?
