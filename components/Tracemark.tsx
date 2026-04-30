@@ -309,7 +309,18 @@ function Patch1Fills({
     <g transform={`translate(${x},${y})`}>
       <rect width={180} height={180} fill={fill} />
       {patternUrl && (
-        <image href={patternUrl} x={0} y={0} width={180} height={180} />
+        // Render oversized so the pattern asset's built-in 6px border
+        // (drawn at corners 2.06128–177.939) lands on top of Patch 1's
+        // own boundary stroke. CSS `clip-path: inset(2.11px)` clips the
+        // overflow back to the patch's 180×180 bounds.
+        <image
+          href={patternUrl}
+          x={-2.11}
+          y={-2.11}
+          width={184.22}
+          height={184.22}
+          style={{ clipPath: 'inset(2.11px)' }}
+        />
       )}
     </g>
   );
