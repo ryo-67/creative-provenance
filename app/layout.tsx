@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from 'next';
+import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import './globals.css';
@@ -25,11 +25,6 @@ export const metadata: Metadata = {
   },
   description: 'Map the full chain of influences behind your work.',
 };
-
-export const viewport: Viewport = {
-  themeColor: '#ffffff',
-};
-
 
 // `primary` variant darkens to body-text color (#37352F) so the
 // author names + SPY Kids stand out as primary anchors. Default
