@@ -342,7 +342,16 @@ function TracemarkSVG({
           // boundary stroke center (path coord 2.06 × 1.02344 − 2.11 ≈ 0).
           // The boundary <rect> below is drawn AFTER the pattern, so it
           // sits on top of any sub-pixel bleed at the edges.
-          <g transform="translate(-2.11,-2.11) scale(1.02344)">
+          //
+          // shapeRendering="geometricPrecision" overrides the parent
+          // svg's "crispEdges". The patches are axis-aligned rects and
+          // benefit from crispEdges, but the patterns are mostly cubic
+          // Beziers — without anti-aliasing they read as jaggy/fuzzy in
+          // the rasterized PNG. Re-enable AA here only.
+          <g
+            transform="translate(-2.11,-2.11) scale(1.02344)"
+            shapeRendering="geometricPrecision"
+          >
             {patternPaths.map((p, i) => (
               <path
                 key={`pat-${i}`}
