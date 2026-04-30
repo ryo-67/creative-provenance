@@ -406,7 +406,7 @@ function ResultContent() {
               {GRACE_INTRO}
             </p>
 
-            <div className="border-l-2 border-black bg-[#F8F7F6] p-4 md:p-6">
+            <div className="border-l-[3px] border-black bg-[#F8F7F6] p-4 md:p-6">
               {graceLoading && (
                 <p className="text-sm text-[#999]" aria-live="polite">
                   Composing your grace…
