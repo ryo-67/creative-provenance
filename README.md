@@ -34,30 +34,29 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Tech Stack
 
-- **Next.js 15** (App Router) + TypeScript
+- **Next.js 16** (App Router) + TypeScript
 - **Tailwind CSS**
 - **Zod** for schema validation
 - **Anthropic Claude API** for Grace generation
+- **Lucide React** for icons
 
 ## Project Structure
 
 ```
 app/
-  questionnaire/        # Tally embed (full-viewport iframe)
-  result/               # Reads Tally redirect URL params, renders fingerprint + Grace
-  api/grace/            # Claude API proxy for Grace generation
+  page.tsx                # Landing page
+  questionnaire/          # Tally embed
+  result/                 # Tracemark + Grace result page
+  api/grace/              # Claude API proxy
+  api/tally-submission/   # Tally REST fetch + mapping
+  api/og/                 # OG image renderer
 components/
-  fingerprint/          # SVG fingerprint visualization (placeholder)
-  share/                # Share sheet and download
+  Tracemark.tsx           # SVG grid visualization
 lib/
-  schema.ts             # ProvenanceResponse type + Zod schema (target shapes Tally params map into)
-  fingerprint-config.ts # Answer-to-visual-primitive mapping
-  grace-prompt.ts       # System prompt for Grace generation
-docs/                   # Project documentation
-  requirements.md       # Feature spec and data schema
-  changelog.md          # Session-by-session history
-  bugs.md               # Bug tracker
-  backlog.md            # Ideas and deferred features
+  schema.ts              # ProvenanceResponse type + Zod
+  tally.ts               # Tally API integration + mapping
+public/patterns/          # 12 seed pattern SVGs
+docs/                     # Project documentation
 ```
 
 ## Team

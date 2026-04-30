@@ -54,6 +54,12 @@ Currently /questionnaire iframes Tally's hosted form page. Phase 2: embed via Ta
 - Reset button in UI (currently console-only)
 - Dev-only "skip to step N" navigation
 
+## UX polish
+
+### Download button loading state
+
+The Download button triggers async PNG generation (SVG serialize → pattern fetch → canvas draw → toBlob → download). On slow devices this takes 1-2 seconds with no visual feedback. Add a brief loading state: disable the button, swap text to "Downloading...", re-enable on completion or error.
+
 ## Pre-symposium polish
 - ~~Custom domain~~ — secured creativetrace.art; old creative-provenance.vercel.app URL kept as live redirect
 - Privacy policy text on landing page (required because Claude API receives user input)
@@ -72,7 +78,7 @@ Currently /questionnaire iframes Tally's hosted form page. Phase 2: embed via Ta
 
 ### Cluster-wide rate limiting on /api/grace
 
-Current implementation uses an in-memory Map scoped to the Next.js function instance. Vercel reuses warm instances but doesn't share state across cold ones, so the effective limit is `5 per 60 seconds × instance count`. Fine for symposium-scale traffic. Insufficient if the project goes viral or sees sustained load. Swap to Vercel KV or Upstash Redis for true cluster-wide enforcement.
+Current per-instance in-memory Map is sufficient for symposium-scale traffic but resets on cold start and doesn't share across Vercel function instances. For sustained post-symposium load, swap to Vercel KV or Upstash Redis. Decision point: Vercel KV is zero-config ($0.30/100K requests); Upstash Redis has a free tier and is more portable. Evaluate after symposium based on actual traffic.
 
 ## Technical debt
 
@@ -82,6 +88,26 @@ Initial project scaffolding has drifted over the build. Multiple empty placehold
 - Delete empty/unused files (the placeholders above)
 - Update CLAUDE.md file structure section to reflect current reality (no /components/fingerprint, no /components/share, etc.)
 - Document Patch component naming convention (PatchNFills/PatchNStrokes in single Tracemark.tsx file) so future sessions don't re-fragment
+
+### Delete lib/storage.ts
+
+Dead code. Exports `saveResponse`, `loadResponse`, `clearResponse` — none imported anywhere. The Tally pivot in Session 12 made it obsolete. Only localStorage usage is the grace cache in `result-content.tsx` with its own helpers.
+
+### Shared Tracemark constants file
+
+`app/api/og/route.tsx` duplicates every color, cell layout, and patch geometry constant from `components/Tracemark.tsx`. Extract into `lib/tracemark-constants.ts` so both import from one source. Eliminates drift if any value changes.
+
+### Grace cache key versioning
+
+Key is `grace-v2-${sid}`. Each system prompt change requires a manual bump. Consider a hash-based key derived from the prompt version so changes auto-invalidate stale caches.
+
+### Iframe dual-src on questionnaire page
+
+`app/questionnaire/page.tsx` sets both `data-tally-src` and `src` on the iframe. If embed.js ever changes its attribute name, the form could load twice. Low risk, monitor.
+
+### Error boundary on result page
+
+No React error boundary wraps the Tracemark + Grace sections. If the component throws on unexpected data, the page crashes. Add an `ErrorBoundary` with a fallback message.
 
 ## Visual polish
 

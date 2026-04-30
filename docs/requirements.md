@@ -8,10 +8,10 @@ Built for the F(r)ictions: Creative Work in an Age of AI symposium on May 1, 202
 
 ## Core User Flow
 
-1. **Landing page** — sets context, names the project, has one CTA: "Begin" → /questionnaire
-2. **Questionnaire** — Tally form (https://tally.so/r/RGZO7p) embedded full-viewport at /questionnaire as an iframe via Tally's official embed script. ~5–7 minutes, mobile-responsive (Tally handles all the question UI, validation, and accessibility).
-3. **Submit redirect** — Tally is configured (in its dashboard, not in this codebase) to redirect to /result with the user's answers as URL parameters on submit.
-4. **Result page** — /result reads URL params, calls `parseTallyParams()` to coerce them into a `ProvenanceResponse`, generates the fingerprint, calls /api/grace for the Grace text, and offers download/share.
+1. **Landing page** — sets context, one CTA: "Trace your work" → /questionnaire
+2. **Questionnaire** — Tally form (https://tally.so/r/RGZO7p) embedded full-viewport at /questionnaire as an iframe.
+3. **Submit redirect** — Tally redirects to /result?sid={submissionId} on completion.
+4. **Result page** — /result reads sid from the URL, calls /api/tally-submission which fetches the submission server-side via the Tally REST API and maps it to a `ProvenanceResponse` via `fetchAndMapSubmission` in `lib/tally.ts`. Renders the Tracemark, generates Grace via /api/grace, offers download and share.
 
 The custom-coded reflective UI (sub-step flows, spatial canvas, position dots) was implemented in Sessions 1–11 and removed in Session 12 to ship faster for the symposium. Re-implementing it in Next.js is a V2 ambition — see `/docs/backlog.md`.
 
