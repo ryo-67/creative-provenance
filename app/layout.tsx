@@ -11,13 +11,18 @@ const inter = Inter({
 // metadataBase resolves any relative URLs in metadata (file-convention
 // og:image, favicons, etc.) to absolute ones. Set at the root so every
 // route inherits — silences the "metadataBase not set" warning during
-// static generation. VERCEL_URL is the deployment-specific host on
-// Vercel (preview + prod); local dev falls back to localhost.
+// static generation.
+//
+// Production resolves to creativetrace.art (the apex domain) so OG
+// crawlers see canonical absolute URLs. Preview deploys use VERCEL_URL
+// (the deployment-specific subdomain); local dev falls back to localhost.
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000',
+    process.env.VERCEL_ENV === 'production'
+      ? 'https://creativetrace.art'
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000',
   ),
   title: {
     default: 'Creative Trace',

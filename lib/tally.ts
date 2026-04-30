@@ -103,9 +103,9 @@ const QUESTION_IDS = {
 
 // --- Tally option text → schema literal ---
 //
-// Every key is the EXACT option text the live Tally form sends. Pinned to
-// form RGZO7p — if a question is renamed or its option text edited in
-// Tally, update the matching constant.
+// Every key is the option text Tally sends, pinned to form RGZO7p — if
+// a question is renamed or its option text edited in Tally, update the
+// matching constant.
 //
 // Right-side values are schema literals from lib/schema.ts (do not modify
 // the schema). Several values were corrected from the user-supplied list
@@ -115,9 +115,11 @@ const QUESTION_IDS = {
 // our schema (e.g. "Nobody — just me"). Any text not in the table logs a
 // warning via mapMany / mapOne and is skipped.
 //
-// Tally may normalize curly apostrophes / em dashes to straight forms;
-// where a key contains either, a duplicate with the alternate variant is
-// added so both flavors match.
+// Lookup is normalize-then-match (see normalize() / normalizedLookup()
+// below): keys are stored in their canonical Tally form (curly quote /
+// em dash / curly ellipsis), and incoming text is normalized to lowercase
+// + ASCII punctuation before matching. So one canonical key per option
+// is enough — no straight-quote / hyphen / "..." duplicates needed.
 
 const MEDIUM_TEXT_TO_SCHEMA: Record<string, MediumType | null> = {
   'Something drawn or painted on paper or canvas': 'painted',
@@ -133,10 +135,8 @@ const MEDIUM_TEXT_TO_SCHEMA: Record<string, MediumType | null> = {
 
 const SEED_TEXT_TO_SCHEMA: Record<string, SeedType | null> = {
   'Something I needed to get out of my body': 'body',
-  "A memory that wouldn't leave me alone": 'memory',
-  'A memory that wouldn’t leave me alone': 'memory', // curly variant
+  'A memory that wouldn’t leave me alone': 'memory',
   'An image that stuck — a face, a scene, something online': 'image',
-  'An image that stuck - a face, a scene, something online': 'image', // hyphen variant
   'A conversation that lit something up': 'conversation',
   'An obsession I keep returning to': 'obsession',
   'A craving for a new technique or material': 'technique',
@@ -144,15 +144,13 @@ const SEED_TEXT_TO_SCHEMA: Record<string, SeedType | null> = {
   'A problem to solve, an answer to find': 'problem',
   'Anger, grief, a critique of something in the world': 'critique',
   'A dream, an accident, a coincidence': 'chance',
-  "I can't trace it": 'unknown',
-  'I can’t trace it': 'unknown', // curly variant
+  'I can’t trace it': 'unknown',
   // "Other" — Tally may send any of these depending on whether the form
   // has the open-text suffix and how the option was authored. The seed
   // mapping below also has a non-empty fallback to 'other' for any text
   // that doesn't match here, so future drift won't silently break the
   // pattern overlay.
   Other: 'other',
-  'Other...': 'other',
   'Other…': 'other',
   'Other (please specify)': 'other',
 };
@@ -174,8 +172,7 @@ const AI_HELPER_TEXT_TO_SCHEMA: Record<string, AIHelperType | null> = {
   'Generative fill or content-aware fill': 'generative-fill',
   'Auto color correction or noise cleanup': 'auto-correction',
   'Upscaling or detail enhancement': 'upscaling',
-  'Reference search (Google Images, visual search, "find similar")': 'search',
-  'Reference search (Google Images, visual search, “find similar”)': 'search', // curly double-quote variant
+  'Reference search (Google Images, visual search, “find similar”)': 'search',
   'Spell check, smart guides, snap-to, auto-align': 'autosuggest',
   'AI retouching (skin, sky replacement, face refinement)': 'retouching',
   'Object isolation or rotoscoping in video': 'rotoscoping',
@@ -198,31 +195,26 @@ const AI_KIND_TEXT_TO_SCHEMA: Record<string, AIGenerationKind | null> = {
 };
 
 const AI_STAGE_TEXT_TO_SCHEMA: Record<string, AIGenerationStage | null> = {
-  "A starting point I riffed on but didn't actually use in the file":
-    'concept-only',
   'A starting point I riffed on but didn’t actually use in the file':
-    'concept-only', // curly variant
+    'concept-only',
   'A reference I drew over or used as a base layer': 'reference',
   'Pieces I composited or reworked into the final': 'composited',
   'Something I generated and kept mostly as-is': 'mostly-as-is',
   'The whole piece — I shaped it from AI output': 'all-ai',
-  'The whole piece - I shaped it from AI output': 'all-ai', // hyphen variant
 };
 
 const AI_AWARENESS_TEXT_TO_SCHEMA: Record<
   string,
   TrainingDataAwareness | null
 > = {
-  "Haven't thought about it": 'no-idea',
-  'Haven’t thought about it': 'no-idea', // curly variant
+  'Haven’t thought about it': 'no-idea',
   'Suspect artists like me, without their consent': 'artists-like-me',
   'Could name specific artists probably in there': 'specific-artists',
   'Chose a model trained on licensed or consenting data': 'licensed',
 };
 
 const COLLABORATOR_TEXT_TO_SCHEMA: Record<string, CollaboratorType | null> = {
-  "A studio assistant who handled what I couldn't get to": 'assistant',
-  'A studio assistant who handled what I couldn’t get to': 'assistant', // curly variant
+  'A studio assistant who handled what I couldn’t get to': 'assistant',
   'A fabricator, printer, or technician who turned my file into a thing':
     'fabricator',
   'A retoucher, colorist, or editor who refined what I made': 'editor',
@@ -305,6 +297,38 @@ function asStringArray(v: unknown): string[] {
     : [];
 }
 
+// Lowercase + collapse whitespace + replace curly punctuation with ASCII
+// equivalents. Used to compare incoming Tally option text against table
+// keys without needing to duplicate every curly/straight variant.
+function normalize(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[‘’`´]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[—–]/g, '-')
+    .replace(/…/g, '...')
+    .replace(/\s+/g, ' ');
+}
+
+// Try exact match first (cheap), then fall back to a normalized scan of
+// every key. The `found` flag distinguishes "matched and intentionally
+// maps to null" (a valid Tally option that schema maps to nothing) from
+// "no match" (warn the caller).
+function normalizedLookup<T>(
+  text: string,
+  table: Record<string, T | null>,
+): { found: boolean; value: T | null } {
+  if (text in table) return { found: true, value: table[text] };
+  const norm = normalize(text);
+  for (const key of Object.keys(table)) {
+    if (normalize(key) === norm) {
+      return { found: true, value: table[key] };
+    }
+  }
+  return { found: false, value: null };
+}
+
 function mapMany<T extends string>(
   texts: string[],
   table: Record<string, T | null>,
@@ -312,15 +336,14 @@ function mapMany<T extends string>(
 ): T[] {
   const out: T[] = [];
   for (const text of texts) {
-    if (!(text in table)) {
+    const result = normalizedLookup(text, table);
+    if (!result.found) {
       console.warn(
         `[tally] unmapped ${context} option: ${JSON.stringify(text)}`,
       );
       continue;
     }
-    const mapped = table[text];
-    if (mapped === null) continue;
-    out.push(mapped);
+    if (result.value !== null) out.push(result.value);
   }
   return out;
 }
@@ -331,13 +354,14 @@ function mapOne<T extends string>(
   context: string,
 ): T | undefined {
   if (text === undefined) return undefined;
-  if (!(text in table)) {
+  const result = normalizedLookup(text, table);
+  if (!result.found) {
     console.warn(
       `[tally] unmapped ${context} option: ${JSON.stringify(text)}`,
     );
     return undefined;
   }
-  return table[text] ?? undefined;
+  return result.value ?? undefined;
 }
 
 // --- Combined fetch + map (server-side; works in Node and edge runtimes) ---
@@ -429,7 +453,13 @@ export function mapTallyToProvenance(
       }
       const bucketText = asStringArray(value)[0];
       if (!bucketText) continue;
-      const weight = REFERENCE_BUCKET_TO_WEIGHT[bucketText];
+      const weight =
+        REFERENCE_BUCKET_TO_WEIGHT[bucketText] ??
+        REFERENCE_BUCKET_TO_WEIGHT[
+          Object.keys(REFERENCE_BUCKET_TO_WEIGHT).find(
+            (k) => normalize(k) === normalize(bucketText),
+          ) ?? ''
+        ];
       if (weight === undefined) {
         console.warn(
           `[tally] unmapped reference bucket: ${JSON.stringify(bucketText)}`,
