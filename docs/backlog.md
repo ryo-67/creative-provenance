@@ -2,6 +2,10 @@
 
 Ideas, deferred features, and out-of-scope items that surfaced during development. Items here are not commitments -- they're the parking lot.
 
+## In review (preview branch)
+
+Interactive Tracemark legend — shipped to feature/tracemark-legend, awaiting validation on Vercel preview before merge.
+
 ## V2 Features
 - Re-implement reflective custom UI in Next.js (sub-step flows, spatial drag canvas for Q3, position-dot 2D field for Q8/Q10). Built and removed in Sessions 1–11; lives in git history. The Tally embed in V1 is a faster path to symposium; the original ambition was a hand-crafted, contemplative interaction that Tally cannot match.
 - Email-the-result functionality
@@ -63,7 +67,6 @@ Currently /questionnaire iframes Tally's hosted form page. Phase 2: embed via Ta
 
 ## Loading state polish (phase 2)
 - **Patch-by-patch sequential reveal**: each of the 9 patches animates in with its own timing and motion (fills growing from center, Q3 bars sliding up from bottom, Q5 triangle drawing along the diagonal, Q8 bar filling left-to-right). Requires per-patch animation specs and ordering decisions.
-- **Interactive Tracemark legend**: hover or tap each patch to see what question it maps to and what the user answered. Turns the mark from graphic into readable diagram. Needs hover state design, accessible focus equivalents, and mobile tap-to-pin behavior.
 
 ## Infrastructure
 

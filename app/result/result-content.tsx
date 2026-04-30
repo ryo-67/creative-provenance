@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Download, Link as LinkIcon, Share } from 'lucide-react';
-import Tracemark from '@/components/Tracemark';
+import TracemarkLegend from '@/components/TracemarkLegend';
 import type { ProvenanceResponse } from '@/lib/schema';
 
 // --- localStorage grace cache ---
@@ -497,7 +497,7 @@ export default function ResultContent() {
                 so it spans exactly the Tracemark's rendered width. */}
             <div className="w-full max-w-full md:w-fit">
               <div ref={tracemarkRef}>
-                <Tracemark
+                <TracemarkLegend
                   data={tracemarkReady ? state.data : {}}
                   className="w-full md:w-auto md:max-h-[65vh]"
                 />
