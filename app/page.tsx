@@ -252,14 +252,25 @@ function HeroGrid() {
 function HowItWorksStep({
   title,
   subtitle,
+  illustration,
 }: {
   title: string;
   subtitle: string;
+  illustration: string;
 }) {
   return (
     <div className="flex-1">
-      <div className="flex aspect-square items-center justify-center bg-[#F5F5F5] text-sm text-[#999]">
-        Image
+      <div className="flex aspect-square items-center justify-center">
+        {/* Inline SVG illustrations — next/image adds optimization
+            machinery (resize / format conversion) that doesn't apply
+            to static SVGs, and would require explicit width/height. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={illustration}
+          alt=""
+          className="h-full w-full"
+          aria-hidden
+        />
       </div>
       <h3 className="mt-4 text-base font-medium">{title}</h3>
       <p className="mt-1 text-sm leading-relaxed text-[#666]">{subtitle}</p>
@@ -317,14 +328,17 @@ export default function Home() {
               <HowItWorksStep
                 title="Answer"
                 subtitle="Ten questions about a piece you’ve made."
+                illustration="/illustrations/illustration-answer.svg"
               />
               <HowItWorksStep
                 title="Receive your Tracemark"
                 subtitle="A unique visual mark of your creative process."
+                illustration="/illustrations/illustration-receive.svg"
               />
               <HowItWorksStep
                 title="Read your Grace"
                 subtitle="A reflection naming every influence that shaped the work."
+                illustration="/illustrations/illustration-grace.svg"
               />
             </div>
           </section>

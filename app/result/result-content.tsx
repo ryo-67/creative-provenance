@@ -199,15 +199,31 @@ async function inlinePatternForDownload(
 function WhatToDoColumn({
   title,
   body,
+  illustration,
 }: {
   title: string;
   body: string;
+  illustration?: string;
 }) {
   return (
     <div className="flex-1">
-      <div className="flex aspect-video items-center justify-center bg-[#F5F5F5] text-sm text-[#999]">
-        Image
-      </div>
+      {illustration ? (
+        <div className="flex aspect-video items-center justify-center">
+          {/* Inline SVG illustration — see app/page.tsx for the
+              rationale on <img> vs next/image. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={illustration}
+            alt=""
+            className="h-full w-full"
+            aria-hidden
+          />
+        </div>
+      ) : (
+        <div className="flex aspect-video items-center justify-center bg-[#F5F5F5] text-sm text-[#999]">
+          Image
+        </div>
+      )}
       <h3 className="mt-4 text-base font-medium">{title}</h3>
       <p className="mt-1 text-sm leading-relaxed text-[#666]">{body}</p>
     </div>
