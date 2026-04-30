@@ -73,17 +73,6 @@ Current per-instance in-memory Map is sufficient for symposium-scale traffic but
 
 ## Technical debt
 
-### Project structure cleanup
-
-Initial project scaffolding has drifted over the build. Multiple empty placeholder files remain from the pre-Tally architecture (components/fingerprint/Fingerprint.tsx, components/share/ShareSheet.tsx, components/share/DownloadButton.tsx, lib/fingerprint-config.ts, lib/grace-prompt.ts) — all single-line comments, not actually used. Audit pass needed:
-- Delete empty/unused files (the placeholders above)
-- Update CLAUDE.md file structure section to reflect current reality (no /components/fingerprint, no /components/share, etc.)
-- Document Patch component naming convention (PatchNFills/PatchNStrokes in single Tracemark.tsx file) so future sessions don't re-fragment
-
-### Delete lib/storage.ts
-
-Dead code. Exports `saveResponse`, `loadResponse`, `clearResponse` — none imported anywhere. The Tally pivot in Session 12 made it obsolete. Only localStorage usage is the grace cache in `result-content.tsx` with its own helpers.
-
 ### Shared Tracemark constants file
 
 `app/api/og/route.tsx` duplicates every color, cell layout, and patch geometry constant from `components/Tracemark.tsx`. Extract into `lib/tracemark-constants.ts` so both import from one source. Eliminates drift if any value changes.

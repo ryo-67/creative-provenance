@@ -1,1 +1,0 @@
-// Download fingerprint as PNG

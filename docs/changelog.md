@@ -1,5 +1,12 @@
 # Changelog
 
+## Session 32 -- 2026-04-30 -- Delete dead placeholder files + empty dirs
+- **Deleted six placeholder files** left over from the pre-Tally architecture (Sessions 1–11): `components/fingerprint/Fingerprint.tsx`, `components/share/ShareSheet.tsx`, `components/share/DownloadButton.tsx`, `lib/fingerprint-config.ts`, `lib/grace-prompt.ts`, `lib/storage.ts`. The first five were single-line `//` comments. `lib/storage.ts` was 36 lines of dead `saveResponse` / `loadResponse` / `clearResponse` helpers keyed on `creative-trace-response` — the grace-cache helpers in `result-content.tsx` (keyed on `grace-v2-${sid}`) replaced this entirely after the Tally pivot. Pre-deletion grep confirmed nothing imports them.
+- **Removed three empty directories** that were also pre-Tally scaffolding: `components/fingerprint/` (and its empty `primitives/` child), `components/share/`, `components/shared/`, `lib/hooks/`, `public/assets/`. The current top-level layout is now `app/` + `components/` (2 files) + `docs/` + `lib/` (2 files) + `public/{patterns,illustrations}/` — matches the File Structure block in `CLAUDE.md`.
+- **`docs/backlog.md`**: removed two now-shipped entries from the Technical debt section: "Project structure cleanup" and "Delete lib/storage.ts".
+- **Verified**: `grep` across `**/*.{ts,tsx,md}` (excluding `.next` and `node_modules`) for `fingerprint-config`, `grace-prompt`, the storage helper exports, `ShareSheet`, `DownloadButton`, `components/fingerprint`, `components/share`, `components/shared`, `lib/hooks`, `public/assets`, `creative-trace-response` — only matches now are historical entries in `changelog.md` (kept as part of the narrative record).
+- Build + lint clean.
+
 ## Session 31 -- 2026-04-30 -- Download button loading state
 - **`app/result/result-content.tsx`**: new `isDownloading` boolean state alongside the existing `toast` / `state` / `graceState` / `platform` calls. `handleDownload` now early-returns if `isDownloading` is true (prevents double-clicks), sets `isDownloading` true before kicking off `downloadTracemarkPNG`, clears it in `.finally` so both success and failure paths re-enable the button.
 - **Download button**: gains `disabled={isDownloading}`. Tailwind classes extended with `disabled:cursor-not-allowed disabled:opacity-60` so the disabled state reads visually. Label flips between `Download` and `Downloading...` based on the state. Icon stays the same — disabled state + label change is enough feedback without introducing a spinner.
