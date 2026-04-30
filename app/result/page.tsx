@@ -335,19 +335,6 @@ function ResultContent() {
           </p>
         </header>
 
-        {state.status === 'loading' && (
-          <p className="text-[#666]" aria-live="polite">
-            Loading your submission…
-          </p>
-        )}
-
-        {state.status === 'error' && (
-          <p className="text-[#b00]" aria-live="polite">
-            Couldn’t load your submission: {state.message}
-            {state.httpStatus ? ` (${state.httpStatus})` : ''}
-          </p>
-        )}
-
         <div className="md:grid md:grid-cols-[6fr_4fr] md:gap-10">
           {/* Left column: Tracemark + actions + caption. Sticky on desktop. */}
           <section
@@ -368,7 +355,10 @@ function ResultContent() {
                 />
               </div>
 
-              {tracemarkReady && (
+              {/* Loading placeholder swaps in place with the button row —
+                  same mt, same h-12, same w-full so there's zero layout
+                  shift when data arrives. */}
+              {tracemarkReady ? (
                 <div className="mt-6 flex w-full gap-2">
                   <button
                     type="button"
@@ -390,6 +380,21 @@ function ResultContent() {
                     )}
                     {shareLabel}
                   </button>
+                </div>
+              ) : state.status === 'error' ? (
+                <div
+                  className="mt-6 flex h-12 w-full items-center justify-center text-sm text-[#b00]"
+                  aria-live="polite"
+                >
+                  Couldn’t load your submission: {state.message}
+                  {state.httpStatus ? ` (${state.httpStatus})` : ''}
+                </div>
+              ) : (
+                <div
+                  className="mt-6 flex h-12 w-full items-center justify-center text-sm text-[#666]"
+                  aria-live="polite"
+                >
+                  Loading your submission…
                 </div>
               )}
             </div>

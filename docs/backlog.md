@@ -24,3 +24,7 @@ Ideas, deferred features, and out-of-scope items that surfaced during developmen
 ## Open design questions
 - Q3 reference tiles: visually grouped sections vs. flat canvas
 - Fingerprint primitive design (pending Paola/Yash visual system)
+
+## Loading state polish (phase 2)
+- **Patch-by-patch sequential reveal**: each of the 9 patches animates in with its own timing and motion (fills growing from center, Q3 bars sliding up from bottom, Q5 triangle drawing along the diagonal, Q8 bar filling left-to-right). Requires per-patch animation specs and ordering decisions.
+- **Interactive Tracemark legend**: hover or tap each patch to see what question it maps to and what the user answered. Turns the mark from graphic into readable diagram. Needs hover state design, accessible focus equivalents, and mobile tap-to-pin behavior.

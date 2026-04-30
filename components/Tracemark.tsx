@@ -6,12 +6,15 @@
 // coordinates; `size` controls the rendered SVG box; `className` lets a
 // parent scale it responsively while viewBox preserves geometry.
 //
-// Rendering rule for every patch:
-//   1. background fill (base color, no stroke)
-//   2. data-driven fill rects (selected color, no stroke)
-//   3. stroke-only grid rects on top (fill="none", black stroke)
-//   4. patch border last (fill="none", black stroke)
-// Splitting fills from strokes guarantees no fill paints over a stroke.
+// Skeleton mode: when `data` is empty (no keys), every fill in the grid is
+// hidden behind an `opacity: 0` group; only the strokes (cell outlines,
+// patch borders, the static black Patch 0 anchor, and the Patch 5 diagonal)
+// remain visible. When data arrives, the fills group transitions from
+// opacity 0 → 1 over 500ms.
+//
+// Each patch is split into a Fills component (rendered inside the
+// opacity-controlled group) and a Strokes component (rendered outside,
+// always visible). The pair shares helpers and per-patch geometry.
 
 import type {
   AIGenerationKind,
@@ -79,8 +82,6 @@ const PATCH9_BASE = '#99A5F9';
 const PATCH9_SELECTED = '#FFAA00';
 
 // --- Patch 3: reference grouping ---
-// 12 reference sources collapsed into 5 sections, each rendered as a
-// vertical bar whose fill height is the average weight of its members.
 
 const REFERENCE_SECTIONS: Array<{ x: number; ids: ReferenceTileId[] }> = [
   { x: 0, ids: ['artist-portfolios', 'curated-channels'] },
@@ -99,6 +100,22 @@ const REFERENCE_SECTIONS: Array<{ x: number; ids: ReferenceTileId[] }> = [
   { x: 180, ids: ['imagination'] },
   { x: 240, ids: ['ai-moodboards'] },
 ];
+
+function computeSections(
+  references: Array<{ id: ReferenceTileId; weight: number }>,
+) {
+  const weightById = new Map<string, number>(
+    references.map((r) => [r.id, r.weight]),
+  );
+  return REFERENCE_SECTIONS.map((section) => {
+    const sum = section.ids.reduce(
+      (acc, id) => acc + (weightById.get(id) ?? 0),
+      0,
+    );
+    const avg = sum / section.ids.length;
+    return { ...section, fillHeight: avg * 180 };
+  });
+}
 
 // --- Patch 4: teacher cells ---
 // Note: the spec calls the row-4 cell "crit"; the schema literal is
@@ -122,9 +139,6 @@ const TEACHER_CELLS: Array<{
 ];
 
 // --- Patch 6: AI helper cells (row-first, alternating row heights) ---
-// 4 rows of 3 columns. Each column is 30px wide; row heights alternate
-// 60 / 30 / 60 / 30 (sums to 180). The 12th slot (row 4, col 3) has no
-// schema id and always renders the base color.
 
 const HELPER_CELLS: Array<{
   x: number;
@@ -133,29 +147,21 @@ const HELPER_CELLS: Array<{
   h: number;
   id: AIHelperType | null;
 }> = [
-  // Row 1 — y=0, h=60
   { x: 0, y: 0, w: 30, h: 60, id: 'background-removal' },
   { x: 30, y: 0, w: 30, h: 60, id: 'generative-fill' },
   { x: 60, y: 0, w: 30, h: 60, id: 'auto-correction' },
-  // Row 2 — y=60, h=30
   { x: 0, y: 60, w: 30, h: 30, id: 'upscaling' },
   { x: 30, y: 60, w: 30, h: 30, id: 'search' },
   { x: 60, y: 60, w: 30, h: 30, id: 'autosuggest' },
-  // Row 3 — y=90, h=60
   { x: 0, y: 90, w: 30, h: 60, id: 'retouching' },
   { x: 30, y: 90, w: 30, h: 60, id: 'rotoscoping' },
   { x: 60, y: 90, w: 30, h: 60, id: 'transcription' },
-  // Row 4 — y=150, h=30
   { x: 0, y: 150, w: 30, h: 30, id: 'recommendations' },
   { x: 30, y: 150, w: 30, h: 30, id: 'auto-tagging' },
   { x: 60, y: 150, w: 30, h: 30, id: null },
 ];
 
 // --- Patch 7: AI generator details ---
-// Rows 1-4: 3 columns of 60×30. Rows 5-6: 2 cells per row, but the
-// widths alternate — row 5 is 120 + 60, row 6 is 60 + 120.
-// Each cell either matches an aiKinds member, the aiStage scalar, or the
-// awareness scalar (discriminated union).
 
 type Patch7Match =
   | { kind: 'aiKind'; value: AIGenerationKind }
@@ -169,26 +175,20 @@ const PATCH7_CELLS: Array<{
   h: number;
   match: Patch7Match;
 }> = [
-  // Row 1 — kinds (60×30)
   { x: 0, y: 0, w: 60, h: 30, match: { kind: 'aiKind', value: 'text-to-image' } },
   { x: 60, y: 0, w: 60, h: 30, match: { kind: 'aiKind', value: 'image-to-image' } },
   { x: 120, y: 0, w: 60, h: 30, match: { kind: 'aiKind', value: '3d-generation' } },
-  // Row 2 — kinds (60×30)
   { x: 0, y: 30, w: 60, h: 30, match: { kind: 'aiKind', value: 'motion' } },
   { x: 60, y: 30, w: 60, h: 30, match: { kind: 'aiKind', value: 'audio' } },
   { x: 120, y: 30, w: 60, h: 30, match: { kind: 'aiKind', value: 'text' } },
-  // Row 3 — kind 'other' + first two stages (60×30)
   { x: 0, y: 60, w: 60, h: 30, match: { kind: 'aiKind', value: 'other' } },
   { x: 60, y: 60, w: 60, h: 30, match: { kind: 'aiStage', value: 'concept-only' } },
   { x: 120, y: 60, w: 60, h: 30, match: { kind: 'aiStage', value: 'reference' } },
-  // Row 4 — remaining stages (60×30)
   { x: 0, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'composited' } },
   { x: 60, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'mostly-as-is' } },
   { x: 120, y: 90, w: 60, h: 30, match: { kind: 'aiStage', value: 'all-ai' } },
-  // Row 5 — awareness (left 120, right 60)
   { x: 0, y: 120, w: 120, h: 30, match: { kind: 'awareness', value: 'no-idea' } },
   { x: 120, y: 120, w: 60, h: 30, match: { kind: 'awareness', value: 'artists-like-me' } },
-  // Row 6 — awareness (left 60, right 120)
   { x: 0, y: 150, w: 60, h: 30, match: { kind: 'awareness', value: 'specific-artists' } },
   { x: 60, y: 150, w: 120, h: 30, match: { kind: 'awareness', value: 'licensed' } },
 ];
@@ -282,6 +282,10 @@ interface PatchProps {
   y: number;
 }
 
+// Patch 0 — static black anchor. Renders OUTSIDE the opacity group so it
+// stays black even in skeleton mode and identifies the empty mark as a
+// Tracemark.
+
 function Patch0({ x, y }: PatchProps) {
   return (
     <g transform={`translate(${x},${y})`}>
@@ -291,7 +295,9 @@ function Patch0({ x, y }: PatchProps) {
   );
 }
 
-function Patch1({
+// --- Patch 1 — medium color + seed pattern overlay ---
+
+function Patch1Fills({
   x,
   y,
   medium,
@@ -305,33 +311,30 @@ function Patch1({
       {patternUrl && (
         <image href={patternUrl} x={0} y={0} width={180} height={180} />
       )}
+    </g>
+  );
+}
+
+function Patch1Strokes({ x, y }: PatchProps) {
+  return (
+    <g transform={`translate(${x},${y})`}>
       <PatchBorder width={180} height={180} />
     </g>
   );
 }
 
-function Patch3({
+// --- Patch 3 — references (5 vertical sections with rising bars) ---
+
+function Patch3Fills({
   x,
   y,
   references,
 }: PatchProps & {
   references: Array<{ id: ReferenceTileId; weight: number }>;
 }) {
-  const weightById = new Map<string, number>(
-    references.map((r) => [r.id, r.weight]),
-  );
-  const sections = REFERENCE_SECTIONS.map((section) => {
-    const sum = section.ids.reduce(
-      (acc, id) => acc + (weightById.get(id) ?? 0),
-      0,
-    );
-    const avg = sum / section.ids.length;
-    return { ...section, fillHeight: avg * 180 };
-  });
-
+  const sections = computeSections(references);
   return (
     <g transform={`translate(${x},${y})`}>
-      {/* Pass 1: section base fills */}
       {sections.map((s) => (
         <rect
           key={`base-${s.x}`}
@@ -342,7 +345,6 @@ function Patch3({
           fill={PATCH3_BASE}
         />
       ))}
-      {/* Pass 2: weight bar fills, rising from the bottom (no stroke) */}
       {sections.map(
         (s) =>
           s.fillHeight > 0 && (
@@ -356,7 +358,20 @@ function Patch3({
             />
           ),
       )}
-      {/* Pass 3a: stroke-only outlines for each section */}
+    </g>
+  );
+}
+
+function Patch3Strokes({
+  x,
+  y,
+  references,
+}: PatchProps & {
+  references: Array<{ id: ReferenceTileId; weight: number }>;
+}) {
+  const sections = computeSections(references);
+  return (
+    <g transform={`translate(${x},${y})`}>
       {sections.map((s) => (
         <rect
           key={`section-stroke-${s.x}`}
@@ -369,8 +384,6 @@ function Patch3({
           strokeWidth={STROKE_WIDTH}
         />
       ))}
-      {/* Pass 3b: stroke-only outlines for each bar (drawn last so the
-          bar's top edge is unambiguously on top of its own fill). */}
       {sections.map(
         (s) =>
           s.fillHeight > 0 && (
@@ -391,7 +404,9 @@ function Patch3({
   );
 }
 
-function Patch4({
+// --- Patch 4 — teachers (8 cells) ---
+
+function Patch4Fills({
   x,
   y,
   teachers,
@@ -405,28 +420,41 @@ function Patch4({
           selected.has(cell.id) ? PATCH4_SELECTED : PATCH4_BASE
         }
       />
+    </g>
+  );
+}
+
+function Patch4Strokes({ x, y }: PatchProps) {
+  return (
+    <g transform={`translate(${x},${y})`}>
       <StrokeRects cells={TEACHER_CELLS} />
       <PatchBorder width={240} height={180} />
     </g>
   );
 }
 
-function Patch5({
+// --- Patch 5 — AI used (split halves + diagonal) ---
+
+function Patch5Fills({
   x,
   y,
   aiUsed,
 }: PatchProps & { aiUsed: boolean }) {
-  // Default (used=false/undefined): the entire patch is the dark green; the
-  // diagonal still draws but reads as a black line over a uniform field.
-  // When used=true: split halves — upper-left light, lower-right dark.
   const upperLeftFill = aiUsed ? PATCH5_LIGHT : PATCH5_DARK;
   const lowerRightFill = PATCH5_DARK;
   return (
     <g transform={`translate(${x},${y})`}>
       <polygon points="0,0 210,0 0,180" fill={upperLeftFill} />
       <polygon points="210,0 210,180 0,180" fill={lowerRightFill} />
-      {/* Diagonal hypotenuse — top-right to bottom-left, drawn last so it
-          sits on top of the polygon edges. */}
+    </g>
+  );
+}
+
+function Patch5Strokes({ x, y }: PatchProps) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* Diagonal hypotenuse — top-right to bottom-left. Counts as a
+          stroke and stays visible in skeleton mode. */}
       <line
         x1={210}
         y1={0}
@@ -440,7 +468,9 @@ function Patch5({
   );
 }
 
-function Patch6({
+// --- Patch 6 — AI helpers (12 cells) ---
+
+function Patch6Fills({
   x,
   y,
   aiHelpers,
@@ -456,22 +486,28 @@ function Patch6({
             : PATCH6_BASE
         }
       />
+    </g>
+  );
+}
+
+function Patch6Strokes({ x, y }: PatchProps) {
+  return (
+    <g transform={`translate(${x},${y})`}>
       <StrokeRects cells={HELPER_CELLS} />
       <PatchBorder width={90} height={180} />
     </g>
   );
 }
 
-function Patch7({
+// --- Patch 7 — AI generator details (16 cells) ---
+
+function Patch7Fills({
   x,
   y,
   aiGenerator,
 }: PatchProps & {
   aiGenerator?: ProvenanceResponse['aiGenerator'];
 }) {
-  // Always render the full 16-cell grid. When used !== true, every cell
-  // takes the base color (no selections) but the cell borders still draw,
-  // so the grid structure stays visible.
   const used = aiGenerator?.used === true;
   const kindsSet = new Set(aiGenerator?.kinds ?? []);
   const stage = aiGenerator?.stage;
@@ -492,13 +528,22 @@ function Patch7({
           isSelected(cell) ? PATCH7_SELECTED : PATCH7_BASE
         }
       />
+    </g>
+  );
+}
+
+function Patch7Strokes({ x, y }: PatchProps) {
+  return (
+    <g transform={`translate(${x},${y})`}>
       <StrokeRects cells={PATCH7_CELLS} />
       <PatchBorder width={180} height={180} />
     </g>
   );
 }
 
-function Patch8({
+// --- Patch 8 — direction bar (background + bar; column dividers) ---
+
+function Patch8Fills({
   x,
   y,
   value,
@@ -510,13 +555,18 @@ function Patch8({
   const barWidth = cols * 30;
   return (
     <g transform={`translate(${x},${y})`}>
-      {/* Background */}
       <rect width={180} height={180} fill={PATCH8_BASE} />
-      {/* Bar fill */}
       {barWidth > 0 && (
         <rect x={0} y={60} width={barWidth} height={60} fill={PATCH8_BAR} />
       )}
-      {/* Column dividers — drawn on top of the bar so they remain visible */}
+    </g>
+  );
+}
+
+function Patch8Strokes({ x, y }: PatchProps) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* 5 internal column dividers between 6 columns */}
       {[30, 60, 90, 120, 150].map((lx) => (
         <line
           key={lx}
@@ -533,7 +583,9 @@ function Patch8({
   );
 }
 
-function Patch9({
+// --- Patch 9 — collaborators (8 cells) ---
+
+function Patch9Fills({
   x,
   y,
   collaborators,
@@ -549,6 +601,13 @@ function Patch9({
             : PATCH9_BASE
         }
       />
+    </g>
+  );
+}
+
+function Patch9Strokes({ x, y }: PatchProps) {
+  return (
+    <g transform={`translate(${x},${y})`}>
       <StrokeRects cells={COLLAB_CELLS} />
       <PatchBorder width={180} height={180} />
     </g>
@@ -568,6 +627,9 @@ export default function Tracemark({
   size = 540,
   className,
 }: TracemarkProps) {
+  const isSkeleton = !data || Object.keys(data).length === 0;
+  const refs = data.references ?? [];
+
   return (
     <svg
       viewBox="0 0 540 540"
@@ -579,29 +641,48 @@ export default function Tracemark({
       className={className}
       shapeRendering="crispEdges"
     >
-      {/* Row 1 (y=0, h=180) */}
+      {/* Patch 0 — always opaque, identifies the mark even when empty */}
       <Patch0 x={0} y={0} />
-      <Patch1
-        x={60}
-        y={0}
-        medium={data.piece?.medium}
-        seed={data.seed?.types?.[0]}
-      />
-      <Patch3 x={240} y={0} references={data.references ?? []} />
 
-      {/* Row 2 (y=180, h=180) */}
-      <Patch4 x={0} y={180} teachers={data.teachers ?? []} />
-      <Patch5
-        x={240}
-        y={180}
-        aiUsed={data.aiGenerator?.used === true}
-      />
-      <Patch6 x={450} y={180} aiHelpers={data.aiHelpers ?? []} />
+      {/* Fills group — fades in over 500ms when data populates */}
+      <g
+        style={{
+          opacity: isSkeleton ? 0 : 1,
+          transition: 'opacity 500ms ease-out',
+        }}
+      >
+        <Patch1Fills
+          x={60}
+          y={0}
+          medium={data.piece?.medium}
+          seed={data.seed?.types?.[0]}
+        />
+        <Patch3Fills x={240} y={0} references={refs} />
+        <Patch4Fills x={0} y={180} teachers={data.teachers ?? []} />
+        <Patch5Fills
+          x={240}
+          y={180}
+          aiUsed={data.aiGenerator?.used === true}
+        />
+        <Patch6Fills x={450} y={180} aiHelpers={data.aiHelpers ?? []} />
+        <Patch7Fills x={0} y={360} aiGenerator={data.aiGenerator} />
+        <Patch8Fills x={180} y={360} value={data.directionExecution} />
+        <Patch9Fills
+          x={360}
+          y={360}
+          collaborators={data.collaborators ?? []}
+        />
+      </g>
 
-      {/* Row 3 (y=360, h=180) */}
-      <Patch7 x={0} y={360} aiGenerator={data.aiGenerator} />
-      <Patch8 x={180} y={360} value={data.directionExecution} />
-      <Patch9 x={360} y={360} collaborators={data.collaborators ?? []} />
+      {/* Strokes — always visible, including in skeleton mode */}
+      <Patch1Strokes x={60} y={0} />
+      <Patch3Strokes x={240} y={0} references={refs} />
+      <Patch4Strokes x={0} y={180} />
+      <Patch5Strokes x={240} y={180} />
+      <Patch6Strokes x={450} y={180} />
+      <Patch7Strokes x={0} y={360} />
+      <Patch8Strokes x={180} y={360} />
+      <Patch9Strokes x={360} y={360} />
 
       {/* Outer grid border — drawn last so it sits on top of everything.
           Inset by half the stroke width so the line renders fully within
