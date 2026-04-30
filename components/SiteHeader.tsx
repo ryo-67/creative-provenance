@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 export default function SiteHeader() {
   return (
-    <header className="pt-6 pl-6 md:pt-8 md:pl-8">
+    <header className="px-6 pt-6 text-center md:px-8 md:pt-8">
       <Link
         href="/"
         className="text-base text-[#37352F] no-underline hover:underline"
