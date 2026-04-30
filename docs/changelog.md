@@ -1,5 +1,11 @@
 # Changelog
 
+## Session 28 -- 2026-04-30 -- Doc cleanup: shareable URLs are V1, not V2
+- **`docs/backlog.md`**: removed two stale V2 entries — "Tally → webhook ingestion to a database" and "Shareable URLs for fingerprints (requires backend storage)". The shipped Tally REST + sid flow already delivers durable, deterministic shareable URLs without webhook ingestion or backend storage. Also removed the "~~Custom domain~~" line from Pre-symposium polish — creativetrace.art shipped, the strikethrough was noise. Removed the "Patch 1 stroke weight parity" entry from Visual polish — resolved by bumping global `STROKE_WIDTH` so all patches match the pattern's built-in 6px border.
+- **`docs/requirements.md`**: replaced the "Copy Link (V2)" subsection of Sharing and Export with a "Shareable URLs" subsection that describes the actual sid-based flow (deterministic /result?sid={submissionId}, Copy link button on desktop, navigator.share() on mobile). Removed "Shareable URLs to specific fingerprints" from the V1 out-of-scope list.
+- **`CLAUDE.md`**: removed the "V2 plan: replace the REST fetch with a Tally webhook" paragraph from the Tally integration section — webhook ingestion isn't planned, the current flow works. Removed the "Future (V2): Shareable URLs with unique slugs" bullet from the Sharing section — current sharing already covers this.
+- No code changes.
+
 ## Session 27 -- 2026-04-30 -- Replace landing "How it works" placeholders with real illustrations
 - **`app/page.tsx`**: `HowItWorksStep` now takes a required `illustration: string` prop. The gray `bg-[#F5F5F5]` "Image" placeholder is replaced with an `<img>` rendering the SVG at `aspect-square` `h-full w-full`. The three calls in the "How it works" section now pass the corresponding pre-existing assets in `public/illustrations/`: `illustration-answer.svg`, `illustration-receive.svg`, `illustration-grace.svg`.
 - **`app/result/result-content.tsx`**: `WhatToDoColumn` gains an optional `illustration?: string` prop. When provided, renders the same `<img>` pattern at `aspect-video`; when omitted, falls back to the existing gray placeholder. The three current call sites under "What to do with your Tracemark" still pass no illustration — they keep showing placeholders. Real assets for that section are pending.

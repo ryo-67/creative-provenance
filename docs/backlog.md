@@ -4,8 +4,6 @@ Ideas, deferred features, and out-of-scope items that surfaced during developmen
 
 ## V2 Features
 - Re-implement reflective custom UI in Next.js (sub-step flows, spatial drag canvas for Q3, position-dot 2D field for Q8/Q10). Built and removed in Sessions 1–11; lives in git history. The Tally embed in V1 is a faster path to symposium; the original ambition was a hand-crafted, contemplative interaction that Tally cannot match.
-- Tally → webhook ingestion to a database (Supabase / Vercel KV) instead of redirect-with-params, so the URL stays clean and answers are durable
-- Shareable URLs for fingerprints (requires backend storage)
 - Email-the-result functionality
 - User accounts and saved sessions across devices
 - Generative variation in fingerprint composition
@@ -61,7 +59,6 @@ Currently /questionnaire iframes Tally's hosted form page. Phase 2: embed via Ta
 The Download button triggers async PNG generation (SVG serialize → pattern fetch → canvas draw → toBlob → download). On slow devices this takes 1-2 seconds with no visual feedback. Add a brief loading state: disable the button, swap text to "Downloading...", re-enable on completion or error.
 
 ## Pre-symposium polish
-- ~~Custom domain~~ — secured creativetrace.art; old creative-provenance.vercel.app URL kept as live redirect
 - Privacy policy text on landing page (required because Claude API receives user input)
 - Symposium label/placard (title, group members, 2-3 sentence description)
 - QR code generation for printed symposium materials
@@ -110,10 +107,6 @@ Key is `grace-v2-${sid}`. Each system prompt change requires a manual bump. Cons
 No React error boundary wraps the Tracemark + Grace sections. If the component throws on unexpected data, the page crashes. Add an `ErrorBoundary` with a fallback message.
 
 ## Visual polish
-
-### Patch 1 stroke weight parity
-
-Pattern SVGs render with a 6px built-in border that overlays Patch 1's 5px boundary stroke. The pattern's stroke wins the overlay, so Patch 1 edges may read marginally heavier than other patches. Two paths to parity if it ever needs fixing: bump global STROKE_WIDTH from 5 to 6, or strip borders from pattern SVGs in Figma and rely on Patch 1's own stroke alone.
 
 ### Patch 8 direction bar stroke
 

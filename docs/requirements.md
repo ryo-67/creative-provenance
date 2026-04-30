@@ -479,10 +479,10 @@ The actual prompt will be tuned heavily during Week 13.
 - Share payload: `{ title: "My Creative Trace", text: "[Grace excerpt]", files: [PNG] }`
 - Falls back to download if share API unavailable
 
-### Copy Link (V2)
-- Generates unique URL with response ID
-- Requires Supabase or Vercel KV backend
-- Not in V1 scope
+### Shareable URLs
+- Every result lives at /result?sid={submissionId} and renders deterministically from the Tally submission
+- The Copy link button on the result page surfaces this URL on desktop
+- Mobile uses navigator.share() to surface the same URL through the native share sheet
 
 ## Mobile Responsiveness
 
@@ -540,7 +540,6 @@ No IE support. No older mobile browser support.
 
 - User accounts and login
 - Saved sessions across devices
-- Shareable URLs to specific fingerprints
 - Multiple language support
 - Email-the-result functionality
 - Embeddable widget

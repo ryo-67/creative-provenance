@@ -185,7 +185,6 @@ The system prompt is inlined as the `SYSTEM_PROMPT` constant in `/app/api/grace/
 
 - **Primary path**: Web Share API (`navigator.share()`) on mobile — handles Instagram, WhatsApp, Messages, Twitter, etc.
 - **Fallback path**: clipboard copy on desktop (where `navigator.share` isn't available); plus the always-visible Download PNG.
-- **Future (V2)**: Shareable URLs with unique slugs.
 
 Do not build per-platform share buttons for V1. The native share sheet covers the use cases. Platform detection in `result-content.tsx` only swaps the icon and label between iOS / Android / desktop — not the action.
 
@@ -212,8 +211,6 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 **Submit flow:** Tally redirects to `/result?sid={submissionId}`. The result page calls `/api/tally-submission?sid=...`, which calls `fetchAndMapSubmission` from `lib/tally.ts`. That function fetches the full submission server-side from Tally's REST API (`https://api.tally.so/forms/RGZO7p/submissions/{sid}`, auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` using the form's known question UUIDs and per-question `TEXT_TO_SCHEMA` tables. If option text changes in Tally, update the matching constant in `lib/tally.ts`.
 
 **Text matching is normalize-then-match**: incoming Tally text is lowercased + collapsed (curly quotes / em dashes / curly ellipsis → ASCII) before comparing against table keys, so a single canonical key per option suffices — no straight-quote duplicates needed.
-
-**V2 plan:** replace the REST fetch with a Tally webhook → Next.js API route → durable storage (Supabase or Vercel KV). That trades a synchronous fetch for at-most-once delivery and enables shareable result URLs. See backlog.
 
 ## What to Prioritize
 
