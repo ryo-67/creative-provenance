@@ -207,7 +207,7 @@ function WhatToDoColumn({
 }) {
   return (
     <div className="flex-1">
-      {illustration ? (
+      {illustration && (
         <div className="flex aspect-video items-center justify-center">
           {/* Inline SVG illustration — see app/page.tsx for the
               rationale on <img> vs next/image. */}
@@ -219,12 +219,10 @@ function WhatToDoColumn({
             aria-hidden
           />
         </div>
-      ) : (
-        <div className="flex aspect-video items-center justify-center bg-[#F5F5F5] text-sm text-[#999]">
-          Image
-        </div>
       )}
-      <h3 className="mt-4 text-base font-medium">{title}</h3>
+      <h3 className={`text-base font-medium ${illustration ? 'mt-4' : ''}`}>
+        {title}
+      </h3>
       <p className="mt-1 text-sm leading-relaxed text-[#666]">{body}</p>
     </div>
   );
