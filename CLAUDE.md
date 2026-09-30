@@ -91,6 +91,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 /components
   Tracemark.tsx               # 18×18 SVG grid: 9 patches, skeleton mode
   SiteHeader.tsx              # Minimal wordmark header for non-landing routes
+  FramedHistory.tsx           # Framed in an iframe: same-origin links replace history
 /lib
   schema.ts                   # ProvenanceResponse type + Zod (LOCKED)
   tally.ts                    # fetchSubmission + mapTallyToProvenance +

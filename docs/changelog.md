@@ -1,5 +1,10 @@
 # Changelog
 
+## Session 35 -- 2026-09-30 -- Framed links replace history instead of adding it
+- **`components/FramedHistory.tsx`** (new, mounted in `app/layout.tsx`): when the site runs inside another page's iframe (Shoro's portfolio embeds it as a live exhibit), a same-origin link click now calls `router.replace` instead of letting `<Link>` push. Before, clicking "Trace your work" inside the frame added an entry to the host page's session history, so the host's Back button stepped back inside the frame instead of leaving the host page. Capture-phase listener, so it runs before `<Link>`'s own handler (which stands down for a click already `defaultPrevented`). Standalone (`window.self === window.top`), nothing changes.
+- Verified with Playwright against a production build: framed, landing → `/questionnaire` navigates the frame and host `history.length` stays 2 → 2; standalone, 2 → 3 as before.
+- Not covered: navigation Tally makes inside its own iframe, or its redirect after submit.
+
 ## Session 33 -- 2026-04-30 -- Minimum 800ms 'Downloading...' state
 - **Bug**: Session 31's loading state was technically correct but flashed too quickly to register. The PNG pipeline (SVG serialize → cached pattern fetch → canvas draw → toBlob) often completes in <300ms on warm caches, so users clicked Download and saw a ~100ms blink before the label flipped back. Reads as flicker, not as feedback.
 - **Why not "wait for the download dialog"**: the browser's Save As dialog is OS-native. Once `<a>.click()` fires, JS gets no event when it opens or closes. There is no observable signal for "the dialog closed", so we can't gate UI on it.
