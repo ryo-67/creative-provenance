@@ -8,7 +8,7 @@ Built for the **F(r)ictions: Creative Work in an Age of AI** symposium, May 1, 2
 
 **Production:** [creativetrace.art](https://creativetrace.art/)
 
-The apex `creativetrace.art` is the canonical host. `www.creativetrace.art` and the old Vercel URL [creative-provenance.vercel.app](https://creative-provenance.vercel.app/) should both 308 to it, set in Vercel → Project → Settings → Domains. As of 2026-10-12 the apex 307s to `www` and the Vercel URL serves a full copy; see `docs/bugs.md`.
+The apex `creativetrace.art` is the canonical host. `www.creativetrace.art` and the old Vercel URL [creative-provenance.vercel.app](https://creative-provenance.vercel.app/) 308 to it, set in Vercel → Project → Settings → Domains. Don't add a host redirect in `next.config.ts`; the domain settings own it.
 
 - Push to `main` triggers a production deploy automatically
 - Push to any other branch creates a preview deploy with its own URL

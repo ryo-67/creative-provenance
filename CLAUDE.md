@@ -52,7 +52,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 - **Visualization**: SVG (declarative, debuggable, scales infinitely)
 - **AI Generation**: Anthropic Claude API (`claude-sonnet-4-6` — alias tracks latest 4.6 build)
 - **OG Image**: `next/og` `ImageResponse` at `/api/og` (edge runtime, Satori renderer)
-- **Hosting**: Vercel free tier — deployed at https://creativetrace.art/, the canonical host (apex, no www). `www` and the old https://creative-provenance.vercel.app/ URL should 308 to it at the Vercel domain level; as of 2026-10-12 they don't (see `/docs/bugs.md`)
+- **Hosting**: Vercel free tier — deployed at https://creativetrace.art/, the canonical host (apex, no www). `www` and the old https://creative-provenance.vercel.app/ URL 308 to it at the Vercel domain level (fixed 2026-10-12, see `/docs/bugs.md`)
 - **Storage** (V1): localStorage for grace cache; no backend persistence
 - **Storage** (V2, future): Supabase free tier for shareable URLs
 - **Image Export**: canvas-based SVG-to-PNG with inline pattern paths (in `result-content.tsx`)
@@ -203,7 +203,7 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 
 ### Deployment
 
-- Push to `main` = production deploy at https://creativetrace.art/ (the legacy https://creative-provenance.vercel.app/ URL should redirect here; see `/docs/bugs.md`)
+- Push to `main` = production deploy at https://creativetrace.art/ (the legacy https://creative-provenance.vercel.app/ URL 308s here, set in Vercel domain settings)
 - Push to any other branch = preview deploy with its own URL
 - `ANTHROPIC_API_KEY` and `TALLY_API_KEY` are set in Vercel environment variables for Production, Preview, and Development
 - Build failures show in Vercel dashboard; check there before assuming a regression is local

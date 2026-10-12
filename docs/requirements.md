@@ -563,7 +563,7 @@ These are V2+ ideas worth tracking but not building now.
 
 ## Symposium-Specific Considerations
 
-The site is live at https://creativetrace.art/ and will be displayed at the F(r)ictions symposium on May 1, 2026. The legacy https://creative-provenance.vercel.app/ URL should redirect to it at the Vercel domain level (see Search and Discovery).
+The site is live at https://creativetrace.art/ and will be displayed at the F(r)ictions symposium on May 1, 2026. The legacy https://creative-provenance.vercel.app/ URL 308s to it at the Vercel domain level (see Search and Discovery).
 
 - Display setup: laptop or iPad on a table, plus printed fingerprints from test users as wall display
 - QR code on the printed display should point to https://creativetrace.art/
