@@ -18,19 +18,6 @@ export async function generateMetadata({
   const params = await searchParams;
   const sid = params.sid;
 
-  // metadataBase: prod always points at the apex domain so OG crawlers
-  // resolve relative URLs to creativetrace.art. Preview deploys use the
-  // deployment URL (so per-branch shares preview the right deploy);
-  // local dev falls back to localhost. Overrides the root layout's
-  // metadataBase, which uses VERCEL_URL even in production.
-  const metadataBase = new URL(
-    process.env.VERCEL_ENV === 'production'
-      ? 'https://creativetrace.art'
-      : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000',
-  );
-
   // Title can name the piece. Pulls directly via fetchAndMapSubmission
   // instead of self-fetching /api/tally-submission — internal HTTP hops
   // are flaky on Vercel (auth, edge↔node mismatch, deployment URL
@@ -54,12 +41,16 @@ export async function generateMetadata({
     : 'Your Tracemark';
 
   return {
-    metadataBase,
     title,
+    // Each result is one person's submission, and /result without a sid
+    // is an empty shell. Keep them all out of search; follow stays on so
+    // crawlers still reach the landing page through the header link.
+    robots: { index: false, follow: true },
     description: 'A visual map of everything that shaped this piece.',
     openGraph: {
       title: 'My Creative Trace',
       description: 'See the creative provenance of my work.',
+      siteName: 'Creative Trace',
       type: 'website',
       images: sid ? [{ url: `/api/og?sid=${sid}` }] : undefined,
     },
