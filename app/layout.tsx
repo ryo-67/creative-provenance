@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { FramedHistory } from '@/components/FramedHistory';
 import {
+  FRICTIONS,
   metadataBase,
   SITE_DESCRIPTION,
   SITE_NAME,
@@ -125,10 +126,9 @@ function Footer() {
           </FooterLink>
         </p>
         <p>
-          <FooterLink href="https://event.newschool.edu/frictionscreativeworkinanageof">
-            F(r)ictions: Creative Labor in the Age of AI
-          </FooterLink>
-          {' · The New School'}
+          <FooterLink href={FRICTIONS.url}>{FRICTIONS.name}</FooterLink>
+          {' · The New School · '}
+          <FooterLink href={FRICTIONS.archive}>Archive</FooterLink>
         </p>
       </div>
     </footer>

@@ -491,6 +491,7 @@ The actual prompt will be tuned heavily during Week 13.
 - `robots.txt` allows all crawlers, AI search crawlers by name, and disallows `/api/grace` and `/api/tally-submission`. `/api/og` stays open for link previews.
 - `sitemap.xml` lists the landing page.
 - Landing page: search title "Creative Trace · Map the creative provenance of your art", a description under 160 characters, a canonical link, and schema.org `WebSite` + `WebApplication` JSON-LD naming the three makers, Parsons / The New School, and the source repository.
+- Footer names the symposium as "F(r)ictions: Creative Work in an Age of AI", linking the original listing and the archive page (https://www.aicreativelabor.com/project/frictions).
 - Footer links to Shoro's portfolio at https://shoro.space and to the case study at https://shoro.space/records/creative-trace.
 
 ## Mobile Responsiveness

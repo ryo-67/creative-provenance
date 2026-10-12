@@ -33,6 +33,16 @@ export function metadataBase(): URL {
   );
 }
 
+// The symposium Creative Trace was built for and shown at. url is the
+// original New School event listing; archive is the Lab for AI, Ethics,
+// & Creative Labor's project page, which outlives the listing.
+export const FRICTIONS = {
+  name: 'F(r)ictions: Creative Work in an Age of AI',
+  url: 'https://event.newschool.edu/frictionscreativeworkinanageof',
+  archive: 'https://www.aicreativelabor.com/project/frictions',
+  date: '2026-05-01',
+};
+
 // The three makers, as schema.org Persons. Shoro's @id matches the
 // Person node on shoro.space, so search engines can join the two sites.
 export const CREATORS = [
@@ -92,6 +102,24 @@ export function siteJsonLd() {
         sourceOrganization: {
           '@type': 'CollegeOrUniversity',
           name: 'Parsons School of Design, The New School',
+        },
+        subjectOf: {
+          '@type': 'Event',
+          name: FRICTIONS.name,
+          startDate: FRICTIONS.date,
+          url: FRICTIONS.url,
+          sameAs: [FRICTIONS.archive],
+          eventStatus: 'https://schema.org/EventScheduled',
+          location: {
+            '@type': 'Place',
+            name: 'The New School',
+            address: 'New York, NY',
+          },
+          organizer: {
+            '@type': 'Organization',
+            name: 'Lab for AI, Ethics, & Creative Labor, Parsons School of Design',
+            url: 'https://www.aicreativelabor.com',
+          },
         },
         isBasedOn: {
           '@type': 'SoftwareSourceCode',
