@@ -8,7 +8,7 @@ Built for the **F(r)ictions: Creative Work in an Age of AI** symposium, May 1, 2
 
 **Production:** [creativetrace.art](https://creativetrace.art/)
 
-The old Vercel URL [creative-provenance.vercel.app](https://creative-provenance.vercel.app/) is intentionally preserved as a live redirect to creativetrace.art (handled at the Vercel/DNS level).
+The apex `creativetrace.art` is the canonical host. `www.creativetrace.art` and the old Vercel URL [creative-provenance.vercel.app](https://creative-provenance.vercel.app/) should both 308 to it, set in Vercel → Project → Settings → Domains. As of 2026-10-12 the apex 307s to `www` and the Vercel URL serves a full copy; see `docs/bugs.md`.
 
 - Push to `main` triggers a production deploy automatically
 - Push to any other branch creates a preview deploy with its own URL
@@ -50,11 +50,14 @@ app/
   api/grace/              # Claude API proxy
   api/tally-submission/   # Tally REST fetch + mapping
   api/og/                 # OG image renderer
+  robots.ts               # robots.txt
+  sitemap.ts              # sitemap.xml
 components/
   Tracemark.tsx           # SVG grid visualization
 lib/
   schema.ts              # ProvenanceResponse type + Zod
   tally.ts               # Tally API integration + mapping
+  site.ts                # Canonical URL, search copy, JSON-LD
 public/patterns/          # 12 seed pattern SVGs
 docs/                     # Project documentation
 ```

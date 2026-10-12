@@ -3,6 +3,12 @@ import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { FramedHistory } from '@/components/FramedHistory';
+import {
+  metadataBase,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  SITE_TITLE,
+} from '@/lib/site';
 import './globals.css';
 
 const inter = Inter({
@@ -10,37 +16,28 @@ const inter = Inter({
   subsets: ['latin'],
 });
 
-// metadataBase resolves any relative URLs in metadata (file-convention
-// og:image, favicons, etc.) to absolute ones. Set at the root so every
-// route inherits — silences the "metadataBase not set" warning during
-// static generation.
-//
-// Production resolves to creativetrace.art (the apex domain) so OG
-// crawlers see canonical absolute URLs. Preview deploys use VERCEL_URL
-// (the deployment-specific subdomain); local dev falls back to localhost.
+// metadataBase and the search copy live in lib/site.ts, shared with
+// robots, sitemap and the landing page's structured data. The title
+// template names each inner route ("Trace your work · Creative Trace").
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.VERCEL_ENV === 'production'
-      ? 'https://creativetrace.art'
-      : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000',
-  ),
+  metadataBase: metadataBase(),
   title: {
-    default: 'Creative Trace',
-    template: '%s · Creative Trace',
+    default: SITE_TITLE,
+    template: `%s · ${SITE_NAME}`,
   },
-  description: 'Map the full chain of influences behind your work.',
+  description: SITE_DESCRIPTION,
   openGraph: {
-    title: 'Creative Trace',
-    description: 'Map the full chain of influences behind your work.',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    siteName: SITE_NAME,
+    locale: 'en_US',
     type: 'website',
-    images: [{ url: '/api/og?landing=1' }],
+    images: [{ url: '/api/og?landing=1', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Creative Trace',
-    description: 'Map the full chain of influences behind your work.',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
     images: ['/api/og?landing=1'],
   },
 };
@@ -84,7 +81,7 @@ function Footer() {
             Shoro Roy
           </FooterLink>{' '}
           (
-          <FooterLink href="https://shoro.framer.website/">
+          <FooterLink href="https://shoro.space">
             Portfolio
           </FooterLink>
           ),{' '}
@@ -121,7 +118,12 @@ function Footer() {
           </FooterLink>
           .
         </p>
-        <p>Created in Ethics of AI, Spring 2026</p>
+        <p>
+          Created in Ethics of AI, Spring 2026 ·{' '}
+          <FooterLink href="https://shoro.space/records/creative-trace">
+            How we built it
+          </FooterLink>
+        </p>
         <p>
           <FooterLink href="https://event.newschool.edu/frictionscreativeworkinanageof">
             F(r)ictions: Creative Labor in the Age of AI

@@ -1,6 +1,8 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import Tracemark from '@/components/Tracemark';
+import { siteJsonLd } from '@/lib/site';
 import type {
   AIGenerationKind,
   AIGenerationStage,
@@ -13,6 +15,14 @@ import type {
   TeacherType,
   TrainingDataAwareness,
 } from '@/lib/schema';
+
+// The landing page names itself canonical, so the www host and the
+// legacy vercel.app URL point search engines back to creativetrace.art.
+// Set here, not in the root layout: a canonical in the layout would be
+// inherited by every route and point them all at the landing page.
+export const metadata: Metadata = {
+  alternates: { canonical: '/' },
+};
 
 // --- Hero sample Tracemarks ---
 // 16 marks, each with a hand-tuned profile so every patch reads as
@@ -281,6 +291,11 @@ function HowItWorksStep({
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col">
+      {/* What the site is and who made it, for search and AI engines. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd()) }}
+      />
       <HeroGrid />
 
       <div className="px-6 pb-16 md:pb-20">

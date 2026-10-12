@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
 
+// The page is a Tally iframe: nothing on it for a crawler to read, and
+// indexing it would only compete with the landing page.
 export const metadata: Metadata = {
   title: 'Trace your work',
+  robots: { index: false, follow: true },
 };
 
 // transparentBackground was removed: with it, Tally rendered the form

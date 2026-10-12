@@ -484,6 +484,15 @@ The actual prompt will be tuned heavily during Week 13.
 - The Copy link button on the result page surfaces this URL on desktop
 - Mobile uses navigator.share() to surface the same URL through the native share sheet
 
+## Search and Discovery
+
+- Canonical host: https://creativetrace.art (apex). `www` and the legacy Vercel URL redirect to it (Vercel domain settings).
+- Indexable: the landing page only. `/questionnaire` and `/result` are `noindex, follow`.
+- `robots.txt` allows all crawlers, AI search crawlers by name, and disallows `/api/grace` and `/api/tally-submission`. `/api/og` stays open for link previews.
+- `sitemap.xml` lists the landing page.
+- Landing page: search title "Creative Trace · Map the creative provenance of your art", a description under 160 characters, a canonical link, and schema.org `WebSite` + `WebApplication` JSON-LD naming the three makers, Parsons / The New School, and the source repository.
+- Footer links to Shoro's portfolio at https://shoro.space and to the case study at https://shoro.space/records/creative-trace.
+
 ## Mobile Responsiveness
 
 Required on:
@@ -553,7 +562,7 @@ These are V2+ ideas worth tracking but not building now.
 
 ## Symposium-Specific Considerations
 
-The site is live at https://creativetrace.art/ and will be displayed at the F(r)ictions symposium on May 1, 2026. The legacy https://creative-provenance.vercel.app/ URL is kept as a live redirect (handled at the Vercel/DNS level).
+The site is live at https://creativetrace.art/ and will be displayed at the F(r)ictions symposium on May 1, 2026. The legacy https://creative-provenance.vercel.app/ URL should redirect to it at the Vercel domain level (see Search and Discovery).
 
 - Display setup: laptop or iPad on a table, plus printed fingerprints from test users as wall display
 - QR code on the printed display should point to https://creativetrace.art/

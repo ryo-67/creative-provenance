@@ -65,6 +65,17 @@ Currently /questionnaire iframes Tally's hosted form page. Phase 2: embed via Ta
 - **Patch-by-patch sequential reveal**: each of the 9 patches animates in with its own timing and motion (fills growing from center, Q3 bars sliding up from bottom, Q5 triangle drawing along the diagonal, Q8 bar filling left-to-right). Requires per-patch animation specs and ordering decisions.
 - **Interactive Tracemark legend**: hover or tap each patch to see what question it maps to and what the user answered. Turns the mark from graphic into readable diagram. Needs hover state design, accessible focus equivalents, and mobile tap-to-pin behavior.
 
+## Search and discovery
+
+The landing page is the only indexable page, at about 250 words. These would give search engines more to rank and match how people search ("how to credit AI in art", "AI disclosure for artists", "art provenance"). Each needs the team's copy, written for this site rather than lifted from the portfolio case study (duplicate text on two domains splits ranking).
+
+- **How to read a Tracemark** (`/tracemark`): the eight patches, one short paragraph each, with a sample mark. The facts are in Tracemark.tsx and the Composition Order section of `requirements.md`.
+- **Why there's no percentage** (`/why`): the missing middle between "don't train on my work" tools (Glaze, Nightshade, NoAI tags) and saying what's yours in a piece a generator touched.
+- **Examples**: a small gallery of Tracemarks with their Graces, from submissions whose makers agreed.
+- Add each to `app/sitemap.ts` and give it its own title, description and canonical.
+
+Off-site, once the domain redirects are fixed (see `bugs.md`): verify creativetrace.art in Google Search Console and Bing Webmaster Tools and submit the sitemap; ask for a link from the F(r)ictions event page at newschool.edu.
+
 ## Infrastructure
 
 ### Cluster-wide rate limiting on /api/grace

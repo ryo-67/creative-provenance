@@ -1,5 +1,15 @@
 # Changelog
 
+## Session 36 -- 2026-10-12 -- Search: robots, sitemap, canonical, structured data
+- **`lib/site.ts`** (new): the canonical origin (`SITE_URL`, apex `https://creativetrace.art`), the search title and description, `metadataBase()` (moved here from the root layout; the result page's duplicate override is gone), the three makers as schema.org Persons, and `siteJsonLd()`.
+- **`app/robots.ts`, `app/sitemap.ts`** (new): both URLs returned 404 before. Robots allow everything, name the AI search crawlers (same list as shoro.space), and disallow `/api/grace` and `/api/tally-submission`; `/api/og` stays open because Twitterbot and other preview bots obey robots.txt. The sitemap lists `/` only.
+- **Landing page**: the title is now "Creative Trace · Map the creative provenance of your art" (was "Creative Trace"), the description is a full sentence under 160 characters that names the Tracemark and the Grace (was 9 words), og/twitter use it, og gains `siteName` and `locale`. `app/page.tsx` declares itself canonical and renders `WebSite` + `WebApplication` JSON-LD. The canonical is set on the page, not the layout, because a layout canonical would be inherited by every route.
+- **`/result` and `/questionnaire`**: `noindex, follow`. Result URLs are personal submissions and `/result` without a sid is an empty shell; the questionnaire is a Tally iframe with nothing to read.
+- **Footer**: Shoro's Portfolio link moves from shoro.framer.website to https://shoro.space, and a "How we built it" link goes to the case study at https://shoro.space/records/creative-trace.
+- **Not fixed in code**: the apex 307s to www and creative-provenance.vercel.app serves a full copy. Logged in `bugs.md` with the Vercel dashboard steps. README, CLAUDE.md and requirements.md no longer claim the Vercel URL redirects.
+- **Backlog**: content pages that would give search more to rank, and the Search Console steps.
+- Verified with `VERCEL_ENV=production next build && next start`: robots.txt and sitemap.xml render, the landing page carries the new title, description, canonical and one valid JSON-LD block, and `/questionnaire`, `/result` and `/result?sid=…` render `noindex, follow`. Build + lint + tsc clean.
+
 ## Session 35 -- 2026-09-30 -- Framed links replace history instead of adding it
 - **`components/FramedHistory.tsx`** (new, mounted in `app/layout.tsx`): when the site runs inside another page's iframe (Shoro's portfolio embeds it as a live exhibit), a same-origin link click now calls `router.replace` instead of letting `<Link>` push. Before, clicking "Trace your work" inside the frame added an entry to the host page's session history, so the host's Back button stepped back inside the frame instead of leaving the host page. Capture-phase listener, so it runs before `<Link>`'s own handler (which stands down for a click already `defaultPrevented`). Standalone (`window.self === window.top`), nothing changes.
 - Verified with Playwright against a production build: framed, landing → `/questionnaire` navigates the frame and host `history.length` stays 2 → 2; standalone, 2 → 3 as before.

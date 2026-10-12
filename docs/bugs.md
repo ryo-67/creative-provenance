@@ -2,7 +2,12 @@
 
 ## Open
 
-(none right now)
+### 2026-10-12 -- Three hosts serve the site; the canonical one redirects away
+- Symptom: `creativetrace.art` answers with a **307 (temporary)** redirect to `www.creativetrace.art`, while every canonical link, og:image and sitemap URL names the apex. `creative-provenance.vercel.app` returns **200** with a full copy of the site instead of redirecting, though the docs said it redirected. Search engines see one site at three addresses and the canonical one bouncing elsewhere.
+- Cause: Vercel project domain settings, not code. The apex is set to redirect to `www` (Vercel's default when both are added), and the `.vercel.app` production domain has no redirect.
+- Fix (dashboard, Vercel → creative-provenance → Settings → Domains): make `creativetrace.art` the primary domain with no redirect; set `www.creativetrace.art` to redirect to `creativetrace.art` with **308 Permanent**; edit `creative-provenance.vercel.app` to redirect to `creativetrace.art` with 308. Don't add a host redirect in `next.config.ts` while the apex→www rule exists: the two would loop.
+- Verify: `curl -sI https://www.creativetrace.art/` and `curl -sI https://creative-provenance.vercel.app/` both return 308 with `location: https://creativetrace.art/`, and `curl -sI https://creativetrace.art/` returns 200.
+- Mitigation shipped in code (Session 36): the landing page's canonical link names the apex, so copies on other hosts point back to it.
 
 ## Fixed
 

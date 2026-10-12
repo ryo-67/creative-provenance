@@ -52,7 +52,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 - **Visualization**: SVG (declarative, debuggable, scales infinitely)
 - **AI Generation**: Anthropic Claude API (`claude-sonnet-4-6` — alias tracks latest 4.6 build)
 - **OG Image**: `next/og` `ImageResponse` at `/api/og` (edge runtime, Satori renderer)
-- **Hosting**: Vercel free tier — deployed at https://creativetrace.art/ (the old https://creative-provenance.vercel.app/ URL remains live as a redirect at the Vercel/DNS level)
+- **Hosting**: Vercel free tier — deployed at https://creativetrace.art/, the canonical host (apex, no www). `www` and the old https://creative-provenance.vercel.app/ URL should 308 to it at the Vercel domain level; as of 2026-10-12 they don't (see `/docs/bugs.md`)
 - **Storage** (V1): localStorage for grace cache; no backend persistence
 - **Storage** (V2, future): Supabase free tier for shareable URLs
 - **Image Export**: canvas-based SVG-to-PNG with inline pattern paths (in `result-content.tsx`)
@@ -73,7 +73,9 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 ```
 /app
   layout.tsx                  # Root layout, metadata, viewport, Footer
-  page.tsx                    # Landing page with hero grid
+  page.tsx                    # Landing page with hero grid, canonical, JSON-LD
+  robots.ts                   # robots.txt (AI crawlers named; data APIs disallowed)
+  sitemap.ts                  # sitemap.xml (landing page only)
   globals.css                 # Tailwind 4 imports + CSS vars
   icon.svg                    # Favicon (pattern-obsession)
   /questionnaire
@@ -96,6 +98,8 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   schema.ts                   # ProvenanceResponse type + Zod (LOCKED)
   tally.ts                    # fetchSubmission + mapTallyToProvenance +
                               # fetchAndMapSubmission + TEXT_TO_SCHEMA maps
+  site.ts                     # SITE_URL, search title/description,
+                              # metadataBase(), creators + JSON-LD
 /public
   /patterns                   # 12 seed pattern SVGs
 /docs
@@ -199,7 +203,7 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 
 ### Deployment
 
-- Push to `main` = production deploy at https://creativetrace.art/ (the legacy https://creative-provenance.vercel.app/ URL is kept as a live redirect)
+- Push to `main` = production deploy at https://creativetrace.art/ (the legacy https://creative-provenance.vercel.app/ URL should redirect here; see `/docs/bugs.md`)
 - Push to any other branch = preview deploy with its own URL
 - `ANTHROPIC_API_KEY` and `TALLY_API_KEY` are set in Vercel environment variables for Production, Preview, and Development
 - Build failures show in Vercel dashboard; check there before assuming a regression is local
@@ -234,6 +238,14 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 - Delete dead placeholder files
 - Cluster-wide rate limiting (Vercel KV / Upstash Redis)
 - See `/docs/backlog.md` for full list
+
+## Search and indexing
+
+- The canonical origin is `SITE_URL` in `lib/site.ts` (`https://creativetrace.art`, apex). The landing page declares itself canonical; canonical, sitemap and JSON-LD URLs never use `www` or `vercel.app`.
+- Only `/` is indexable. `/questionnaire` (a Tally iframe) and `/result` (personal submissions) carry `noindex, follow` and stay out of the sitemap. Don't block them in robots.txt: a crawler must fetch a page to read its noindex.
+- `/api/og` stays crawlable for link-preview bots; `/api/grace` and `/api/tally-submission` are disallowed.
+- The landing page carries schema.org `WebSite` + `WebApplication` JSON-LD from `siteJsonLd()`. Shoro's Person `@id` is `https://shoro.space/#person`, the same node shoro.space publishes; keep them matched.
+- Search title and description live in `lib/site.ts`. Keep the title under ~60 characters and the description under ~160.
 
 ## Accessibility Floor
 
