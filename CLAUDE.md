@@ -76,7 +76,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   page.tsx                    # Landing page with hero grid, canonical, JSON-LD
   robots.ts                   # robots.txt (AI crawlers named; data APIs disallowed)
   sitemap.ts                  # sitemap.xml (landing page only)
-  globals.css                 # Tailwind 4 imports + CSS vars
+  globals.css                 # Tailwind 4 imports, color tokens, framed: variant
   icon.svg                    # Favicon (pattern-obsession)
   /questionnaire
     page.tsx                  # Tally embed (full-viewport iframe)
@@ -250,13 +250,15 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 ## Accessibility Floor
 
 - /result must be keyboard-navigable; the Grace must be selectable and copyable
-- All text contrast must meet WCAG AA
+- All text contrast must meet WCAG AA. The color tokens in `app/globals.css` are chosen for this; `#707070` (`--faint`) is the lightest text gray allowed
+- Footer links carry an at-rest underline so they don't rely on color alone
 - All images and SVG elements need alt text or aria-label
 - The Tally form has its own accessibility profile; no in-codebase a11y work for the questions themselves
 
 ## Anti-Patterns
 
 Do not:
+- Hardcode text or surface colors (`text-[#999]`). Use the tokens in `app/globals.css` (`text-foreground`, `text-muted`, `text-faint`, `text-danger`, `bg-surface`, `bg-surface-warm`); each text token passes 4.5:1 on every surface. A new gray must pass on `--surface-warm` too
 - Use `any` in TypeScript
 - Add new dependencies without checking if React/Next ships the capability
 - Write inline styles when Tailwind classes exist

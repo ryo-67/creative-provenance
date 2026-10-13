@@ -1,15 +1,49 @@
 @import "tailwindcss";
 
+/* Color tokens. Every text color passes WCAG AA (4.5:1) on every
+   surface it sits on: white, --surface and --surface-warm.
+   Ratios are against white / --surface-warm (the darkest text surface).
+
+   --foreground  #37352F  12.3 / 11.5  body text, names, headings
+   --muted       #666666   5.7 /  5.4  subtitles, secondary copy
+   --faint       #707070   5.0 /  4.6  footer, notes, status lines.
+                                       Was #999 (2.9:1), which failed.
+                                       #707070 is the lightest gray that
+                                       still passes on --surface-warm.
+   --danger      #BB0000   6.8 /  6.3  error text
+
+   --line is not text: the at-rest underline on footer links, so they
+   read as links without relying on color alone.
+
+   Satori (app/api/og) can't read CSS variables, so the OG image
+   hardcodes the same hex values. Keep them in step. */
 :root {
   --background: #ffffff;
   --foreground: #37352F;
+  --muted: #666666;
+  --faint: #707070;
+  --danger: #bb0000;
+  --line: #c8c8c8;
+  --surface: #f5f5f5;
+  --surface-warm: #f8f7f6;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-danger: var(--danger);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-surface-warm: var(--surface-warm);
   --font-sans: var(--font-inter);
 }
+
+/* Set on <html> by an inline script in app/layout.tsx when the site
+   runs inside another page's iframe (shoro.space embeds it).
+   `framed:hidden` hides an element there. */
+@custom-variant framed (html[data-framed] &);
 
 body {
   background: var(--background);

@@ -44,49 +44,46 @@ export const metadata: Metadata = {
   },
 };
 
-// `primary` variant darkens to body-text color (#37352F) so the
-// author names + SPY Kids stand out as primary anchors. Default
-// stays at #999 — same hierarchy level as the surrounding sentence,
-// Portfolio links read as supporting metadata. `record` is #767676
-// (4.5:1 on white, the AA floor) with a dotted underline, so the one
-// link that isn't a name or an event still reads as a link at rest.
-// nowrap keeps "Project record 0017" whole on a 375px line.
-const FOOTER_LINK_STYLES = {
-  default: 'text-[#999] no-underline hover:underline',
-  primary: 'text-[#37352F] no-underline hover:underline',
-  record:
-    'whitespace-nowrap text-[#767676] underline decoration-dotted underline-offset-[3px] hover:text-[#37352F] hover:decoration-solid',
-};
-
+// Every footer link carries a light underline at rest (--line), so it
+// reads as a link without relying on color alone; hover darkens the
+// underline to the text color. `primary` sets the text to --foreground
+// so the three names and SPY Kids stand out; the rest inherit the
+// footer's --faint and read as supporting metadata.
 function FooterLink({
   href,
   children,
   variant = 'default',
   label,
+  className = '',
 }: {
   href: string;
   children: React.ReactNode;
-  variant?: keyof typeof FOOTER_LINK_STYLES;
+  variant?: 'default' | 'primary';
   label?: string;
+  className?: string;
 }) {
+  const color = variant === 'primary' ? 'text-foreground' : '';
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
       aria-label={label}
-      className={`${FOOTER_LINK_STYLES[variant]} rounded-[2px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#37352F]`}
+      className={`${color} ${className} rounded-[2px] underline decoration-line underline-offset-[3px] hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground`}
     >
       {children}
     </a>
   );
 }
 
+// Two groups: who made it, then where it came from. The project record
+// is the last item of the second group and is hidden when the site is
+// framed, since the one framing it is the record itself.
 function Footer() {
   return (
-    <footer className="mt-8 px-6 py-6 text-center text-[13px] text-[#999]">
-      <div className="mx-auto w-full max-w-[1100px] space-y-2">
-        <p className="leading-relaxed">
+    <footer className="mt-8 px-6 py-6 text-center text-[13px] leading-relaxed text-faint">
+      <div className="mx-auto w-full max-w-[1100px]">
+        <p>
           Made by{' '}
           <FooterLink
             href="https://www.linkedin.com/in/royshoro/"
@@ -132,29 +129,37 @@ function Footer() {
           </FooterLink>
           .
         </p>
-        <p>
-          Created in Ethics of AI, Spring 2026 ·{' '}
-          <FooterLink
-            href={PROJECT_RECORD.url}
-            variant="record"
-            label={`Project record ${PROJECT_RECORD.id}, Creative Trace on shoro.space (opens in a new tab)`}
-          >
-            Project record {PROJECT_RECORD.id}
-            {/* inline-block keeps the underline off the arrow */}
-            <span aria-hidden="true" className="ml-1 inline-block">
-              ↗
-            </span>
-          </FooterLink>
-        </p>
-        <p>
+        <p className="mt-4">
+          Created in Ethics of AI, Spring 2026, for{' '}
           <FooterLink href={FRICTIONS.url}>{FRICTIONS.name}</FooterLink>
-          {' · The New School · '}
+          {' at The New School · '}
           <FooterLink href={FRICTIONS.archive}>Archive</FooterLink>
+          <span className="framed:hidden">
+            {' · '}
+            <FooterLink
+              href={PROJECT_RECORD.url}
+              label={`Project record ${PROJECT_RECORD.id}, Creative Trace on shoro.space (opens in a new tab)`}
+              className="whitespace-nowrap"
+            >
+              Project record {PROJECT_RECORD.id}
+              {/* inline-block keeps the underline off the arrow */}
+              <span aria-hidden="true" className="ml-1 inline-block">
+                ↗
+              </span>
+            </FooterLink>
+          </span>
         </p>
       </div>
     </footer>
   );
 }
+
+// Marks <html data-framed> before first paint when the site runs inside
+// another page's iframe, so `framed:` styles (app/globals.css) apply
+// without a flash. Comparing window.self and window.top is allowed
+// cross-origin.
+const FRAMED_SCRIPT =
+  "if (window.self !== window.top) document.documentElement.dataset.framed = '';";
 
 export default function RootLayout({
   children,
@@ -162,7 +167,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    // suppressHydrationWarning: FRAMED_SCRIPT may add data-framed
+    // before React hydrates.
+    <html
+      lang="en"
+      className={`${inter.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: FRAMED_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col font-sans">
         {children}
         <Footer />
