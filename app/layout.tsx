@@ -92,7 +92,7 @@ function Footer() {
             Shoro Roy
           </FooterLink>{' '}
           (
-          <FooterLink href="https://shoro.space">
+          <FooterLink href="https://shoro.space/">
             Portfolio
           </FooterLink>
           ),{' '}
