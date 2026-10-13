@@ -1,5 +1,12 @@
 # Changelog
 
+## Session 37 -- 2026-10-13 -- Footer: "How we built it" becomes "Project record 0017"
+- **Finding**: "How we built it" was not dead. Since Session 36 it pointed at https://shoro.space/records/creative-trace, which loads. The label was the problem: it promised a team write-up that was never finished, and the page it opened is Shoro's portfolio record of the shared project. The Google Drive 401 seen earlier is Yash's Portfolio link (logged in `bugs.md`, left unchanged).
+- **`app/layout.tsx`**: the link now reads "Project record 0017 ↗", in the portfolio's own filing terms, without promising a write-up. Accessible name: "Project record 0017, Creative Trace on shoro.space (opens in a new tab)"; the arrow is `aria-hidden`. New `record` variant of `FooterLink`: #767676 (4.5:1 on white) with a dotted underline so it reads as a link at rest, solid underline and body color on hover, `whitespace-nowrap` so it never splits across lines at 375px. Every footer link gains a visible 2px `focus-visible` outline. The three names, their order, the Portfolio links and the SPY Kids link are unchanged.
+- **`lib/site.ts`**: `PROJECT_RECORD` (`id`, `url`), next to `FRICTIONS`.
+- Link check, signed out: shoro.space, the record, Behance, the YouTube clip ("Spy Kids 3- Lava Surfing", the team-name joke) and both F(r)ictions pages load; the three LinkedIn profiles show LinkedIn's sign-up wall, as LinkedIn does for every signed-out visitor; Yash's Drive portfolio returns 401.
+- Checked at 375, 768 and 1440px against a production build: no horizontal scroll; at 375px the record link wraps to its own line, whole. Build + lint + tsc clean.
+
 ## Session 36 -- 2026-10-12 -- Search: robots, sitemap, canonical, structured data
 - **`lib/site.ts`** (new): the canonical origin (`SITE_URL`, apex `https://creativetrace.art`), the search title and description, `metadataBase()` (moved here from the root layout; the result page's duplicate override is gone), the three makers as schema.org Persons, and `siteJsonLd()`.
 - **`app/robots.ts`, `app/sitemap.ts`** (new): both URLs returned 404 before. Robots allow everything, name the AI search crawlers (same list as shoro.space), and disallow `/api/grace` and `/api/tally-submission`; `/api/og` stays open because Twitterbot and other preview bots obey robots.txt. The sitemap lists `/` only.

@@ -2,7 +2,11 @@
 
 ## Open
 
-(none right now)
+### 2026-10-13 -- Yash's Portfolio link asks signed-out visitors to log in
+- Symptom: the footer's third "Portfolio" link (`https://drive.google.com/file/d/14z5NZuvuJO-m2JSc6l4Nv3llfhFfjmLV/view`) returns 401 and redirects to Google sign-in for anyone not granted access. The other two Portfolio links (shoro.space, Behance) load publicly.
+- Cause: the Drive file's sharing setting, not code. An earlier check blamed this 401 on "How we built it", which actually pointed at the shoro.space record and loaded fine.
+- Fix: Yash sets the file to "Anyone with the link can view", or sends a public portfolio URL to swap in. Not changed in code: the credit links change only with the makers' agreement.
+- Verify: `curl -s -o /dev/null -w "%{http_code}" -L "<url>"` returns 200 signed out.
 
 ## Fixed
 

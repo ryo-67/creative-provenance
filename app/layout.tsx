@@ -6,6 +6,7 @@ import { FramedHistory } from '@/components/FramedHistory';
 import {
   FRICTIONS,
   metadataBase,
+  PROJECT_RECORD,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
@@ -46,23 +47,35 @@ export const metadata: Metadata = {
 // `primary` variant darkens to body-text color (#37352F) so the
 // author names + SPY Kids stand out as primary anchors. Default
 // stays at #999 — same hierarchy level as the surrounding sentence,
-// Portfolio links read as supporting metadata.
+// Portfolio links read as supporting metadata. `record` is #767676
+// (4.5:1 on white, the AA floor) with a dotted underline, so the one
+// link that isn't a name or an event still reads as a link at rest.
+// nowrap keeps "Project record 0017" whole on a 375px line.
+const FOOTER_LINK_STYLES = {
+  default: 'text-[#999] no-underline hover:underline',
+  primary: 'text-[#37352F] no-underline hover:underline',
+  record:
+    'whitespace-nowrap text-[#767676] underline decoration-dotted underline-offset-[3px] hover:text-[#37352F] hover:decoration-solid',
+};
+
 function FooterLink({
   href,
   children,
   variant = 'default',
+  label,
 }: {
   href: string;
   children: React.ReactNode;
-  variant?: 'default' | 'primary';
+  variant?: keyof typeof FOOTER_LINK_STYLES;
+  label?: string;
 }) {
-  const color = variant === 'primary' ? 'text-[#37352F]' : 'text-[#999]';
   return (
     <a
       href={href}
       target="_blank"
       rel="noreferrer"
-      className={`${color} no-underline hover:underline`}
+      aria-label={label}
+      className={`${FOOTER_LINK_STYLES[variant]} rounded-[2px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#37352F]`}
     >
       {children}
     </a>
@@ -121,8 +134,16 @@ function Footer() {
         </p>
         <p>
           Created in Ethics of AI, Spring 2026 ·{' '}
-          <FooterLink href="https://shoro.space/records/creative-trace">
-            How we built it
+          <FooterLink
+            href={PROJECT_RECORD.url}
+            variant="record"
+            label={`Project record ${PROJECT_RECORD.id}, Creative Trace on shoro.space (opens in a new tab)`}
+          >
+            Project record {PROJECT_RECORD.id}
+            {/* inline-block keeps the underline off the arrow */}
+            <span aria-hidden="true" className="ml-1 inline-block">
+              ↗
+            </span>
           </FooterLink>
         </p>
         <p>
