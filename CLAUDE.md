@@ -258,6 +258,7 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 ## Anti-Patterns
 
 Do not:
+- Print a shoro.space record number (the four-digit code) anywhere: visible text, aria-label, title, alt, docs. shoro.space renumbers records by date. Link to the record by its slug URL (`PROJECT_RECORD_URL` in `lib/site.ts`)
 - Hardcode text or surface colors (`text-[#999]`). Use the tokens in `app/globals.css` (`text-foreground`, `text-muted`, `text-faint`, `text-danger`, `bg-surface`, `bg-surface-warm`); each text token passes 4.5:1 on every surface. A new gray must pass on `--surface-warm` too
 - Use `any` in TypeScript
 - Add new dependencies without checking if React/Next ships the capability

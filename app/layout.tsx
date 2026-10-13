@@ -6,7 +6,7 @@ import { FramedHistory } from '@/components/FramedHistory';
 import {
   FRICTIONS,
   metadataBase,
-  PROJECT_RECORD,
+  PROJECT_RECORD_URL,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
@@ -137,11 +137,11 @@ function Footer() {
           <span className="framed:hidden">
             {' · '}
             <FooterLink
-              href={PROJECT_RECORD.url}
-              label={`Project record ${PROJECT_RECORD.id}, Creative Trace on shoro.space (opens in a new tab)`}
+              href={PROJECT_RECORD_URL}
+              label="Project record: Creative Trace on Shoro Roy's portfolio (opens in a new tab)"
               className="whitespace-nowrap"
             >
-              Project record {PROJECT_RECORD.id}
+              Project record
               {/* inline-block keeps the underline off the arrow */}
               <span aria-hidden="true" className="ml-1 inline-block">
                 ↗
