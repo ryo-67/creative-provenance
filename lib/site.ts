@@ -43,6 +43,14 @@ export const FRICTIONS = {
   date: '2026-05-01',
 };
 
+// Creative Trace's entry on shoro.space. It is a record of the shared
+// project, filed on Shoro's portfolio, not a team write-up, so the
+// footer labels it by its record number and nothing more.
+export const PROJECT_RECORD = {
+  id: '0017',
+  url: 'https://shoro.space/records/creative-trace',
+};
+
 // The three makers, as schema.org Persons. Shoro's @id matches the
 // Person node on shoro.space, so search engines can join the two sites.
 export const CREATORS = [

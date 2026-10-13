@@ -237,7 +237,7 @@ function HeroGrid() {
   return (
     <div
       aria-hidden
-      className="w-full overflow-hidden bg-[#F5F5F5] pt-20 pb-20 md:pt-24"
+      className="w-full overflow-hidden bg-surface pt-20 pb-20 md:pt-24"
     >
       <div className="flex justify-center">
         {/* Mobile: 4 cols × 3 rows = 12 marks at 100px */}
@@ -283,7 +283,7 @@ function HowItWorksStep({
         />
       </div>
       <h3 className="mt-4 text-base font-medium">{title}</h3>
-      <p className="mt-1 text-sm leading-relaxed text-[#666]">{subtitle}</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted">{subtitle}</p>
     </div>
   );
 }
@@ -303,7 +303,7 @@ export default function Home() {
           <h1 className="mt-16 mb-4 text-5xl font-medium tracking-tight">
             Creative Trace
           </h1>
-          <p className="text-2xl font-light leading-snug text-[#666]">
+          <p className="text-2xl font-light leading-snug text-muted">
             Map the full chain of influences behind your work.
           </p>
 
@@ -358,10 +358,10 @@ export default function Home() {
             </div>
           </section>
 
-          <h2 className="mt-16 mb-2 text-base font-medium text-[#666]">
+          <h2 className="mt-16 mb-2 text-base font-medium text-muted">
             How is your data used?
           </h2>
-          <p className="text-sm leading-relaxed text-[#999]">
+          <p className="text-sm leading-relaxed text-faint">
             Your questionnaire responses are stored by Tally, our form
             provider. To generate your Grace, your responses are sent to
             Anthropic’s Claude. Your data is not used for model training,

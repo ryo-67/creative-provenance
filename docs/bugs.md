@@ -2,9 +2,19 @@
 
 ## Open
 
-(none right now)
+### 2026-10-13 -- Yash's Portfolio link asks signed-out visitors to log in
+- Symptom: the footer's third "Portfolio" link (`https://drive.google.com/file/d/14z5NZuvuJO-m2JSc6l4Nv3llfhFfjmLV/view`) returns 401 and redirects to Google sign-in for anyone not granted access. The other two Portfolio links (shoro.space, Behance) load publicly.
+- Cause: the Drive file's sharing setting, not code. An earlier check blamed this 401 on "How we built it", which actually pointed at the shoro.space record and loaded fine.
+- Fix: Yash sets the file to "Anyone with the link can view", or sends a public portfolio URL to swap in. Not changed in code: the credit links change only with the makers' agreement.
+- Verify: `curl -s -o /dev/null -w "%{http_code}" -L "<url>"` returns 200 signed out.
 
 ## Fixed
+
+### 2026-10-13 -- Light-gray text fails WCAG AA
+- Symptom: `#999` text on white is 2.85:1, below the 4.5:1 that CLAUDE.md's accessibility floor requires. Used for the whole footer, the landing page's "How is your data used?" note, the Grace loading and fallback lines (2.66:1 on the warm Grace box), the dev panel labels, and the OG image's "for: …" line.
+- Fix: color tokens in `app/globals.css`. `#999` becomes `--faint` `#707070` (4.95:1 on white, 4.63:1 on `#F8F7F6`); `#666`, `#37352F` and `#b00` already passed and become `--muted`, `--foreground`, `--danger`. Every hardcoded text and surface hex in `app/` and `components/` now uses a token; the OG image hardcodes the same hex with a cross-reference.
+- Verified: a script read every visible text element's computed color and background on `/`, `/result`, `/result?sid=<missing>` and `/questionnaire`; no element under 4.5:1.
+- Fixed 2026-10-13 (Session 37, branch `footer-project-record`).
 
 ### 2026-10-12 -- Three hosts serve the site; the canonical one redirects away
 - Symptom: `creativetrace.art` answers with a **307 (temporary)** redirect to `www.creativetrace.art`, while every canonical link, og:image and sitemap URL names the apex. `creative-provenance.vercel.app` returns **200** with a full copy of the site instead of redirecting, though the docs said it redirected. Search engines see one site at three addresses and the canonical one bouncing elsewhere.

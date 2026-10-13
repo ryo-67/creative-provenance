@@ -1048,7 +1048,8 @@ export async function GET(request: Request) {
               <div
                 style={{
                   fontSize: 18,
-                  color: '#999999',
+                  // --faint in app/globals.css (was #999, 2.9:1)
+                  color: '#707070',
                   fontStyle: 'italic',
                   display: 'flex',
                 }}

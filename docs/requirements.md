@@ -492,7 +492,7 @@ The actual prompt will be tuned heavily during Week 13.
 - `sitemap.xml` lists the landing page.
 - Landing page: search title "Creative Trace · Map the creative provenance of your art", a description under 160 characters, a canonical link, and schema.org `WebSite` + `WebApplication` JSON-LD naming the three makers, Parsons / The New School, and the source repository.
 - Footer names the symposium as "F(r)ictions: Creative Work in an Age of AI", linking the original listing and the archive page (https://www.aicreativelabor.com/project/frictions).
-- Footer links to Shoro's portfolio at https://shoro.space and to the case study at https://shoro.space/records/creative-trace.
+- Footer is two groups. Credit: "Made by" the three makers, each with a Portfolio link, then "Together, we call ourselves the SPY Kids." Context, one line: "Created in Ethics of AI, Spring 2026, for F(r)ictions: Creative Work in an Age of AI at The New School · Archive · Project record 0017 ↗". The record link goes to https://shoro.space/records/creative-trace (`PROJECT_RECORD` in `lib/site.ts`), is labelled as a record of the shared project rather than a team write-up or anyone's personal case study, and is hidden when the site runs inside another page's iframe (shoro.space embeds it on that same record). The three names, their order and their links are an equal credit and change only with all three makers' agreement.
 
 ## Mobile Responsiveness
 

@@ -50,7 +50,7 @@ function renderGraceLine(line: string): ReactNode[] {
       );
     }
     parts.push(
-      <strong key={key++} className="font-semibold text-[#37352F]">
+      <strong key={key++} className="font-semibold text-foreground">
         {match[1]}
       </strong>,
     );
@@ -223,7 +223,7 @@ function WhatToDoColumn({
       <h3 className={`text-base font-medium ${illustration ? 'mt-4' : ''}`}>
         {title}
       </h3>
-      <p className="mt-1 text-sm leading-relaxed text-[#666]">{body}</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
     </div>
   );
 }
@@ -238,7 +238,7 @@ function GraceLines({ grace }: { grace: string }) {
   // the body of thank-yous.
   const ownershipIndex = lines.length - 2;
   return (
-    <div className="space-y-4 text-sm leading-[1.8] text-[#666] md:space-y-5">
+    <div className="space-y-4 text-sm leading-[1.8] text-muted md:space-y-5">
       {lines.map((line, i) => (
         <p key={i} className={i === ownershipIndex ? 'pt-5 md:pt-6' : ''}>
           {renderGraceLine(line)}
@@ -476,7 +476,7 @@ export default function ResultContent() {
           <h1 className="text-4xl font-medium tracking-tight md:text-5xl">
             Your Tracemark
           </h1>
-          <p className="mt-2 text-xl font-normal text-[#666] md:text-2xl">
+          <p className="mt-2 text-xl font-normal text-muted md:text-2xl">
             A visual map of everything that shaped this piece.
           </p>
         </header>
@@ -530,7 +530,7 @@ export default function ResultContent() {
                 </div>
               ) : state.status === 'error' ? (
                 <div
-                  className="mt-6 flex h-12 w-full items-center justify-center text-sm text-[#b00]"
+                  className="mt-6 flex h-12 w-full items-center justify-center text-sm text-danger"
                   aria-live="polite"
                 >
                   Couldn’t load your submission: {state.message}
@@ -538,7 +538,7 @@ export default function ResultContent() {
                 </div>
               ) : (
                 <div
-                  className="mt-6 flex h-12 w-full items-center justify-center text-sm text-[#666]"
+                  className="mt-6 flex h-12 w-full items-center justify-center text-sm text-muted"
                   aria-live="polite"
                 >
                   Making your mark…
@@ -553,18 +553,18 @@ export default function ResultContent() {
               on big screens. */}
           <section aria-label="Grace" className="mt-12 md:mt-0 md:flex-1">
             <div className="mx-auto max-w-[600px]">
-              <p className="mb-6 text-sm leading-relaxed text-[#666]">
+              <p className="mb-6 text-sm leading-relaxed text-muted">
                 {GRACE_INTRO}
               </p>
 
-              <div className="border-l-[3px] border-black bg-[#F8F7F6] p-4 md:p-6">
+              <div className="border-l-[3px] border-black bg-surface-warm p-4 md:p-6">
               {graceLoading && (
-                <p className="text-sm text-[#999]" aria-live="polite">
+                <p className="text-sm text-faint" aria-live="polite">
                   Composing your grace…
                 </p>
               )}
               {graceState.status === 'error' && (
-                <p className="text-sm text-[#b00]" aria-live="polite">
+                <p className="text-sm text-danger" aria-live="polite">
                   Couldn’t compose your grace: {graceState.message}
                 </p>
               )}
@@ -572,7 +572,7 @@ export default function ResultContent() {
                 <GraceLines grace={graceState.grace} />
               )}
               {graceState.status === 'idle' && state.status !== 'ok' && (
-                <p className="text-sm text-[#999]">
+                <p className="text-sm text-faint">
                   Waiting for your submission…
                 </p>
               )}
@@ -605,9 +605,9 @@ export default function ResultContent() {
         </section>
 
         {isDev && (
-          <section className="mt-16 space-y-4 rounded-lg border border-[#eee] bg-[#fafafa] p-4 text-xs">
+          <section className="mt-16 space-y-4 rounded-lg border border-black/10 bg-surface p-4 text-xs">
             <div>
-              <h2 className="mb-2 font-mono uppercase tracking-wide text-[#999]">
+              <h2 className="mb-2 font-mono uppercase tracking-wide text-faint">
                 sid
               </h2>
               <pre className="overflow-x-auto whitespace-pre-wrap break-all">
@@ -615,7 +615,7 @@ export default function ResultContent() {
               </pre>
             </div>
             <div>
-              <h2 className="mb-2 font-mono uppercase tracking-wide text-[#999]">
+              <h2 className="mb-2 font-mono uppercase tracking-wide text-faint">
                 Mapped ProvenanceResponse
               </h2>
               <pre className="overflow-x-auto whitespace-pre-wrap break-all">

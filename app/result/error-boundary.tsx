@@ -32,7 +32,7 @@ export default class ResultErrorBoundary extends Component<Props, State> {
           <h1 className="text-3xl font-medium tracking-tight md:text-4xl">
             Something went wrong loading your Tracemark
           </h1>
-          <p className="mt-4 max-w-md text-base leading-relaxed text-[#666]">
+          <p className="mt-4 max-w-md text-base leading-relaxed text-muted">
             This result might be temporarily unavailable. Try again in a moment, or start a new trace.
           </p>
           <Link
