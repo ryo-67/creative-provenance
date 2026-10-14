@@ -2,6 +2,41 @@
 
 Ideas, deferred features, and out-of-scope items that surfaced during development. Items here are not commitments -- they're the parking lot.
 
+## In progress (resume here)
+
+### Branch `cleanup-and-result-server`: verify on preview, then merge
+
+Sessions 39–43, pushed for a Vercel preview on 2026-10-14 and **not merged to `main`**. What it contains:
+- one shared Tracemark definition in `lib/tracemark/`;
+- the result page loading the submission on the server;
+- `/api/grace` taking only `{ sid }`, with an in-memory Grace cache;
+- seed patterns bundled into the OG route;
+- the footer and JSON-LD built from `TEAM`;
+- the analytics and schema-header docs.
+
+It was tested locally against fakes for Tally and Anthropic, never against the real APIs. Before merging:
+
+1. **Get a real sid.** Tally's redirect after submit goes to production (`creativetrace.art/result?sid=…`), not to the preview. Submit the form once, copy the `sid` from that URL, and open `<preview URL>/result?sid=<sid>` by hand. The preview is behind Vercel login, so open it signed in to Vercel.
+2. **Result page**:
+   - the outline-only mark shows first, then the filled mark fades in;
+   - the tab title reads "Tracemark for …";
+   - the Grace appears (one real Claude call);
+   - reloading shows the same Grace without a new request;
+   - Download gives a PNG with the Patch 1 pattern;
+   - Copy link / Share work.
+3. **OG image**: `<preview URL>/api/og?sid=<sid>` shows that submission's mark with its pattern (patterns now come from the edge bundle), and `/api/og?landing=1` shows five marks with patterns.
+4. **Errors**: `<preview URL>/result?sid=doesnotexist` shows "Couldn’t load your submission: … (404)", and `/result` with no sid shows "Missing sid query parameter".
+5. **Real devices**: iOS Safari and Android Chrome (CLAUDE.md workflow).
+6. **Merge**: merge to `main` (that deploys production), then delete this entry and the remote branch.
+
+### Parked: privacy wording on the landing page
+
+The "How is your data used?" note (`app/page.tsx`) names Tally and Anthropic only. Decide whether it should also mention the page-level analytics (Vercel now, Umami planned) and that a Grace is held briefly in server memory (up to an hour, never stored). Visitor-facing copy, so Shoro approves the wording. Related: the Umami entry under Technical debt.
+
+### Other open threads
+- Should viewers of a shared result get a Grace? Product question (Technical debt below).
+- Yash's Portfolio link asks signed-out visitors to log in (`docs/bugs.md`, Open). Waiting on Yash for a public link.
+
 ## V2 Features
 - Re-implement reflective custom UI in Next.js (sub-step flows, spatial drag canvas for Q3, position-dot 2D field for Q8/Q10). Built and removed in Sessions 1–11; lives in git history. The Tally embed in V1 is a faster path to symposium; the original ambition was a hand-crafted, contemplative interaction that Tally cannot match.
 - Email-the-result functionality
