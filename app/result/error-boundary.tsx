@@ -37,7 +37,7 @@ export default class ResultErrorBoundary extends Component<Props, State> {
           </p>
           <Link
             href="/"
-            className="mt-8 inline-flex h-12 items-center justify-center border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black hover:text-white"
+            className="button-outline mt-8 inline-flex px-6"
           >
             Start a new trace
           </Link>

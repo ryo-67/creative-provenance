@@ -74,7 +74,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 All code in this repo is maintainable, human-readable and clean. Like documentation, this is non-negotiable: code that works but fails these checks is not done.
 
 - **Readable without the author.** Clear names, short functions that do one thing, and plain control flow over clever one-liners. Comments say *why* (a constraint, a decision, a workaround), not what the next line does.
-- **One source of truth.** Shared data and logic live in one module and are imported everywhere they're needed (colors and geometry in `lib/tracemark/spec.ts`, copy in `lib/site.ts`, color tokens in `app/globals.css`). Never copy constants or logic between files; a "keep these in sync" comment means something should be extracted.
+- **One source of truth.** Shared data and logic live in one module and are imported everywhere they're needed (colors and geometry in `lib/tracemark/spec.ts`, copy in `lib/site.ts`, color tokens and the `button-outline` / `button-solid` styles in `app/globals.css`). Never copy constants or logic between files; a "keep these in sync" comment means something should be extracted.
 - **Use what exists.** Reach for existing helpers (`lib/errors.ts`, `lib/site.ts`, `lib/tracemark/`, the Tailwind tokens) before writing new ones, and match the surrounding code's style.
 - **Focused files.** One concern per file. Split a file when it mixes layout, data and I/O, or grows past what a reader can hold in their head.
 - **No leftovers.** Remove dead code, unused props and exports, debugging logs and stale comments in the same change that makes them obsolete.
@@ -299,6 +299,7 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 
 Do not:
 - Print a shoro.space record number (the four-digit code) anywhere: visible text, aria-label, title, alt, docs. shoro.space renumbers records by date. Link to the record by its slug URL (`PROJECT_RECORD_URL` in `lib/site.ts`)
+- Hand-roll button classes. Use `button-outline` (default) or `button-solid` (primary) from `app/globals.css` and add only display, padding and layout at the call site
 - Hardcode text or surface colors (`text-[#999]`). Use the tokens in `app/globals.css` (`text-foreground`, `text-muted`, `text-faint`, `text-danger`, `bg-surface`, `bg-surface-warm`); each text token passes 4.5:1 on every surface. A new gray must pass on `--surface-warm` too
 - Use `any` in TypeScript
 - Add new dependencies without checking if React/Next ships the capability
@@ -329,6 +330,6 @@ The full revised question copy is in `/docs/questionnaire-draft.md`. Use that as
 ## Contact
 
 - Project lead (technical): Shoro Roy
-- Visual system: Paola Machuca Hernández, Yash Pawar
+- Tracemark visual system: Paola Machuca Hernández, Yash Pawar
 - Course: Ethics of AI, Parsons / The New School
 - Symposium: F(r)ictions, May 1, 2026

@@ -94,6 +94,14 @@ Current per-instance in-memory Map is sufficient for symposium-scale traffic but
 
 ## Technical debt
 
+### Stream the Grace as it's written
+
+Today the Grace box shows "Composing your grace…" for about 6–7s, then the whole Grace appears at once. Streaming (`stream: true` to Anthropic, the route passing text through as it arrives, the client reading it incrementally) would show the first line in about a second. It changes how the Grace is revealed, which may or may not be wanted (it currently lands whole, like something finished), and it adds real code: a streaming response, an incremental reader in `app/result/grace.tsx`, and the in-memory cache in `app/api/grace/route.ts` reworked to share a stream that's still being written. Potential future enhancement.
+
+### Signed submission so /api/grace can skip its Tally call
+
+On the first view of a result, the page loads the submission from Tally and `/api/grace` loads it again (it only trusts the sid). The page could sign the mapped data with a server secret (HMAC) and the route could trust a valid signature instead of re-fetching: one Tally call and a few hundred ms saved per first view. Costs a new environment secret and about 15 lines of signing code. Ignored for now; **revisit if Tally API rate limits become a problem.**
+
 ### Should viewers of a shared result get a Grace?
 
 The Grace is written in the maker's voice ("I feel this piece is…"), but today anyone who opens a shared result link gets one generated for them (unless the route still has the maker's in memory), with different wording from the one the maker read. Options: show viewers a "Read the grace" button that generates on demand; mark the maker's first arrival (e.g. a parameter in Tally's redirect URL) and only auto-generate then; or keep the maker's Grace somewhere viewers can read it, which needs a privacy decision (V1 keeps no backend persistence). Saves Claude calls as a side effect. A product decision first.

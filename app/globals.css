@@ -53,6 +53,18 @@
    `framed:hidden` hides an element there. */
 @custom-variant framed (html[data-framed] &);
 
+/* The site's two buttons: square, 48px tall, large text. Outline (the
+   default action) inverts to black on hover; solid (the primary action
+   on the result page) dims slightly. Display, padding and layout stay
+   at the call site. */
+@utility button-outline {
+  @apply h-12 items-center justify-center gap-2 border-[3px] border-black bg-transparent text-lg text-black transition-colors hover:bg-black hover:text-white;
+}
+
+@utility button-solid {
+  @apply h-12 items-center justify-center gap-2 bg-black text-lg text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

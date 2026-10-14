@@ -573,7 +573,7 @@ The site is live at https://creativetrace.art/ and will be displayed at the F(r)
 
 ## Open Questions to Resolve Before Launch
 
-1. Final visual system from Paola and Yash — replaces the placeholder primitives. The expanded reference and seed categories require more primitives than V1 originally accounted for.
+1. Final Tracemark visual system from Paola and Yash — replaces the placeholder primitives. The expanded reference and seed categories require more primitives than V1 originally accounted for.
 2. Domain name decision (creativeprovenance.art, .io, or .vercel.app subdomain)
 3. Privacy policy text — needs legal review or template
 4. Symposium display format — physical printouts? Live demo only? Both?
