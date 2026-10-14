@@ -18,8 +18,14 @@ export const SITE_TAGLINE = 'Map the full chain of influences behind your work.'
 export const SHARE_TITLE = 'My Creative Trace';
 export const SHARE_TEXT = 'See the creative provenance of my work.';
 
-// Under "Your Tracemark" on the result page, and its meta description.
+// The result page's heading (and tab title when the piece has no
+// description), and the line under it, which is also its meta description.
+export const RESULT_TITLE = 'Your Tracemark';
 export const RESULT_SUBTITLE = 'A visual map of everything that shaped this piece.';
+
+// For pages that stay out of search: personal results and the Tally
+// iframe. `follow` stays on so crawlers still reach the landing page.
+export const NOINDEX = { index: false, follow: true };
 
 // Search-result title for the landing page. Leads with the name, then
 // the phrase people search for. Kept under ~60 characters so Google
@@ -30,6 +36,11 @@ export const SITE_TITLE = 'Creative Trace · Map the creative provenance of your
 // characters so Google shows it whole.
 export const SITE_DESCRIPTION =
   'Answer ten questions about one piece of your art. Get a Tracemark, a visual mark of its creative provenance, and a Grace naming everything that fed it.';
+
+// The landing page's link-preview image (app/api/og) and its size, also
+// the size of every OG card.
+export const LANDING_OG_IMAGE = '/api/og?landing=1';
+export const OG_IMAGE_SIZE = { width: 1200, height: 630 };
 
 // metadataBase resolves relative URLs in metadata (og:image, canonical,
 // favicons) to absolute ones. Production uses the canonical origin so
@@ -62,7 +73,7 @@ export const FRICTIONS = {
 export const PROJECT_RECORD_URL = 'https://shoro.space/records/creative-trace';
 
 // The three makers, in credit order. The footer and the structured data
-// below are both built from this list. The order and the equal credit
+// (siteJsonLd) are both built from this list. The order and the equal credit
 // change only with all three makers' agreement.
 export const TEAM = [
   {
@@ -86,15 +97,6 @@ export const TEAM = [
   },
 ];
 
-// The makers as schema.org Persons.
-export const CREATORS = TEAM.map((person) => ({
-  '@type': 'Person',
-  ...('schemaId' in person && { '@id': person.schemaId }),
-  name: person.name,
-  url: person.portfolio,
-  sameAs: [person.linkedin],
-}));
-
 // Landing-page structured data: the site, and the tool as a free web
 // application made at Parsons / The New School.
 export function siteJsonLd() {
@@ -115,7 +117,7 @@ export function siteJsonLd() {
         name: SITE_NAME,
         url: `${SITE_URL}/`,
         description: SITE_DESCRIPTION,
-        image: `${SITE_URL}/api/og?landing=1`,
+        image: `${SITE_URL}${LANDING_OG_IMAGE}`,
         applicationCategory: 'DesignApplication',
         operatingSystem: 'Any',
         browserRequirements: 'Requires JavaScript',
@@ -125,7 +127,13 @@ export function siteJsonLd() {
         dateCreated: '2026-04',
         keywords:
           'creative provenance, attribution, AI in art, creative labor, artists',
-        creator: CREATORS,
+        creator: TEAM.map((person) => ({
+          '@type': 'Person',
+          ...('schemaId' in person && { '@id': person.schemaId }),
+          name: person.name,
+          url: person.portfolio,
+          sameAs: [person.linkedin],
+        })),
         sourceOrganization: {
           '@type': 'CollegeOrUniversity',
           name: 'Parsons School of Design, The New School',

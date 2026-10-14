@@ -1,17 +1,16 @@
 import type { Metadata } from 'next';
-import { Fragment } from 'react';
 import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { FramedHistory } from '@/components/FramedHistory';
+import SiteFooter from '@/components/SiteFooter';
 import {
-  FRICTIONS,
+  LANDING_OG_IMAGE,
   metadataBase,
-  PROJECT_RECORD_URL,
+  OG_IMAGE_SIZE,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
-  TEAM,
 } from '@/lib/site';
 import './globals.css';
 
@@ -36,102 +35,15 @@ export const metadata: Metadata = {
     siteName: SITE_NAME,
     locale: 'en_US',
     type: 'website',
-    images: [{ url: '/api/og?landing=1', width: 1200, height: 630 }],
+    images: [{ url: LANDING_OG_IMAGE, ...OG_IMAGE_SIZE }],
   },
   twitter: {
     card: 'summary_large_image',
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
-    images: ['/api/og?landing=1'],
+    images: [LANDING_OG_IMAGE],
   },
 };
-
-// Every footer link carries a light underline at rest (--line), so it
-// reads as a link without relying on color alone; hover darkens the
-// underline to the text color. `primary` sets the text to --foreground
-// so the three names and SPY Kids stand out; the rest inherit the
-// footer's --faint and read as supporting metadata.
-function FooterLink({
-  href,
-  children,
-  variant = 'default',
-  label,
-  className = '',
-}: {
-  href: string;
-  children: React.ReactNode;
-  variant?: 'default' | 'primary';
-  label?: string;
-  className?: string;
-}) {
-  const color = variant === 'primary' ? 'text-foreground' : '';
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      aria-label={label}
-      className={`${color} ${className} rounded-[2px] underline decoration-line underline-offset-[3px] hover:decoration-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground`}
-    >
-      {children}
-    </a>
-  );
-}
-
-// Two groups: who made it, then where it came from. The project record
-// is the last item of the second group and is hidden when the site is
-// framed, since the one framing it is the record itself.
-function Footer() {
-  return (
-    <footer className="mt-8 px-6 py-6 text-center text-[13px] leading-relaxed text-faint">
-      <div className="mx-auto w-full max-w-[1100px]">
-        <p>
-          Made by{' '}
-          {TEAM.map((person, i) => (
-            <Fragment key={person.name}>
-              {i > 0 && (i === TEAM.length - 1 ? ', and ' : ', ')}
-              <FooterLink href={person.linkedin} variant="primary">
-                {person.name}
-              </FooterLink>{' '}
-              (<FooterLink href={person.portfolio}>Portfolio</FooterLink>)
-            </Fragment>
-          ))}
-          .
-        </p>
-        <p>
-          Together, we call ourselves the{' '}
-          <FooterLink
-            href="https://www.youtube.com/watch?v=oTHj7_Q5fKA"
-            variant="primary"
-          >
-            SPY Kids
-          </FooterLink>
-          .
-        </p>
-        <p className="mt-4">
-          Created in Ethics of AI, Spring 2026, for{' '}
-          <FooterLink href={FRICTIONS.url}>{FRICTIONS.name}</FooterLink>
-          {' at The New School · '}
-          <FooterLink href={FRICTIONS.archive}>Archive</FooterLink>
-          <span className="framed:hidden">
-            {' · '}
-            <FooterLink
-              href={PROJECT_RECORD_URL}
-              label="Project record: Creative Trace on Shoro Roy's portfolio (opens in a new tab)"
-              className="whitespace-nowrap"
-            >
-              Project record
-              {/* inline-block keeps the underline off the arrow */}
-              <span aria-hidden="true" className="ml-1 inline-block">
-                ↗
-              </span>
-            </FooterLink>
-          </span>
-        </p>
-      </div>
-    </footer>
-  );
-}
 
 // Marks <html data-framed> before first paint when the site runs inside
 // another page's iframe, so `framed:` styles (app/globals.css) apply
@@ -158,7 +70,7 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-full flex-col font-sans">
         {children}
-        <Footer />
+        <SiteFooter />
         <FramedHistory />
         <Analytics />
         <SpeedInsights />

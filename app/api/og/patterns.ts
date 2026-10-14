@@ -5,7 +5,7 @@
 // asset, not a network address. Same mechanism next/og uses for fonts.
 
 import type { SeedType } from '@/lib/schema';
-import { parsePatternPaths, type PatternPath } from '@/lib/tracemark/patterns';
+import { patternLoader } from '@/lib/tracemark/patterns';
 
 const FILES: Record<SeedType, URL> = {
   body: new URL('../../../public/patterns/pattern-body.svg', import.meta.url),
@@ -22,14 +22,4 @@ const FILES: Record<SeedType, URL> = {
   other: new URL('../../../public/patterns/pattern-other.svg', import.meta.url),
 };
 
-const cache = new Map<SeedType, PatternPath[]>();
-
-export async function bundledPatternPaths(seed: SeedType): Promise<PatternPath[] | null> {
-  const cached = cache.get(seed);
-  if (cached) return cached;
-  const res = await fetch(FILES[seed]);
-  const paths = parsePatternPaths(await res.text());
-  if (paths.length === 0) return null;
-  cache.set(seed, paths);
-  return paths;
-}
+export const bundledPatternPaths = patternLoader((seed) => FILES[seed]);

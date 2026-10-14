@@ -12,6 +12,7 @@ import type {
   CollaboratorType,
   MediumType,
   ProvenanceResponse,
+  ReferenceTileId,
   SeedType,
   TeacherType,
   TrainingDataAwareness,
@@ -37,9 +38,17 @@ export const PATCHES = {
 
 export type PatchId = keyof typeof PATCHES;
 
+// A rectangle in patch coordinates.
+export interface Cell {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 // --- Colors ---
 
-export const MEDIUM_COLOR: Record<MediumType, string> = {
+const MEDIUM_COLOR: Record<MediumType, string> = {
   painted: '#983153',
   'digital-2d': '#3E51C0',
   '3d-digital': '#FFAA00',
@@ -75,6 +84,11 @@ export const COLORS = {
 
 // --- Patch 1: seed pattern overlay ---
 
+// The seed whose pattern a mark draws: the first one the maker picked.
+export function patternSeed(data: Partial<ProvenanceResponse>): SeedType | undefined {
+  return data.seed?.types?.[0];
+}
+
 // Seed → pattern asset in /public/patterns. The schema's 'chance'
 // literal maps to pattern-dream.svg (the file is named after the
 // user-facing label).
@@ -97,19 +111,20 @@ export const SEED_PATTERN: Record<SeedType, string> = {
 // 2.06 in the 180×180 asset) lands on Patch 1's own boundary stroke.
 // The live <image> uses offset/size and clips with inset(2.11px);
 // inlined paths use the equivalent transform. The scale is the literal
-// 1.02344, not 184.22/180, so rendered output stays identical.
+// 1.02344, not 184.22/180, so rendered output stays identical. Inlined
+// paths re-enable anti-aliasing (the mark itself uses crispEdges, which
+// would make the pattern's curves jagged).
 export const PATTERN_PLACEMENT = {
   offset: -2.11,
   size: 184.22,
   clipInset: '2.11px',
   transform: 'translate(-2.11,-2.11) scale(1.02344)',
-};
+  shapeRendering: 'geometricPrecision',
+} as const;
 
 // --- Patch 3: references, grouped into five columns ---
 
-type ReferenceId = ProvenanceResponse['references'][number]['id'];
-
-const REFERENCE_SECTIONS: Array<{ x: number; ids: ReferenceId[] }> = [
+const REFERENCE_SECTIONS: Array<{ x: number; ids: ReferenceTileId[] }> = [
   { x: 0, ids: ['artist-portfolios', 'curated-channels'] },
   { x: 60, ids: ['algorithmic-feeds', 'search-results'] },
   {
@@ -127,30 +142,36 @@ const REFERENCE_SECTIONS: Array<{ x: number; ids: ReferenceId[] }> = [
   { x: 240, ids: ['ai-moodboards'] },
 ];
 
-// Each column's bar rises to the average weight of its references.
-export function referenceSections(
+// Five full-height columns, each with a bar rising from the bottom to
+// the average weight of its references (no bar when it's zero).
+export function referenceCells(
   references: ProvenanceResponse['references'],
-): Array<{ x: number; barHeight: number }> {
+): { columns: Cell[]; bars: Cell[] } {
   const weightById = new Map<string, number>(
     references.map((r) => [r.id, r.weight]),
   );
-  return REFERENCE_SECTIONS.map((section) => {
-    const sum = section.ids.reduce(
-      (acc, id) => acc + (weightById.get(id) ?? 0),
-      0,
-    );
-    return { x: section.x, barHeight: (sum / section.ids.length) * 180 };
-  });
+  const columns: Cell[] = [];
+  const bars: Cell[] = [];
+  for (const { x, ids } of REFERENCE_SECTIONS) {
+    const sum = ids.reduce((acc, id) => acc + (weightById.get(id) ?? 0), 0);
+    const height = (sum / ids.length) * 180;
+    columns.push({ x, y: 0, w: 60, h: 180 });
+    if (height > 0) bars.push({ x, y: 180 - height, w: 60, h: height });
+  }
+  return { columns, bars };
 }
 
-// --- Cell grids (Patches 4, 6, 7, 9), in patch coordinates ---
+// --- Patch 5: AI as generator ---
 
-export interface Cell {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-}
+// A diagonal splits the patch; the upper-left half lights up when AI
+// generated part of the piece.
+export const AI_SPLIT = {
+  upper: '0,0 210,0 0,180',
+  lower: '210,0 210,180 0,180',
+  diagonal: { x1: 210, y1: 0, x2: 0, y2: 180 },
+};
+
+// --- Cell grids (Patches 4, 6, 7, 9) ---
 
 // The spec calls the row-4 cell "crit"; the schema literal is 'critique'.
 export const TEACHER_CELLS: Array<Cell & { id: TeacherType }> = [
@@ -230,10 +251,12 @@ export const COLLABORATOR_CELLS: Array<Cell & { id: CollaboratorType | null }> =
 
 // --- Patch 8: direction vs execution ---
 
-// 1–10 maps onto six 30px columns, two answers per column.
-export function directionBarWidth(value: number | undefined): number {
-  if (typeof value !== 'number') return 0;
-  return Math.min(6, Math.max(0, Math.ceil(value / 2))) * 30;
+// A bar across the middle row: 1–10 maps onto six 30px columns, two
+// answers per column. No bar without an answer.
+export function directionBarCell(value: number | undefined): Cell | null {
+  if (typeof value !== 'number') return null;
+  const width = Math.min(6, Math.max(0, Math.ceil(value / 2))) * 30;
+  return width > 0 ? { x: 0, y: 60, w: width, h: 60 } : null;
 }
 
 export const DIRECTION_DIVIDERS = [30, 60, 90, 120, 150];

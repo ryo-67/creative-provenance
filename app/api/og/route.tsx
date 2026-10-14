@@ -15,15 +15,16 @@ import type { ProvenanceResponse } from '@/lib/schema';
 import { describeError } from '@/lib/errors';
 import { fetchAndMapSubmission } from '@/lib/tally';
 import { OG_FALLBACK_SAMPLE, OG_LANDING_SAMPLES } from '@/lib/tracemark/samples';
+import { patternSeed } from '@/lib/tracemark/spec';
 import { CARD_SIZE, LandingCard, ResultCard } from './cards';
 import { bundledPatternPaths } from './patterns';
 
 export const runtime = 'edge';
 
-// Patch 1's pattern for a mark, or null (solid color) if it has no seed.
-// Read from the pattern files bundled with this function.
+// Patch 1's pattern for a mark, read from the pattern files bundled with
+// this function, or null (solid color) without a seed.
 function patternFor(data: Partial<ProvenanceResponse>) {
-  const seed = data.seed?.types?.[0];
+  const seed = patternSeed(data);
   return seed ? bundledPatternPaths(seed) : Promise.resolve(null);
 }
 
@@ -55,7 +56,6 @@ async function resultImage(sid: string | null) {
     <ResultCard
       data={data}
       patternPaths={await patternFor(data)}
-      pieceDescription={data.piece?.description ?? ''}
     />,
     CARD_SIZE,
   );

@@ -1,19 +1,17 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
-import { SITE_NAME } from '@/lib/site';
+import { NOINDEX, SITE_NAME } from '@/lib/site';
 import { TALLY_FORM_ID } from '@/lib/tally';
 
 // The page is a Tally iframe: nothing on it for a crawler to read, and
 // indexing it would only compete with the landing page.
 export const metadata: Metadata = {
   title: 'Trace your work',
-  robots: { index: false, follow: true },
+  robots: NOINDEX,
 };
 
-// transparentBackground was removed: with it, Tally rendered the form
-// with no fill, so the browser's page bg showed through — on OS dark
-// mode the form became unreadable (light text on dark page bg). Tally's
-// own white background is the right default.
+// No `transparentBackground` option: with it, OS dark mode showed through
+// and made the form unreadable. Tally's own white background stays.
 const TALLY_FORM_URL = `https://tally.so/r/${TALLY_FORM_ID}`;
 
 export default function QuestionnairePage() {

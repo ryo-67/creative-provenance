@@ -6,13 +6,17 @@
 //
 // Skeleton mode: when `data` is empty, every fill sits in a group at
 // opacity 0 and only the strokes (cell outlines, patch borders, the
-// black Patch 0 anchor, the Patch 5 diagonal) show. When data arrives in
-// place, the fills fade in over 500ms with no layout shift. `fadeIn`
-// gives a mark that mounts already filled the same 500ms fade (the
-// result page streams its filled mark in to replace the skeleton).
+// black Patch 0 anchor, the Patch 5 diagonal) show. `fadeIn` fades the
+// fills in over 500ms when a filled mark mounts: the result page streams
+// it in to replace the skeleton, same geometry, no layout shift.
 
 import type { ProvenanceResponse, SeedType } from '@/lib/schema';
-import { PATTERN_PLACEMENT, SEED_PATTERN } from '@/lib/tracemark/spec';
+import {
+  GRID_SIZE,
+  PATTERN_PLACEMENT,
+  SEED_PATTERN,
+  patternSeed,
+} from '@/lib/tracemark/spec';
 import {
   DATA_PATCHES,
   anchorElements,
@@ -49,16 +53,16 @@ interface TracemarkProps {
 
 export default function Tracemark({
   data,
-  size = 540,
+  size = GRID_SIZE,
   className,
   fadeIn = false,
 }: TracemarkProps) {
   const isSkeleton = Object.keys(data).length === 0;
-  const pattern = seedPatternImage(data.seed?.types?.[0]);
+  const pattern = seedPatternImage(patternSeed(data));
 
   return (
     <svg
-      viewBox="0 0 540 540"
+      viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}
       width={size}
       height={size}
       xmlns="http://www.w3.org/2000/svg"
@@ -71,10 +75,7 @@ export default function Tracemark({
 
       <g
         className={fadeIn && !isSkeleton ? 'motion-safe:animate-fill-in' : undefined}
-        style={{
-          opacity: isSkeleton ? 0 : 1,
-          transition: 'opacity 500ms ease-out',
-        }}
+        style={{ opacity: isSkeleton ? 0 : 1 }}
       >
         {DATA_PATCHES.map((id) => (
           <g key={id} transform={patchTransform(id)}>
