@@ -7,6 +7,7 @@
   - CLAUDE.md names the button utilities as the source of truth and adds an anti-pattern against hand-rolled button classes;
   - Paola and Yash are credited with the Tracemark visual system specifically (CLAUDE.md, README, requirements), per Shoro;
   - the backlog gains "Stream the Grace" (a potential future enhancement) and "Signed submission" (revisit only if Tally rate limits become an issue).
+- **Merged to `main`** (production) on 2026-10-14; branch deleted.
 
 ## Session 45 -- 2026-10-14 -- Second cleanup pass
 Four parallel reviews (reuse, simplification, efficiency, structure) of the whole codebase after Sessions 41–44. No intended visible change; the exceptions are listed at the end.
