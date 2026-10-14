@@ -84,10 +84,6 @@ Current per-instance in-memory Map is sufficient for symposium-scale traffic but
 
 ## Technical debt
 
-### Bundle the seed patterns with the OG route
-
-`/api/og` fetches `/patterns/*.svg` from its own deployment over HTTP. On a preview deploy behind Vercel Authentication that fetch fails quietly and Patch 1 renders solid. A generated `PatternPath[]` module per seed (from `public/patterns`, with a check that it's current) would remove the fetch and the regex parse. Adds a build step.
-
 ### Umami analytics
 
 Planned alongside Vercel Web Analytics as the team pushes for more traffic. Keep it cookieless and page-level: no answers, piece descriptions or Graces in events. When it ships, add a line about it to the landing page's "How is your data used?" note, which today only mentions Tally and Anthropic.

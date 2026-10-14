@@ -13,20 +13,18 @@
 import { ImageResponse } from 'next/og';
 import type { ProvenanceResponse } from '@/lib/schema';
 import { describeError } from '@/lib/errors';
-import { metadataBase } from '@/lib/site';
 import { fetchAndMapSubmission } from '@/lib/tally';
-import { loadPatternPaths } from '@/lib/tracemark/patterns';
 import { OG_FALLBACK_SAMPLE, OG_LANDING_SAMPLES } from '@/lib/tracemark/samples';
 import { CARD_SIZE, LandingCard, ResultCard } from './cards';
+import { bundledPatternPaths } from './patterns';
 
 export const runtime = 'edge';
 
-// Patch 1's pattern for a mark, or null (solid color) if it has no seed
-// or the pattern can't be loaded. Fetched from this deployment's own
-// /patterns, which needs an absolute URL on the server.
+// Patch 1's pattern for a mark, or null (solid color) if it has no seed.
+// Read from the pattern files bundled with this function.
 function patternFor(data: Partial<ProvenanceResponse>) {
   const seed = data.seed?.types?.[0];
-  return seed ? loadPatternPaths(seed, metadataBase().origin) : Promise.resolve(null);
+  return seed ? bundledPatternPaths(seed) : Promise.resolve(null);
 }
 
 async function landingImage() {

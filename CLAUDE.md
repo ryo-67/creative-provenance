@@ -93,6 +93,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
     /og
       route.tsx               # OG image dispatch: landing / sid / fallback
       cards.tsx               # The two 1200×630 card layouts (Satori)
+      patterns.ts             # Seed pattern SVGs bundled into the edge route
 /components
   Tracemark.tsx               # Live mark: arranges shapes, skeleton fade
   SiteHeader.tsx              # Minimal wordmark header for non-landing routes
@@ -109,7 +110,8 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
     spec.ts                   # Geometry, colors, answer → shape rules (pure)
     shapes.tsx                # Per-patch SVG elements, shared by the live
                               # mark and the OG image
-    patterns.ts               # Seed pattern SVG → inline path data
+    patterns.ts               # Seed pattern SVG → inline path data; browser
+                              # loader for the PNG download
     samples.ts                # Hero, OG landing and OG fallback samples
     export-png.ts             # Download as PNG (browser only)
 /public
@@ -175,7 +177,7 @@ Two renderers arrange those shapes:
 - `components/Tracemark.tsx` (the live mark) puts every patch's fills in one opacity-controlled group and the strokes outside it. Skeleton mode: when `data` is empty, fills are hidden; only strokes show. When data arrives, fills transition to opacity 1 over 500ms — same SVG geometry, no layout shift. Patch 1's pattern is a live `<image href>`.
 - `app/api/og/cards.tsx` (Satori) draws each patch's fills then strokes, with Patch 1's pattern inlined as `<path>`s.
 
-The PNG download (`lib/tracemark/export-png.ts`) clones the live SVG and swaps the pattern `<image>` for inlined paths. Satori and canvas `drawImage` both ignore external `<image href>` refs, so both load patterns through `lib/tracemark/patterns.ts`. Any change to a color, a cell, or an answer rule goes in `spec.ts` and reaches all three.
+The PNG download (`lib/tracemark/export-png.ts`) clones the live SVG and swaps the pattern `<image>` for inlined paths. Satori and canvas `drawImage` both ignore external `<image href>` refs, so both parse pattern files with `parsePatternPaths` in `lib/tracemark/patterns.ts`. The OG route reads the 12 files from its own bundle (`app/api/og/patterns.ts`, static `new URL('…', import.meta.url)` entries that resolve to edge assets, no HTTP); the download fetches them from `/patterns` in the browser. A new seed pattern needs an entry in both `SEED_PATTERN` (`spec.ts`) and `app/api/og/patterns.ts`. Any change to a color, a cell, or an answer rule goes in `spec.ts` and reaches all three.
 
 ## Grace Generation
 

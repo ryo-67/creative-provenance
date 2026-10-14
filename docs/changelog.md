@@ -1,5 +1,12 @@
 # Changelog
 
+## Session 42 -- 2026-10-14 -- OG route reads seed patterns from its own bundle
+- **`app/api/og/patterns.ts`** (new): the 12 seed pattern SVGs as static `new URL('../../../public/patterns/…', import.meta.url)` entries. The bundler copies each file into the edge function, and at runtime the URL resolves to an edge asset (`blob:server/edge/assets/…` in the build output), not a network address: the same mechanism `next/og` documents for fonts. The OG route reads patterns from there instead of fetching `/patterns/*.svg` from its own site over HTTP.
+- **Why**: the self-fetch could fail on preview deploys behind Vercel login and needed a server on `localhost:3000` locally (Patch 1 silently went solid otherwise); production depended on the site's own domain answering. No copied data and no build step: the SVGs in `public/patterns` stay the only source.
+- **`lib/tracemark/patterns.ts`**: `loadPatternPaths` is now browser-only (the PNG download), so its `origin` parameter is gone; the OG route no longer needs `metadataBase()`.
+- **Verified**: with nothing serving patterns to the OG route, `/api/og` and `/api/og?landing=1` render PNGs byte-identical to the Session 39 baseline (patterns included). All 12 files appear under `.next/server/edge/assets/`. Build, lint, tsc clean.
+- **Maintenance note** (CLAUDE.md): a new seed pattern needs an entry in both `SEED_PATTERN` and `app/api/og/patterns.ts`.
+
 ## Session 41 -- 2026-10-14 -- Result page loads on the server; Grace by sid; one team list
 - **Result page loads the submission on the server** (`app/result/page.tsx`). Before, the server fetched the submission from Tally for the page title, then the browser fetched it again through `/api/tally-submission` after hydrating: two Tally calls and an extra round trip before the mark could fill. Now `loadSubmission` (React `cache()` around `fetchAndMapSubmission`) runs once per request for both the metadata and the body.
   - The page streams: a `Suspense` fallback renders the full layout with an outline-only Tracemark and "Making your mark…" at once, and the filled page replaces it when Tally answers.

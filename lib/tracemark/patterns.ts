@@ -2,9 +2,10 @@
 //
 // The live Tracemark draws a pattern with <image href>. Neither Satori
 // (the OG image) nor canvas drawImage (the PNG download) loads external
-// SVGs referenced that way, so both fetch the pattern file, pull out its
-// <path> elements, and draw them inline. Pure string work, no DOM, so it
-// runs on the edge and in the browser.
+// SVGs referenced that way, so both pull the pattern file's <path>
+// elements out and draw them inline. The parser is pure string work and
+// runs anywhere; the OG route reads the files from its own bundle
+// (app/api/og/patterns.ts), and the download fetches them below.
 
 import type { SeedType } from '@/lib/schema';
 import { errorMessage } from '@/lib/errors';
@@ -39,21 +40,19 @@ export function parsePatternPaths(svgText: string): PatternPath[] {
   return paths;
 }
 
-// Parsed patterns, kept for the life of the page or warm edge instance.
-// Failures aren't cached, so the next request tries again.
+// Parsed patterns, kept for the life of the page. Failures aren't
+// cached, so the next download tries again.
 const cache = new Map<SeedType, PatternPath[]>();
 
-// `origin` is empty in the browser (same-origin fetch) and the site's
-// origin on the server, where fetch needs an absolute URL. Returns null
-// if the pattern can't be loaded; Patch 1 then stays solid color.
+// Browser only: fetches from the site's own /patterns. Returns null if
+// the pattern can't be loaded; Patch 1 then stays solid color.
 export async function loadPatternPaths(
   seed: SeedType,
-  origin = '',
 ): Promise<PatternPath[] | null> {
   const cached = cache.get(seed);
   if (cached) return cached;
   try {
-    const res = await fetch(`${origin}${SEED_PATTERN[seed]}`);
+    const res = await fetch(SEED_PATTERN[seed]);
     if (!res.ok) return null;
     const paths = parsePatternPaths(await res.text());
     if (paths.length === 0) return null;
