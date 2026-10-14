@@ -1,8 +1,12 @@
-// Target schema for ProvenanceResponse.
-// The questionnaire is hosted on Tally (https://tally.so/r/RGZO7p) and redirects
-// to /result with answers as URL parameters. The shapes below are what
-// `parseTallyParams` (in /app/result/page.tsx) maps Tally's params into.
-// Until that mapping is wired, /result reads raw params and renders a stub.
+// ProvenanceResponse: the shape of one submission, and the contract every
+// part of the site reads (the Tracemark, the Grace, the OG image).
+//
+// Answers come from the Tally form (https://tally.so/r/RGZO7p). Tally
+// redirects to /result?sid={submissionId}; lib/tally.ts fetches that
+// submission (fetchAndMapSubmission) and maps it into this shape
+// (mapTallyToProvenance).
+//
+// LOCKED: change a shape only together with every consumer.
 
 import { z } from 'zod';
 

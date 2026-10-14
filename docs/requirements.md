@@ -523,7 +523,7 @@ Fallbacks:
 
 ## Privacy
 
-V1: no accounts, no analytics, no tracking. Responses live in localStorage only.
+V1: no accounts. Responses are stored by Tally (the form provider); the site keeps only the generated Grace, in the visitor's localStorage. Page-level, cookieless analytics run on every page (Vercel Web Analytics and Speed Insights; Umami planned). No submission content goes to analytics.
 
 V2 (when shareable URLs ship): clear consent screen explaining that the response will be stored anonymously to enable URL sharing.
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## Session 40 -- 2026-10-14 -- Analytics policy, schema header
+- **Analytics are allowed.** CLAUDE.md said "no analytics in V1" while the site has loaded Vercel Web Analytics and Speed Insights since 2026-04-30 (ryo-67/creative-provenance PR 5); Shoro confirmed analytics stay, and Umami is planned as the team pushes for more traffic. CLAUDE.md now lists analytics in the tech stack, and the anti-pattern became "don't send personal data or submission content to analytics, and no cookie-based tracking". `requirements.md` Privacy updated to match (it also said responses live in localStorage; they live in Tally). Backlog: the conflict entry is replaced by an Umami entry, including a note to mention analytics in the landing page's data-use note when it ships.
+- **`lib/schema.ts` header** rewritten: it still described `parseTallyParams` and URL-param parsing, deleted in Session 12. Comment only, as a one-time exception to the file lock, approved by Shoro. Types unchanged.
+
 ## Session 39 -- 2026-10-14 -- Code cleanup: one Tracemark, smaller files
 A cleanup pass over the whole codebase: no feature and no visible change. Four parallel reviews (reuse, simplification, efficiency, structure) found the same core problem, and this session fixed it.
 

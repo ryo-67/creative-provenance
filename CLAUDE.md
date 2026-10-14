@@ -57,6 +57,7 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 - **Storage** (V2, future): Supabase free tier for shareable URLs
 - **Image Export**: canvas-based SVG-to-PNG with inline pattern paths (`lib/tracemark/export-png.ts`)
 - **Sharing**: Web Share API (mobile native share sheet) + clipboard fallback
+- **Analytics**: Vercel Web Analytics + Speed Insights (`app/layout.tsx`). Umami is planned as traffic to the site grows. Keep analytics cookieless and free of personal data: no names, emails, piece descriptions or answers in events
 
 ## Architectural Principles
 
@@ -281,7 +282,7 @@ Do not:
 - Let component state and `ProvenanceResponse` diverge
 - Hardcode API keys anywhere in committed code
 - Skip mobile testing on the assumption that desktop responsive design covers it
-- Add analytics or tracking pixels in V1
+- Send personal data or submission content (answers, piece descriptions, the Grace) to analytics, or add cookie-based tracking. Page-level, cookieless analytics (Vercel, Umami) are fine
 - Add accounts, auth, or login in V1
 - Collapse Q3's distinct reference categories back into broad buckets — the granularity is intentional
 - Use technical/categorical language in question copy — voice should be evocative and personal

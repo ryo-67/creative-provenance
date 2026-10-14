@@ -100,13 +100,9 @@ A result view calls Tally twice: once in `generateMetadata` (`app/result/page.ts
 
 `app/layout.tsx` types out the three names and their LinkedIn and portfolio URLs, and `CREATORS` in `lib/site.ts` repeats the names and LinkedIn URLs. One `TEAM` list could feed both. Left alone because the footer is the shared credit and its rendered text has to stay exactly as the three makers agreed.
 
-### Analytics vs the V1 rule
+### Umami analytics
 
-`app/layout.tsx` mounts `@vercel/analytics` and `@vercel/speed-insights`, while CLAUDE.md's anti-patterns say not to add analytics in V1. One of the two is out of date; the team should decide which.
-
-### Stale header in lib/schema.ts
-
-The file's header comment still describes `parseTallyParams` and URL-param parsing, deleted in Session 12. The file is locked, so it needs the owner's sign-off even for a comment.
+Planned alongside Vercel Web Analytics as the team pushes for more traffic. Keep it cookieless and page-level: no answers, piece descriptions or Graces in events. When it ships, add a line about it to the landing page's "How is your data used?" note, which today only mentions Tally and Anthropic.
 
 ### Grace cache key versioning
 
