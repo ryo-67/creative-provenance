@@ -21,7 +21,8 @@
     - no sid shows "Missing sid query parameter";
     - no hydration warnings.
   - **In-memory Grace cache**: after the browser's copy was cleared, the server returned the identical Grace in 86ms, with no Claude call.
-  - **Not yet done**: real iOS Safari and Android Chrome.
+  - **Real iOS Safari and Android Chrome were not tested.** Shoro chose to merge without them. Server-side changes behave the same on every device; the phone-side risks reviewed were low (Safari sizing of the single hero grid, iOS download behavior, the share sheet).
+- **Merged to `main`** (production) on 2026-10-14, and the branch was deleted.
 
 ## Session 43 -- 2026-10-14 -- Grace cache moves into memory
 - **Why**: Session 41 cached each Grace in Next's data cache (Vercel Data Cache). That is backend persistence, which CLAUDE.md rules out for V1, and Graces can name the maker's mentors and collaborators.
