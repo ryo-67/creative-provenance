@@ -1,5 +1,14 @@
 # Changelog
 
+## Session 46 -- 2026-10-14 -- Shared button styles
+- **`button-outline` and `button-solid`** (Tailwind `@utility` in `app/globals.css`) replace four hand-written class strings: the landing CTA, the error page's "Start a new trace", and Download and Share on the result page. Call sites keep only display, padding and layout.
+- **One visible change:** the Share button now inverts to black on hover, like every other outline button (it used to tint to `bg-black/5`). At rest all four buttons are identical: computed styles (size, padding, border, font, colors, gap) match production.
+- **Docs**:
+  - CLAUDE.md names the button utilities as the source of truth and adds an anti-pattern against hand-rolled button classes;
+  - Paola and Yash are credited with the Tracemark visual system specifically (CLAUDE.md, README, requirements), per Shoro;
+  - the backlog gains "Stream the Grace" (a potential future enhancement) and "Signed submission" (revisit only if Tally rate limits become an issue).
+- **Merged to `main`** (production) on 2026-10-14; branch deleted.
+
 ## Session 45 -- 2026-10-14 -- Second cleanup pass
 Four parallel reviews (reuse, simplification, efficiency, structure) of the whole codebase after Sessions 41–44. No intended visible change; the exceptions are listed at the end.
 

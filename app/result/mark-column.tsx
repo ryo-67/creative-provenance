@@ -109,7 +109,7 @@ export default function MarkColumn({
               type="button"
               onClick={handleDownload}
               disabled={isDownloading}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 bg-black px-4 text-lg text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="button-solid inline-flex flex-1 px-4"
             >
               <Download size={20} strokeWidth={2.5} aria-hidden />
               {isDownloading ? 'Downloading...' : 'Download'}
@@ -117,7 +117,7 @@ export default function MarkColumn({
             <button
               type="button"
               onClick={handleShare}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 border-[3px] border-black bg-transparent px-4 text-lg text-black transition-colors hover:bg-black/5"
+              className="button-outline inline-flex flex-1 px-4"
             >
               <ShareIcon size={20} strokeWidth={2.5} aria-hidden />
               {isMobile ? 'Share' : 'Copy link'}

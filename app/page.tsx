@@ -86,7 +86,7 @@ export default function Home() {
 
           <Link
             href="/questionnaire"
-            className="mt-16 mb-16 flex h-12 w-full items-center justify-center gap-2 border-[3px] border-black bg-transparent px-6 text-lg text-black transition-colors hover:bg-black hover:text-white"
+            className="button-outline mt-16 mb-16 flex w-full px-6"
           >
             Trace your work
             <ArrowRight size={20} strokeWidth={2.5} aria-hidden />

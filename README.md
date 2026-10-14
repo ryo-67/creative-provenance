@@ -67,7 +67,7 @@ docs/                     # Project documentation
 ## Team
 
 - Shoro Roy (technical lead)
-- Paola Machuca Hernandez (visual system)
-- Yash Pawar (visual system)
+- Paola Machuca Hernandez (Tracemark visual system)
+- Yash Pawar (Tracemark visual system)
 
 Ethics of AI, Parsons / The New School
