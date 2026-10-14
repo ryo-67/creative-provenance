@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { describeError, errorMessage } from '@/lib/errors';
 import type { ProvenanceResponse } from '@/lib/schema';
-import { fetchAndMapSubmission, TallyNotFoundError } from '@/lib/tally';
+import { fetchAndMapSubmission, submissionErrorStatus } from '@/lib/tally';
 
 // POST { sid } → { grace }.
 //
@@ -60,10 +60,6 @@ interface AnthropicTextBlock {
 
 interface AnthropicResponse {
   content?: AnthropicTextBlock[];
-}
-
-interface GraceRequest {
-  sid?: unknown;
 }
 
 // Generate a grace with Claude. Throws on any failure, so a failed
@@ -127,12 +123,16 @@ async function generateGrace(submission: Partial<ProvenanceResponse>): Promise<s
 // a database (V1 keeps no backend persistence), and it's gone when the
 // instance recycles. Best effort: a visitor routed to another instance
 // gets a freshly generated grace.
+//
+// The entry holds the promise, not the text, so a request that arrives
+// while a grace is still being written (a reload, a second tab) waits for
+// it instead of paying for another.
 
 const RECENT_TTL_MS = 60 * 60_000;
 const RECENT_MAX = 500;
-const recentGraces = new Map<string, { grace: string; at: number }>();
+const recentGraces = new Map<string, { grace: Promise<string>; at: number }>();
 
-async function graceForSubmission(sid: string): Promise<string> {
+function graceForSubmission(sid: string): Promise<string> {
   const now = Date.now();
   // Map keeps insertion order, oldest first: drop expired entries.
   for (const [key, entry] of recentGraces) {
@@ -142,8 +142,10 @@ async function graceForSubmission(sid: string): Promise<string> {
   const recent = recentGraces.get(sid);
   if (recent) return recent.grace;
 
-  const grace = await generateGrace(await fetchAndMapSubmission(sid));
+  const grace = fetchAndMapSubmission(sid).then(generateGrace);
   recentGraces.set(sid, { grace, at: now });
+  // A failed attempt isn't kept: the next request tries again.
+  grace.catch(() => recentGraces.delete(sid));
   if (recentGraces.size > RECENT_MAX) {
     const oldest = recentGraces.keys().next().value;
     if (oldest !== undefined) recentGraces.delete(oldest);
@@ -190,9 +192,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
   }
 
-  let body: GraceRequest;
+  let body: { sid?: unknown };
   try {
-    body = (await request.json()) as GraceRequest;
+    body = (await request.json()) as { sid?: unknown };
   } catch (err) {
     console.error('[grace] invalid JSON body:', errorMessage(err));
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
@@ -213,7 +215,7 @@ export async function POST(request: Request) {
     console.error('[grace] sid=%s failed: %s', sid, describeError(err));
     return NextResponse.json(
       { error: errorMessage(err, 'Unknown error') },
-      { status: err instanceof TallyNotFoundError ? 404 : 500 },
+      { status: submissionErrorStatus(err) },
     );
   }
 }

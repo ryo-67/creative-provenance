@@ -1,6 +1,7 @@
 'use client';
 import { Component, type ReactNode } from 'react';
 import Link from 'next/link';
+import { describeError } from '@/lib/errors';
 
 interface Props {
   children: ReactNode;
@@ -18,9 +19,8 @@ export default class ResultErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error(
-      '[result] error boundary caught:',
-      error.message,
-      error.stack,
+      '[result] error boundary caught: %s',
+      describeError(error),
       info.componentStack,
     );
   }

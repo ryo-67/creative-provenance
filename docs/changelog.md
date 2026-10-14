@@ -1,5 +1,73 @@
 # Changelog
 
+## Session 45 -- 2026-10-14 -- Second cleanup pass
+Four parallel reviews (reuse, simplification, efficiency, structure) of the whole codebase after Sessions 41–44. No intended visible change; the exceptions are listed at the end.
+
+- **Result page restructured** (`app/result/`). The 340-line client `result-content.tsx` is gone.
+  - `page.tsx` (server) renders the heading, "What to do" and the dev panel. Only the two columns stream behind Suspense.
+  - `mark-column.tsx` (client) has the Tracemark, Download / Share, the status line and the toast.
+  - `grace.tsx` (client) owns everything about the Grace: the localStorage copy, the request (a small `requestGrace` replaces the generic single-caller `fetchJson`), and one if/else chain for the box instead of four overlapping conditionals.
+  - The fake `{status: 'loading'}` submission state is gone; `null` means "still loading".
+  - The share platform is now just phone or desktop: nothing ever told iOS from Android.
+- **`lib/use-browser-value.ts`**: `useBrowserValue(read, serverValue)` replaces the two copies of the `useSyncExternalStore` hydration workaround.
+- **`/api/grace` shares an in-flight Grace.** The memory cache stores the promise, so a reload or second tab during the ~7s generation waits for it instead of paying for a second Claude call. React StrictMode's double effect in dev did this on every fresh view. Failed attempts are still dropped.
+- **Landing hero is a client component** (`components/HeroGrid.tsx`). As a server component every rect of the 16 marks was sent twice, as HTML and again in the RSC payload. The landing HTML went from 468 KB to 209 KB, and the result page's prefetch of `/` shrinks with it. The hero markup is unchanged.
+- **`lib/tally/` replaces `lib/tally.ts`**, split by reason to change:
+  - `api.ts`: the fetch, plus `normalizeEnvelope`, which absorbs Tally's three envelope shapes and `answer`/`value` at the boundary;
+  - `form.ts`: question IDs and option text, as pure data, the file to edit when the form changes;
+  - `map.ts`: the mapping, with `mapReferences` and `mapAiGenerator` pulled out;
+  - `index.ts`: `fetchAndMapSubmission`.
+  - The contradictory `answer`/`value` comment is fixed. Imports are unchanged (`@/lib/tally`).
+- **`spec.ts` owns all geometry.**
+  - Patch 3 (`referenceCells`), Patch 5 (`AI_SPLIT`) and Patch 8 (`directionBarCell`) no longer hard-code coordinates in `shapes.tsx`.
+  - `patternSeed(data)` is the one rule for which seed draws the pattern.
+  - `PATTERN_PLACEMENT.shapeRendering` replaces two copies of `geometricPrecision`.
+  - `GRID_SIZE` replaces literal 540s.
+- **One pattern loader**: `patternLoader(urlFor)` in `lib/tracemark/patterns.ts` serves both the download and the OG route.
+- **Smaller items**:
+  - `components/SiteFooter.tsx` (out of the root layout; `primary` boolean instead of a two-value `variant`);
+  - `submissionErrorStatus(err)` (one place for the 404 decision);
+  - `LANDING_OG_IMAGE`, `OG_IMAGE_SIZE`, `NOINDEX`, `RESULT_TITLE` in `lib/site.ts`;
+  - the JSON-LD creators built inside `siteJsonLd()` instead of a module-level map that shipped to the client;
+  - `ResultCard` reads the description from its data;
+  - the error boundary logs with `describeError`;
+  - dead exports removed (`MEDIUM_COLOR`, `buildSample`, `CREATORS`, `mapTallyToProvenance` from the public surface);
+  - stale comments fixed.
+- **Verified**:
+  - **OG images**: `/api/og` and `?landing=1` are byte-identical to the pre-change build.
+  - **Hero SVGs**: all 16 are identical except the removed `transition`.
+  - **robots.txt, footer and JSON-LD**: identical.
+  - **Tally mapping**: the old `lib/tally.ts` and the new folder give identical output and logs on the six fixture envelopes.
+  - **Mock Tally and Anthropic server**: two overlapping Grace requests for one sid made one Claude call; an unknown sid still returns 404; the page streams.
+  - **Browser**: the fade runs, the Grace renders (bold, ownership spacing) and caches; a revisit makes zero Grace requests; Download inlines the pattern; a missing submission shows the 404 line with "Waiting for your submission…"; a phone shows "Share"; no hydration warnings.
+  - Build, lint and tsc are clean.
+- **Preview verified against the real Tally and Anthropic APIs** (sid `VpzJvE6`, branch `simplify-pass-2`):
+  - **OG images**: `/api/og?sid=VpzJvE6`, `?landing=1` and `?sid=doesnotexist` are byte-identical to production.
+  - **Tracemark**: the result page's mark matches production's after normalizing style formatting and the removed transition (same SHA-256).
+  - **Landing page**: 210 KB on the preview vs 468 KB in production.
+  - **Result page**:
+    - the real Grace generated in 6.2s;
+    - a reload made zero Grace requests;
+    - after clearing the browser copy, the server memory cache returned the same Grace in 109ms;
+    - Download gave a 1296×1296 PNG with the pattern inlined;
+    - `?sid=doesnotexist` shows the 404 line with "Waiting for your submission…";
+    - no sid shows "Missing sid query parameter";
+    - no hydration warnings.
+  - The production comparison used a placeholder Grace in localStorage (no API call), removed afterwards.
+- **Merged to `main`** (production) on 2026-10-14; branch deleted.
+- **Visible or behavioral differences**:
+  - **Dead inline `transition` removed.** The Tracemark's inline `transition: opacity 500ms` is gone. It was dead: since Session 41 no mark changes from empty to filled in place, and `fadeIn` does the fade. Pixels are unchanged.
+  - **OG pattern failures are caught.** A failed bundled-pattern read in the OG route now draws Patch 1 solid instead of failing the image (the pre-bundle behavior).
+  - **Toast moved in the DOM.** The toast now sits inside the mark column; it's fixed-position, so it looks the same.
+- **Skipped**:
+  - shared button styles (the Share button's softer hover may be intentional);
+  - an `InfoColumn` component (two callers);
+  - Next's `error.tsx` instead of the class boundary (loses the component stack);
+  - signing the submission so `/api/grace` can skip its Tally call;
+  - streaming the Grace (a UX change);
+  - deriving the sample value lists from `spec.ts`;
+  - a shared upstream-error helper.
+
 ## Session 44 -- 2026-10-14 -- Code quality rule; preview verified with a real submission
 - **CLAUDE.md: new "Code Quality" section.** Shoro's rule going forward: all code is maintainable, human-readable and clean, and code that works but fails it isn't done. Written as concrete checks drawn from Session 39's cleanup:
   - readable without the author;

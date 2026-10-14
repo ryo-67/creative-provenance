@@ -13,9 +13,6 @@ const CANVAS_SIZE = TRACEMARK_SIZE + PADDING * 2;
 // Canvas drawImage doesn't load <image href> refs to external SVGs, so
 // Patch 1's pattern <image> is swapped for its inlined paths. On failure
 // the download goes ahead with Patch 1 in solid color.
-//
-// geometricPrecision re-enables anti-aliasing for the curved paths; the
-// mark itself uses crispEdges, which would make the Beziers jagged.
 async function inlinePattern(svg: SVGSVGElement, seed: SeedType): Promise<void> {
   const image = svg.querySelector('image');
   if (!image) return;
@@ -24,7 +21,7 @@ async function inlinePattern(svg: SVGSVGElement, seed: SeedType): Promise<void> 
 
   const g = document.createElementNS(SVG_NS, 'g');
   g.setAttribute('transform', PATTERN_PLACEMENT.transform);
-  g.setAttribute('shape-rendering', 'geometricPrecision');
+  g.setAttribute('shape-rendering', PATTERN_PLACEMENT.shapeRendering);
   for (const path of paths) {
     const p = document.createElementNS(SVG_NS, 'path');
     p.setAttribute('d', path.d);

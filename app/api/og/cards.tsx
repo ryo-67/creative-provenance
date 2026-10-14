@@ -14,9 +14,9 @@
 
 import type { CSSProperties } from 'react';
 import type { ProvenanceResponse } from '@/lib/schema';
-import { SITE_NAME, SITE_TAGLINE } from '@/lib/site';
+import { OG_IMAGE_SIZE, SITE_NAME, SITE_TAGLINE } from '@/lib/site';
 import type { PatternPath } from '@/lib/tracemark/patterns';
-import { PATTERN_PLACEMENT } from '@/lib/tracemark/spec';
+import { GRID_SIZE, PATTERN_PLACEMENT } from '@/lib/tracemark/spec';
 import {
   DATA_PATCHES,
   anchorElements,
@@ -26,7 +26,7 @@ import {
   strokeElements,
 } from '@/lib/tracemark/shapes';
 
-export const CARD_SIZE = { width: 1200, height: 630 };
+export const CARD_SIZE = OG_IMAGE_SIZE;
 
 const INK = {
   foreground: '#37352F',
@@ -36,15 +36,14 @@ const INK = {
   background: '#ffffff',
 };
 
-// geometricPrecision re-enables anti-aliasing for the pattern's curves;
-// the rest of the mark uses crispEdges. The patch border is drawn after
-// the pattern, so it covers any sub-pixel bleed at the edges.
+// The patch border is drawn after the pattern, so it covers any
+// sub-pixel bleed at the edges.
 function inlinePattern(paths: PatternPath[]) {
   return (
     <g
       key="pattern"
       transform={PATTERN_PLACEMENT.transform}
-      shapeRendering="geometricPrecision"
+      shapeRendering={PATTERN_PLACEMENT.shapeRendering}
     >
       {paths.map((p, i) => (
         <path
@@ -65,7 +64,7 @@ function inlinePattern(paths: PatternPath[]) {
 function TracemarkSVG({
   data,
   patternPaths,
-  size = 540,
+  size = GRID_SIZE,
 }: {
   data: Partial<ProvenanceResponse>;
   patternPaths: PatternPath[] | null;
@@ -76,7 +75,7 @@ function TracemarkSVG({
     <svg
       width={size}
       height={size}
-      viewBox="0 0 540 540"
+      viewBox={`0 0 ${GRID_SIZE} ${GRID_SIZE}`}
       xmlns="http://www.w3.org/2000/svg"
       shapeRendering="crispEdges"
     >
@@ -147,8 +146,7 @@ export function LandingCard({
   return (
     <div
       style={{
-        width: 1200,
-        height: 630,
+        ...CARD_SIZE,
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: INK.surface,
@@ -196,17 +194,15 @@ export function LandingCard({
 export function ResultCard({
   data,
   patternPaths,
-  pieceDescription,
 }: {
   data: Partial<ProvenanceResponse>;
   patternPaths: PatternPath[] | null;
-  pieceDescription: string;
 }) {
+  const pieceDescription = data.piece?.description ?? '';
   return (
     <div
       style={{
-        width: 1200,
-        height: 630,
+        ...CARD_SIZE,
         display: 'flex',
         backgroundColor: INK.background,
       }}

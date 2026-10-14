@@ -55,7 +55,7 @@ components/
   Tracemark.tsx           # The live Tracemark
 lib/
   schema.ts              # ProvenanceResponse type + Zod
-  tally.ts               # Tally API integration + mapping
+  tally/                 # Tally API fetch, form data, mapping
   site.ts                # Canonical URL, site copy, JSON-LD
   errors.ts              # Error → string helpers
   tracemark/             # The mark's spec, shapes, patterns, samples,

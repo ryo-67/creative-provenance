@@ -11,7 +11,7 @@ Built for the F(r)ictions: Creative Work in an Age of AI symposium on May 1, 202
 1. **Landing page** — sets context, one CTA: "Trace your work" → /questionnaire
 2. **Questionnaire** — Tally form (https://tally.so/r/RGZO7p) embedded full-viewport at /questionnaire as an iframe.
 3. **Submit redirect** — Tally redirects to /result?sid={submissionId} on completion.
-4. **Result page** — /result reads sid from the URL and loads the submission on the server: `fetchAndMapSubmission` in `lib/tally.ts` fetches it from the Tally REST API and maps it to a `ProvenanceResponse`, once per request (the page title and body share the call). The page streams: the layout with an outline-only Tracemark arrives at once, and the filled page replaces it when Tally answers, its fills fading in over 500ms (no fade with reduced motion). Then the browser asks /api/grace for the Grace, and the page offers download and share.
+4. **Result page** — /result reads sid from the URL and loads the submission on the server: `fetchAndMapSubmission` in `lib/tally/` fetches it from the Tally REST API and maps it to a `ProvenanceResponse`, once per request (the page title and body share the call). The page streams: the layout with an outline-only Tracemark arrives at once, and the filled page replaces it when Tally answers, its fills fading in over 500ms (no fade with reduced motion). Then the browser asks /api/grace for the Grace, and the page offers download and share.
 
 The custom-coded reflective UI (sub-step flows, spatial canvas, position dots) was implemented in Sessions 1–11 and removed in Session 12 to ship faster for the symposium. Re-implementing it in Next.js is a V2 ambition — see `/docs/backlog.md`.
 

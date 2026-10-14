@@ -13,6 +13,7 @@
 import type { ReactElement } from 'react';
 import type { ProvenanceResponse } from '@/lib/schema';
 import {
+  AI_SPLIT,
   COLLABORATOR_CELLS,
   COLORS,
   DIRECTION_DIVIDERS,
@@ -23,10 +24,10 @@ import {
   STROKE,
   STROKE_WIDTH,
   TEACHER_CELLS,
-  directionBarWidth,
+  directionBarCell,
   isGeneratorCellSelected,
   mediumColor,
-  referenceSections,
+  referenceCells,
   type Cell,
   type PatchId,
 } from './spec';
@@ -35,18 +36,20 @@ type Data = Partial<ProvenanceResponse>;
 
 const strokeProps = { fill: 'none', stroke: STROKE, strokeWidth: STROKE_WIDTH };
 
+// `prefix` keeps keys unique when one patch draws several cell lists.
 function fillRects<T extends Cell>(
   cells: T[],
   fillFor: (cell: T) => string,
+  prefix = 'f',
 ): ReactElement[] {
   return cells.map((c, i) => (
-    <rect key={`f${i}`} x={c.x} y={c.y} width={c.w} height={c.h} fill={fillFor(c)} />
+    <rect key={`${prefix}${i}`} x={c.x} y={c.y} width={c.w} height={c.h} fill={fillFor(c)} />
   ));
 }
 
-function strokeRects(cells: Cell[]): ReactElement[] {
+function strokeRects(cells: Cell[], prefix = 's'): ReactElement[] {
   return cells.map((c, i) => (
-    <rect key={`s${i}`} x={c.x} y={c.y} width={c.w} height={c.h} {...strokeProps} />
+    <rect key={`${prefix}${i}`} x={c.x} y={c.y} width={c.w} height={c.h} {...strokeProps} />
   ));
 }
 
@@ -82,23 +85,10 @@ export function fillElements(
       return pattern ? [base, pattern] : [base];
     }
     case 3: {
-      const sections = referenceSections(data.references ?? []);
+      const { columns, bars } = referenceCells(data.references ?? []);
       return [
-        ...sections.map((s) => (
-          <rect key={`base${s.x}`} x={s.x} y={0} width={60} height={180} fill={COLORS.referenceBase} />
-        )),
-        ...sections
-          .filter((s) => s.barHeight > 0)
-          .map((s) => (
-            <rect
-              key={`bar${s.x}`}
-              x={s.x}
-              y={180 - s.barHeight}
-              width={60}
-              height={s.barHeight}
-              fill={COLORS.referenceBar}
-            />
-          )),
+        ...fillRects(columns, () => COLORS.referenceBase, 'column'),
+        ...fillRects(bars, () => COLORS.referenceBar, 'bar'),
       ];
     }
     case 4: {
@@ -110,8 +100,8 @@ export function fillElements(
     case 5: {
       const upperLeft = data.aiGenerator?.used === true ? COLORS.aiUsedLight : COLORS.aiUsedDark;
       return [
-        <polygon key="upper" points="0,0 210,0 0,180" fill={upperLeft} />,
-        <polygon key="lower" points="210,0 210,180 0,180" fill={COLORS.aiUsedDark} />,
+        <polygon key="upper" points={AI_SPLIT.upper} fill={upperLeft} />,
+        <polygon key="lower" points={AI_SPLIT.lower} fill={COLORS.aiUsedDark} />,
       ];
     }
     case 6: {
@@ -128,11 +118,11 @@ export function fillElements(
       );
     case 8: {
       const { w, h } = PATCHES[8];
-      const barWidth = directionBarWidth(data.directionExecution);
-      const base = <rect key="base" width={w} height={h} fill={COLORS.directionBase} />;
-      return barWidth > 0
-        ? [base, <rect key="bar" x={0} y={60} width={barWidth} height={60} fill={COLORS.directionBar} />]
-        : [base];
+      const bar = directionBarCell(data.directionExecution);
+      return [
+        <rect key="base" width={w} height={h} fill={COLORS.directionBase} />,
+        ...fillRects(bar ? [bar] : [], () => COLORS.directionBar, 'bar'),
+      ];
     }
     case 9: {
       const collaborators = data.collaborators ?? [];
@@ -150,32 +140,15 @@ export function fillElements(
 export function strokeElements(id: PatchId, data: Data): ReactElement[] {
   switch (id) {
     case 3: {
-      const sections = referenceSections(data.references ?? []);
-      return [
-        ...sections.map((s) => (
-          <rect key={`col${s.x}`} x={s.x} y={0} width={60} height={180} {...strokeProps} />
-        )),
-        ...sections
-          .filter((s) => s.barHeight > 0)
-          .map((s) => (
-            <rect
-              key={`bar${s.x}`}
-              x={s.x}
-              y={180 - s.barHeight}
-              width={60}
-              height={s.barHeight}
-              {...strokeProps}
-            />
-          )),
-        border(3),
-      ];
+      const { columns, bars } = referenceCells(data.references ?? []);
+      return [...strokeRects(columns, 'column'), ...strokeRects(bars, 'bar'), border(3)];
     }
     case 4:
       return [...strokeRects(TEACHER_CELLS), border(4)];
     case 5:
       // The diagonal counts as a stroke, so it stays in skeleton mode.
       return [
-        <line key="diagonal" x1={210} y1={0} x2={0} y2={180} stroke={STROKE} strokeWidth={STROKE_WIDTH} />,
+        <line key="diagonal" {...AI_SPLIT.diagonal} stroke={STROKE} strokeWidth={STROKE_WIDTH} />,
         border(5),
       ];
     case 6:

@@ -13,6 +13,7 @@ import type {
   CollaboratorType,
   MediumType,
   ProvenanceResponse,
+  ReferenceTileId,
   SeedType,
   TeacherType,
   TrainingDataAwareness,
@@ -48,7 +49,7 @@ const MEDIUMS: MediumType[] = [
   'other',
 ];
 
-const REFERENCE_TILES: References[number]['id'][] = [
+const REFERENCE_TILES: ReferenceTileId[] = [
   'artist-portfolios',
   'curated-channels',
   'algorithmic-feeds',
@@ -180,7 +181,7 @@ function buildReferences(i: number): References {
   });
 }
 
-export function buildSample(i: number): Sample {
+function buildSample(i: number): Sample {
   return {
     piece: { description: '', medium: cycle(MEDIUMS, i) },
     seed: { types: [SEEDS[(i * 7) % SEEDS.length]] },

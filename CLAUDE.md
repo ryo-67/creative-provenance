@@ -85,8 +85,8 @@ All code in this repo is maintainable, human-readable and clean. Like documentat
 
 ```
 /app
-  layout.tsx                  # Root layout, metadata, viewport, Footer
-  page.tsx                    # Landing page with hero grid, canonical, JSON-LD
+  layout.tsx                  # Root layout, site metadata, framed script
+  page.tsx                    # Landing page, canonical, JSON-LD
   robots.ts                   # robots.txt (AI crawlers named; data APIs disallowed)
   sitemap.ts                  # sitemap.xml (landing page only)
   globals.css                 # Tailwind 4 imports, color tokens, framed: variant
@@ -95,9 +95,9 @@ All code in this repo is maintainable, human-readable and clean. Like documentat
     page.tsx                  # Tally embed (full-viewport iframe)
   /result
     page.tsx                  # Server: loads the submission once, metadata,
-                              # streams the filled page behind a skeleton
-    result-content.tsx        # Client: grace fetch, download, share, layout
-    grace.tsx                 # Grace rendering + localStorage cache
+                              # static layout; streams the two columns
+    mark-column.tsx           # Client: Tracemark, Download / Share, status
+    grace.tsx                 # Client: Grace fetch, localStorage copy, box
     error-boundary.tsx        # Recovery UI if the result tree throws
   /api
     /grace
@@ -107,23 +107,32 @@ All code in this repo is maintainable, human-readable and clean. Like documentat
       cards.tsx               # The two 1200×630 card layouts (Satori)
       patterns.ts             # Seed pattern SVGs bundled into the edge route
 /components
-  Tracemark.tsx               # Live mark: arranges shapes, skeleton fade
+  Tracemark.tsx               # Live mark: arranges shapes, skeleton, fadeIn
+  HeroGrid.tsx                # Landing band of 16 sample marks (client, so
+                              # the marks aren't repeated in the RSC payload)
   SiteHeader.tsx              # Minimal wordmark header for non-landing routes
+  SiteFooter.tsx              # Credits (TEAM), team name, origin, record link
   FramedHistory.tsx           # Framed in an iframe: same-origin links replace history
 /lib
   schema.ts                   # ProvenanceResponse type + Zod (LOCKED)
-  tally.ts                    # fetchAndMapSubmission + mapTallyToProvenance,
-                              # TEXT_TO_SCHEMA maps, TallyNotFoundError
+  /tally
+    index.ts                  # fetchAndMapSubmission (the one entry point)
+    api.ts                    # Tally REST fetch, envelope normalizing,
+                              # TallyNotFoundError, submissionErrorStatus
+    form.ts                   # The form as data: question IDs, option text
+    map.ts                    # Answers → schema literals
   site.ts                     # SITE_URL, site copy (name, tagline, share
                               # text), metadataBase(), TEAM (footer +
                               # JSON-LD creators), JSON-LD
   errors.ts                   # errorMessage() / describeError()
+  use-browser-value.ts        # Read browser-only values without hydration
+                              # mismatches (useSyncExternalStore)
   /tracemark
     spec.ts                   # Geometry, colors, answer → shape rules (pure)
     shapes.tsx                # Per-patch SVG elements, shared by the live
                               # mark and the OG image
-    patterns.ts               # Seed pattern SVG → inline path data; browser
-                              # loader for the PNG download
+    patterns.ts               # Seed pattern SVG → inline path data; cached
+                              # patternLoader (browser + OG route)
     samples.ts                # Hero, OG landing and OG fallback samples
     export-png.ts             # Download as PNG (browser only)
 /public
@@ -186,10 +195,10 @@ The Tracemark is a 9-patch SVG grid arranged in three horizontal bands of 180px 
 Implementation: the mark is defined once in `lib/tracemark/`. `spec.ts` holds the geometry, colors and the rules that turn answers into shapes (pure data, no React). `shapes.tsx` turns a `ProvenanceResponse` into each patch's fill and stroke elements. They are plain functions returning plain `<rect>`/`<polygon>`/`<line>` elements, never components, because Satori serializes `<svg>` children by type and doesn't call components or unwrap Fragments.
 
 Two renderers arrange those shapes:
-- `components/Tracemark.tsx` (the live mark) puts every patch's fills in one opacity-controlled group and the strokes outside it. Skeleton mode: when `data` is empty, fills are hidden; only strokes show. When data arrives, fills transition to opacity 1 over 500ms — same SVG geometry, no layout shift. Patch 1's pattern is a live `<image href>`.
+- `components/Tracemark.tsx` (the live mark) puts every patch's fills in one opacity-controlled group and the strokes outside it. Skeleton mode: when `data` is empty, fills are hidden; only strokes show. With `fadeIn`, a filled mark's fills fade from 0 to 1 over 500ms when it mounts (the result page streams the filled mark in to replace the skeleton): same SVG geometry, no layout shift, no fade with reduced motion. Patch 1's pattern is a live `<image href>`.
 - `app/api/og/cards.tsx` (Satori) draws each patch's fills then strokes, with Patch 1's pattern inlined as `<path>`s.
 
-The PNG download (`lib/tracemark/export-png.ts`) clones the live SVG and swaps the pattern `<image>` for inlined paths. Satori and canvas `drawImage` both ignore external `<image href>` refs, so both parse pattern files with `parsePatternPaths` in `lib/tracemark/patterns.ts`. The OG route reads the 12 files from its own bundle (`app/api/og/patterns.ts`, static `new URL('…', import.meta.url)` entries that resolve to edge assets, no HTTP); the download fetches them from `/patterns` in the browser. A new seed pattern needs an entry in both `SEED_PATTERN` (`spec.ts`) and `app/api/og/patterns.ts`. Any change to a color, a cell, or an answer rule goes in `spec.ts` and reaches all three.
+The PNG download (`lib/tracemark/export-png.ts`) clones the live SVG and swaps the pattern `<image>` for inlined paths. Satori and canvas `drawImage` both ignore external `<image href>` refs, so both load pattern files through `patternLoader` in `lib/tracemark/patterns.ts` (parse, cache, Patch 1 stays solid on failure). The OG route reads the 12 files from its own bundle (`app/api/og/patterns.ts`, static `new URL('…', import.meta.url)` entries that resolve to edge assets, no HTTP); the download fetches them from `/patterns` in the browser. A new seed pattern needs an entry in both `SEED_PATTERN` (`spec.ts`) and `app/api/og/patterns.ts`. Any change to a color, a cell, or an answer rule goes in `spec.ts` and reaches all three.
 
 ## Grace Generation
 
@@ -222,7 +231,7 @@ The system prompt is inlined as the `SYSTEM_PROMPT` constant in `/app/api/grace/
 - **Primary path**: Web Share API (`navigator.share()`) on mobile — handles Instagram, WhatsApp, Messages, Twitter, etc.
 - **Fallback path**: clipboard copy on desktop (where `navigator.share` isn't available); plus the always-visible Download PNG.
 
-Do not build per-platform share buttons for V1. The native share sheet covers the use cases. Platform detection in `result-content.tsx` only swaps the icon and label between iOS / Android / desktop — not the action.
+Do not build per-platform share buttons for V1. The native share sheet covers the use cases. Platform detection in `app/result/mark-column.tsx` only swaps the icon and label between phone (Share) and desktop (Copy link), not the action.
 
 ## Development Workflow
 
@@ -244,7 +253,7 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 
 The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full-viewport iframe at `/questionnaire` via Tally's official embed.js script (loaded with `next/script`, `strategy="afterInteractive"`).
 
-**Submit flow:** Tally redirects to `/result?sid={submissionId}`. The result page (a server component) calls `fetchAndMapSubmission` from `lib/tally.ts`, wrapped in React `cache()` so the metadata and the page body share one call per request. That function fetches the full submission server-side from Tally's REST API (`https://api.tally.so/forms/RGZO7p/submissions/{sid}`, auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` using the form's known question UUIDs and per-question `TEXT_TO_SCHEMA` tables. If option text changes in Tally, update the matching constant in `lib/tally.ts`.
+**Submit flow:** Tally redirects to `/result?sid={submissionId}`. The result page (a server component) calls `fetchAndMapSubmission` from `lib/tally/`, wrapped in React `cache()` so the metadata and the page body share one call per request. That function fetches the full submission server-side from Tally's REST API (`https://api.tally.so/forms/RGZO7p/submissions/{sid}`, auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` using the form's known question UUIDs and per-question `TEXT_TO_SCHEMA` tables. If a question or its option text changes in Tally, update `lib/tally/form.ts` (pure data).
 
 **Text matching is normalize-then-match**: incoming Tally text is lowercased + collapsed (curly quotes / em dashes / curly ellipsis → ASCII) before comparing against table keys, so a single canonical key per option suffices — no straight-quote duplicates needed.
 
@@ -302,7 +311,7 @@ Do not:
 - Collapse Q3's distinct reference categories back into broad buckets — the granularity is intentional
 - Use technical/categorical language in question copy — voice should be evocative and personal
 - Re-implement the questionnaire UI in Next.js — that's deliberately deferred to V2; until then, all question UX changes happen in Tally
-- Reference `parseTallyParams` — it was deleted in Session 12. The mapping lives in `lib/tally.ts` (`fetchAndMapSubmission` / `mapTallyToProvenance`).
+- Reference `parseTallyParams` — it was deleted in Session 12. The mapping lives in `lib/tally/` (`fetchAndMapSubmission` / `mapTallyToProvenance`).
 - Add `dark:` class variants — single light theme by design (see `/docs/backlog.md` for what dark mode would require).
 
 ## Voice and Tone

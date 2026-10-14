@@ -3,9 +3,10 @@
 // The live Tracemark draws a pattern with <image href>. Neither Satori
 // (the OG image) nor canvas drawImage (the PNG download) loads external
 // SVGs referenced that way, so both pull the pattern file's <path>
-// elements out and draw them inline. The parser is pure string work and
-// runs anywhere; the OG route reads the files from its own bundle
-// (app/api/og/patterns.ts), and the download fetches them below.
+// elements out and draw them inline. Pure string work, so it runs on the
+// edge and in the browser: the OG route reads the files from its own
+// bundle (app/api/og/patterns.ts), the download fetches them from the
+// site.
 
 import type { SeedType } from '@/lib/schema';
 import { errorMessage } from '@/lib/errors';
@@ -40,26 +41,28 @@ export function parsePatternPaths(svgText: string): PatternPath[] {
   return paths;
 }
 
-// Parsed patterns, kept for the life of the page. Failures aren't
-// cached, so the next download tries again.
-const cache = new Map<SeedType, PatternPath[]>();
-
-// Browser only: fetches from the site's own /patterns. Returns null if
-// the pattern can't be loaded; Patch 1 then stays solid color.
-export async function loadPatternPaths(
-  seed: SeedType,
-): Promise<PatternPath[] | null> {
-  const cached = cache.get(seed);
-  if (cached) return cached;
-  try {
-    const res = await fetch(SEED_PATTERN[seed]);
-    if (!res.ok) return null;
-    const paths = parsePatternPaths(await res.text());
-    if (paths.length === 0) return null;
-    cache.set(seed, paths);
-    return paths;
-  } catch (err) {
-    console.warn('[pattern] fetch failed for %s: %s', seed, errorMessage(err));
-    return null;
-  }
+// A loader for seed patterns read from `urlFor(seed)`. Parsed patterns
+// are kept for the life of the page or warm instance; failures aren't,
+// so the next call tries again. Returns null when a pattern can't be
+// loaded, and Patch 1 then stays solid color.
+export function patternLoader(urlFor: (seed: SeedType) => string | URL) {
+  const cache = new Map<SeedType, PatternPath[]>();
+  return async (seed: SeedType): Promise<PatternPath[] | null> => {
+    const cached = cache.get(seed);
+    if (cached) return cached;
+    try {
+      const res = await fetch(urlFor(seed));
+      if (!res.ok) return null;
+      const paths = parsePatternPaths(await res.text());
+      if (paths.length === 0) return null;
+      cache.set(seed, paths);
+      return paths;
+    } catch (err) {
+      console.warn('[pattern] loading %s failed: %s', seed, errorMessage(err));
+      return null;
+    }
+  };
 }
+
+// In the browser, from the site's own /patterns (the PNG download).
+export const loadPatternPaths = patternLoader((seed) => SEED_PATTERN[seed]);
