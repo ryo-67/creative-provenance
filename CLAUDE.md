@@ -69,6 +69,18 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 6. **API key never client-side.** Claude API calls go through a Next.js API route that proxies the request.
 7. **Minimal dependencies.** Each new package needs justification. Default to "we can build this without a library."
 
+## Code Quality
+
+All code in this repo is maintainable, human-readable and clean. Like documentation, this is non-negotiable: code that works but fails these checks is not done.
+
+- **Readable without the author.** Clear names, short functions that do one thing, and plain control flow over clever one-liners. Comments say *why* (a constraint, a decision, a workaround), not what the next line does.
+- **One source of truth.** Shared data and logic live in one module and are imported everywhere they're needed (colors and geometry in `lib/tracemark/spec.ts`, copy in `lib/site.ts`, color tokens in `app/globals.css`). Never copy constants or logic between files; a "keep these in sync" comment means something should be extracted.
+- **Use what exists.** Reach for existing helpers (`lib/errors.ts`, `lib/site.ts`, `lib/tracemark/`, the Tailwind tokens) before writing new ones, and match the surrounding code's style.
+- **Focused files.** One concern per file. Split a file when it mixes layout, data and I/O, or grows past what a reader can hold in their head.
+- **No leftovers.** Remove dead code, unused props and exports, debugging logs and stale comments in the same change that makes them obsolete.
+- **Simple over general.** No abstraction for a single caller, no options nobody uses, no speculative flexibility.
+- **Refactors keep behavior.** A cleanup changes no output unless the change says so. When it touches rendering, prove it (for example, diff the Tracemark SVG or byte-compare the OG PNGs before and after).
+
 ## File Structure
 
 ```

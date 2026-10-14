@@ -1,5 +1,15 @@
 # Changelog
 
+## Session 44 -- 2026-10-14 -- Code quality rule; preview verified with a real submission
+- **CLAUDE.md: new "Code Quality" section.** Shoro's rule going forward: all code is maintainable, human-readable and clean, and code that works but fails it isn't done. Written as concrete checks drawn from Session 39's cleanup:
+  - readable without the author;
+  - one source of truth, with no copied constants or logic;
+  - use existing helpers;
+  - focused files;
+  - no leftovers;
+  - simple over general;
+  - refactors keep behavior, and rendering refactors prove it.
+
 ## Session 43 -- 2026-10-14 -- Grace cache moves into memory
 - **Why**: Session 41 cached each Grace in Next's data cache (Vercel Data Cache). That is backend persistence, which CLAUDE.md rules out for V1, and Graces can name the maker's mentors and collaborators.
 - **`app/api/grace/route.ts`**: `unstable_cache` and `GRACE_VERSION` are gone. Recent Graces live in a `Map` in the route's memory, like the rate limiter: per server instance, kept 1 hour, at most 500 (oldest dropped first), never written to disk or a database. People opening a result soon after it's shared usually land on the same warm instance and read the maker's Grace instead of triggering new ones; a different instance or a later visit generates afresh. The route still takes only `{ sid }` and loads the answers from Tally itself.
