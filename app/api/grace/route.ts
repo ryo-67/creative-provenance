@@ -1,4 +1,3 @@
-import { unstable_cache } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { describeError, errorMessage } from '@/lib/errors';
 import type { ProvenanceResponse } from '@/lib/schema';
@@ -8,12 +7,7 @@ import { fetchAndMapSubmission, TallyNotFoundError } from '@/lib/tally';
 //
 // The route takes a submission ID, not answers: it loads the submission
 // from Tally itself, so only real submissions can produce a grace and the
-// prompt input can't be tampered with. Each grace is generated once per
-// submission and kept in Next's data cache (Vercel's Data Cache in
-// production), so a result opened again, or on another device, costs no
-// second Claude call. Bump GRACE_VERSION whenever SYSTEM_PROMPT or MODEL
-// changes, so old graces aren't served for the new prompt.
-const GRACE_VERSION = 'v2';
+// prompt input can't be tampered with.
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-4-6';
@@ -73,7 +67,7 @@ interface GraceRequest {
 }
 
 // Generate a grace with Claude. Throws on any failure, so a failed
-// attempt is never cached.
+// attempt is never kept.
 async function generateGrace(submission: Partial<ProvenanceResponse>): Promise<string> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set');
@@ -125,13 +119,37 @@ async function generateGrace(submission: Partial<ProvenanceResponse>): Promise<s
   return grace;
 }
 
-// Keyed by GRACE_VERSION and the sid (unstable_cache adds the arguments
-// to the key). The 'grace' tag lets revalidateTag('grace') clear them all.
-const graceForSubmission = unstable_cache(
-  async (sid: string) => generateGrace(await fetchAndMapSubmission(sid)),
-  ['grace', GRACE_VERSION],
-  { tags: ['grace'] },
-);
+// --- Recent graces (per server instance, in memory) ---
+// A shared result is usually opened by several people soon after it's
+// posted. Keeping each grace in this instance's memory for an hour lets
+// them read the maker's grace instead of each triggering a new one.
+// Memory only, like the rate limiter below: nothing is written to disk or
+// a database (V1 keeps no backend persistence), and it's gone when the
+// instance recycles. Best effort: a visitor routed to another instance
+// gets a freshly generated grace.
+
+const RECENT_TTL_MS = 60 * 60_000;
+const RECENT_MAX = 500;
+const recentGraces = new Map<string, { grace: string; at: number }>();
+
+async function graceForSubmission(sid: string): Promise<string> {
+  const now = Date.now();
+  // Map keeps insertion order, oldest first: drop expired entries.
+  for (const [key, entry] of recentGraces) {
+    if (now - entry.at < RECENT_TTL_MS) break;
+    recentGraces.delete(key);
+  }
+  const recent = recentGraces.get(sid);
+  if (recent) return recent.grace;
+
+  const grace = await generateGrace(await fetchAndMapSubmission(sid));
+  recentGraces.set(sid, { grace, at: now });
+  if (recentGraces.size > RECENT_MAX) {
+    const oldest = recentGraces.keys().next().value;
+    if (oldest !== undefined) recentGraces.delete(oldest);
+  }
+  return grace;
+}
 
 // --- Rate limiting (per-IP, in-memory) ---
 // Sliding 60s window, 5 requests per IP. Backstop: trim the oldest half

@@ -1,5 +1,11 @@
 # Changelog
 
+## Session 43 -- 2026-10-14 -- Grace cache moves into memory
+- **Why**: Session 41 cached each Grace in Next's data cache (Vercel Data Cache). That is backend persistence, which CLAUDE.md rules out for V1, and Graces can name the maker's mentors and collaborators.
+- **`app/api/grace/route.ts`**: `unstable_cache` and `GRACE_VERSION` are gone. Recent Graces live in a `Map` in the route's memory, like the rate limiter: per server instance, kept 1 hour, at most 500 (oldest dropped first), never written to disk or a database. People opening a result soon after it's shared usually land on the same warm instance and read the maker's Grace instead of triggering new ones; a different instance or a later visit generates afresh. The route still takes only `{ sid }` and loads the answers from Tally itself.
+- **Verified** against the mock Tally/Anthropic server (URLs pointed at it temporarily, then reverted): a repeat request for a sid made no Tally or Claude call; a new sid made one; an unknown sid still returns 404. Build, lint, tsc clean.
+- **Docs**: CLAUDE.md (Grace cache), requirements (anti-abuse, privacy), backlog. New backlog entry: whether viewers of a shared result should get a Grace at all, since it's written in the maker's voice.
+
 ## Session 42 -- 2026-10-14 -- OG route reads seed patterns from its own bundle
 - **`app/api/og/patterns.ts`** (new): the 12 seed pattern SVGs as static `new URL('../../../public/patterns/…', import.meta.url)` entries. The bundler copies each file into the edge function, and at runtime the URL resolves to an edge asset (`blob:server/edge/assets/…` in the build output), not a network address: the same mechanism `next/og` documents for fonts. The OG route reads patterns from there instead of fetching `/patterns/*.svg` from its own site over HTTP.
 - **Why**: the self-fetch could fail on preview deploys behind Vercel login and needed a server on `localhost:3000` locally (Patch 1 silently went solid otherwise); production depended on the site's own domain answering. No copied data and no build step: the SVGs in `public/patterns` stay the only source.

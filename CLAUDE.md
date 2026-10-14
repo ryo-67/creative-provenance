@@ -203,7 +203,7 @@ The system prompt is inlined as the `SYSTEM_PROMPT` constant in `/app/api/grace/
 - System prompt carries `cache_control: { type: "ephemeral" }`, but at about 700 tokens it is under Sonnet 4.6's 1,024-token minimum, so it isn't actually cached today (no error, just no cache entry). It starts caching if the prompt grows past the minimum.
 - Rate limiting: per-IP in-memory sliding window, 5 requests / 60s. Backstop: trim to half if the IP map exceeds 1000 entries.
 - Request: `POST { sid }`. The route loads the submission from Tally itself (`fetchAndMapSubmission`), so only real submissions produce a Grace and the browser never sends answers.
-- Cache: each Grace is generated once per sid and kept in Next's data cache (`unstable_cache`, Vercel Data Cache in production), keyed by `GRACE_VERSION` + sid; failures are never cached. **Bump `GRACE_VERSION` in `app/api/grace/route.ts` whenever `SYSTEM_PROMPT` or `MODEL` changes.** The browser also keeps it in `localStorage` (`grace-v2-${sid}`), so a revisit makes no request.
+- Cache: no backend persistence. The route keeps recent Graces in its own memory (a Map per server instance, 1 hour, at most 500, like the rate limiter), so people opening a freshly shared result usually read the maker's Grace instead of triggering new ones. Best effort: another instance or a later visit generates afresh. Nothing is written to disk or a database. The browser keeps the Grace in `localStorage` (`grace-v2-${sid}`), so a revisit makes no request.
 
 ## Sharing
 

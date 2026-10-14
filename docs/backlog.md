@@ -84,13 +84,17 @@ Current per-instance in-memory Map is sufficient for symposium-scale traffic but
 
 ## Technical debt
 
+### Should viewers of a shared result get a Grace?
+
+The Grace is written in the maker's voice ("I feel this piece is…"), but today anyone who opens a shared result link gets one generated for them (unless the route still has the maker's in memory), with different wording from the one the maker read. Options: show viewers a "Read the grace" button that generates on demand; mark the maker's first arrival (e.g. a parameter in Tally's redirect URL) and only auto-generate then; or keep the maker's Grace somewhere viewers can read it, which needs a privacy decision (V1 keeps no backend persistence). Saves Claude calls as a side effect. A product decision first.
+
 ### Umami analytics
 
 Planned alongside Vercel Web Analytics as the team pushes for more traffic. Keep it cookieless and page-level: no answers, piece descriptions or Graces in events. When it ships, add a line about it to the landing page's "How is your data used?" note, which today only mentions Tally and Anthropic.
 
 ### Grace cache key versioning
 
-Two keys now: the browser's `grace-v2-${sid}` and the server's `GRACE_VERSION` in `app/api/grace/route.ts`. Each system prompt change requires a manual bump of both. Consider a hash-based key derived from the prompt version so changes auto-invalidate stale caches.
+Key is `grace-v2-${sid}`. Each system prompt change requires a manual bump. Consider a hash-based key derived from the prompt version so changes auto-invalidate stale caches.
 
 ### Iframe dual-src on questionnaire page
 

@@ -463,7 +463,7 @@ The actual prompt will be tuned heavily during Week 13.
 ### Anti-Abuse
 
 - Only real submissions produce a Grace: the route takes a sid and loads the answers itself
-- Each Grace is generated once per submission and kept in Next's data cache (Vercel Data Cache), keyed by sid and `GRACE_VERSION`; bump the version when the prompt or model changes
+- Recent Graces are kept in the route's memory (per server instance, 1 hour, at most 500), so a result shared and opened soon after usually costs one Claude call. Memory only: no backend persistence
 - The browser also keeps the Grace in localStorage (`grace-v2-${sid}`), so a revisit makes no request
 - Rate limit: 5 requests per IP per 60s, in memory per server instance (Vercel KV for cluster-wide limits is in the backlog)
 - If generation fails, the Grace box shows the error message
@@ -524,7 +524,7 @@ Fallbacks:
 
 ## Privacy
 
-V1: no accounts. Responses are stored by Tally (the form provider). The generated Grace is kept in Next's data cache on Vercel, keyed by submission ID, and in the visitor's localStorage. Page-level, cookieless analytics run on every page (Vercel Web Analytics and Speed Insights; Umami planned). No submission content goes to analytics.
+V1: no accounts and no backend persistence. Responses are stored by Tally (the form provider). The generated Grace is kept in the visitor's localStorage, and briefly in the Grace route's memory (up to an hour, gone when the server instance recycles). Page-level, cookieless analytics run on every page (Vercel Web Analytics and Speed Insights; Umami planned). No submission content goes to analytics.
 
 V2 (when shareable URLs ship): clear consent screen explaining that the response will be stored anonymously to enable URL sharing.
 
