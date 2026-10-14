@@ -41,6 +41,19 @@ Four parallel reviews (reuse, simplification, efficiency, structure) of the whol
   - **Mock Tally and Anthropic server**: two overlapping Grace requests for one sid made one Claude call; an unknown sid still returns 404; the page streams.
   - **Browser**: the fade runs, the Grace renders (bold, ownership spacing) and caches; a revisit makes zero Grace requests; Download inlines the pattern; a missing submission shows the 404 line with "Waiting for your submission…"; a phone shows "Share"; no hydration warnings.
   - Build, lint and tsc are clean.
+- **Preview verified against the real Tally and Anthropic APIs** (sid `VpzJvE6`, branch `simplify-pass-2`):
+  - **OG images**: `/api/og?sid=VpzJvE6`, `?landing=1` and `?sid=doesnotexist` are byte-identical to production.
+  - **Tracemark**: the result page's mark matches production's after normalizing style formatting and the removed transition (same SHA-256).
+  - **Landing page**: 210 KB on the preview vs 468 KB in production.
+  - **Result page**:
+    - the real Grace generated in 6.2s;
+    - a reload made zero Grace requests;
+    - after clearing the browser copy, the server memory cache returned the same Grace in 109ms;
+    - Download gave a 1296×1296 PNG with the pattern inlined;
+    - `?sid=doesnotexist` shows the 404 line with "Waiting for your submission…";
+    - no sid shows "Missing sid query parameter";
+    - no hydration warnings.
+  - The production comparison used a placeholder Grace in localStorage (no API call), removed afterwards.
 - **Visible or behavioral differences**:
   - **Dead inline `transition` removed.** The Tracemark's inline `transition: opacity 500ms` is gone. It was dead: since Session 41 no mark changes from empty to filled in place, and `fadeIn` does the fade. Pixels are unchanged.
   - **OG pattern failures are caught.** A failed bundled-pattern read in the OG route now draws Patch 1 solid instead of failing the image (the pre-bundle behavior).
