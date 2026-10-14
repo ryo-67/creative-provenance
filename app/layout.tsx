@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Fragment } from 'react';
 import { Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -10,6 +11,7 @@ import {
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
+  TEAM,
 } from '@/lib/site';
 import './globals.css';
 
@@ -85,39 +87,16 @@ function Footer() {
       <div className="mx-auto w-full max-w-[1100px]">
         <p>
           Made by{' '}
-          <FooterLink
-            href="https://www.linkedin.com/in/royshoro/"
-            variant="primary"
-          >
-            Shoro Roy
-          </FooterLink>{' '}
-          (
-          <FooterLink href="https://shoro.space/">
-            Portfolio
-          </FooterLink>
-          ),{' '}
-          <FooterLink
-            href="https://www.linkedin.com/in/pmachuca/"
-            variant="primary"
-          >
-            Paola Machuca Hernández
-          </FooterLink>{' '}
-          (
-          <FooterLink href="https://www.behance.net/pmachucahdc16">
-            Portfolio
-          </FooterLink>
-          ), and{' '}
-          <FooterLink
-            href="https://www.linkedin.com/in/yash-pawar-94913b121/"
-            variant="primary"
-          >
-            Yash Pawar
-          </FooterLink>{' '}
-          (
-          <FooterLink href="https://drive.google.com/file/d/14z5NZuvuJO-m2JSc6l4Nv3llfhFfjmLV/view?usp=share_link">
-            Portfolio
-          </FooterLink>
-          ).
+          {TEAM.map((person, i) => (
+            <Fragment key={person.name}>
+              {i > 0 && (i === TEAM.length - 1 ? ', and ' : ', ')}
+              <FooterLink href={person.linkedin} variant="primary">
+                {person.name}
+              </FooterLink>{' '}
+              (<FooterLink href={person.portfolio}>Portfolio</FooterLink>)
+            </Fragment>
+          ))}
+          .
         </p>
         <p>
           Together, we call ourselves the{' '}

@@ -1,7 +1,7 @@
 // Tally → ProvenanceResponse bridge.
 //
 // fetchAndMapSubmission(sid) is the entry point, used by the result
-// page's metadata, /api/tally-submission and /api/og. It pulls the raw
+// page, /api/grace and /api/og. It pulls the raw
 // submission from the Tally REST API, then mapTallyToProvenance() reads
 // each answer by the form's question IDs and turns option text into
 // schema literals.
@@ -367,8 +367,9 @@ function scaleOf10(value: number): number {
 
 // --- Combined fetch + map (server-side; works in Node and edge runtimes) ---
 //
-// Errors propagate: /api/tally-submission turns TallyNotFoundError into
-// a 404, and the OG image falls back to a sample mark.
+// Errors propagate: the result page and /api/grace turn
+// TallyNotFoundError into a 404, and the OG image falls back to a
+// sample mark.
 //
 // Edge-runtime safe: only uses fetch, process.env, and console.warn.
 

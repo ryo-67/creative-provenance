@@ -17,12 +17,12 @@ const AI_CRAWLERS = [
   'CCBot',
 ];
 
-// The two data routes are private plumbing. /api/og stays crawlable:
+// The grace route is private plumbing. /api/og stays crawlable:
 // link-preview bots (Twitterbot among them) obey robots.txt and need the
 // share image. /result and /questionnaire stay crawlable too; they opt
 // out of the index with a noindex meta tag, which a crawler can only
 // read if it is allowed to fetch the page.
-const disallow = ['/api/grace', '/api/tally-submission'];
+const disallow = ['/api/grace'];
 
 export default function robots(): MetadataRoute.Robots {
   return {

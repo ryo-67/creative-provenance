@@ -48,7 +48,6 @@ app/
   questionnaire/          # Tally embed
   result/                 # Tracemark + Grace result page
   api/grace/              # Claude API proxy
-  api/tally-submission/   # Tally REST fetch + mapping
   api/og/                 # OG image route + card layouts
   robots.ts               # robots.txt
   sitemap.ts              # sitemap.xml

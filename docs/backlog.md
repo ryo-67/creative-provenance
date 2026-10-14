@@ -84,21 +84,9 @@ Current per-instance in-memory Map is sufficient for symposium-scale traffic but
 
 ## Technical debt
 
-### One Tally fetch per result view
-
-A result view calls Tally twice: once in `generateMetadata` (`app/result/page.tsx`) and once from the client through `/api/tally-submission`, both with `cache: 'no-store'`. A shared link adds a third call from `/api/og`. Options: let `fetchSubmission` cache successful responses (Next only stores 200s, so an early 404 isn't kept), or pass the server's result into the client and drop the client fetch. The first keeps personal submission data in Vercel's data cache; the second changes the skeleton fade. Both need a decision, not just a refactor.
-
-### Grace from a sid, not from client JSON
-
-`/api/grace` builds its prompt from whatever JSON the browser posts, so the per-IP rate limit is its only guard. It could take `{ sid }` and call `fetchAndMapSubmission` itself, which also opens a server-side grace cache keyed by sid. Changes the route's contract.
-
 ### Bundle the seed patterns with the OG route
 
 `/api/og` fetches `/patterns/*.svg` from its own deployment over HTTP. On a preview deploy behind Vercel Authentication that fetch fails quietly and Patch 1 renders solid. A generated `PatternPath[]` module per seed (from `public/patterns`, with a check that it's current) would remove the fetch and the regex parse. Adds a build step.
-
-### Footer names from one list
-
-`app/layout.tsx` types out the three names and their LinkedIn and portfolio URLs, and `CREATORS` in `lib/site.ts` repeats the names and LinkedIn URLs. One `TEAM` list could feed both. Left alone because the footer is the shared credit and its rendered text has to stay exactly as the three makers agreed.
 
 ### Umami analytics
 
@@ -106,7 +94,7 @@ Planned alongside Vercel Web Analytics as the team pushes for more traffic. Keep
 
 ### Grace cache key versioning
 
-Key is `grace-v2-${sid}`. Each system prompt change requires a manual bump. Consider a hash-based key derived from the prompt version so changes auto-invalidate stale caches.
+Two keys now: the browser's `grace-v2-${sid}` and the server's `GRACE_VERSION` in `app/api/grace/route.ts`. Each system prompt change requires a manual bump of both. Consider a hash-based key derived from the prompt version so changes auto-invalidate stale caches.
 
 ### Iframe dual-src on questionnaire page
 

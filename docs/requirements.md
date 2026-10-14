@@ -11,7 +11,7 @@ Built for the F(r)ictions: Creative Work in an Age of AI symposium on May 1, 202
 1. **Landing page** — sets context, one CTA: "Trace your work" → /questionnaire
 2. **Questionnaire** — Tally form (https://tally.so/r/RGZO7p) embedded full-viewport at /questionnaire as an iframe.
 3. **Submit redirect** — Tally redirects to /result?sid={submissionId} on completion.
-4. **Result page** — /result reads sid from the URL, calls /api/tally-submission which fetches the submission server-side via the Tally REST API and maps it to a `ProvenanceResponse` via `fetchAndMapSubmission` in `lib/tally.ts`. Renders the Tracemark, generates Grace via /api/grace, offers download and share.
+4. **Result page** — /result reads sid from the URL and loads the submission on the server: `fetchAndMapSubmission` in `lib/tally.ts` fetches it from the Tally REST API and maps it to a `ProvenanceResponse`, once per request (the page title and body share the call). The page streams: the layout with an outline-only Tracemark arrives at once, and the filled page replaces it when Tally answers, its fills fading in over 500ms (no fade with reduced motion). Then the browser asks /api/grace for the Grace, and the page offers download and share.
 
 The custom-coded reflective UI (sub-step flows, spatial canvas, position dots) was implemented in Sessions 1–11 and removed in Session 12 to ship faster for the symposium. Re-implementing it in Next.js is a V2 ambition — see `/docs/backlog.md`.
 
@@ -454,18 +454,19 @@ The actual prompt will be tuned heavily during Week 13.
 ### API Implementation
 
 - Endpoint: `/api/grace` (Next.js API route)
-- Method: POST with `ProvenanceResponse` body
-- Returns: `{ grace: string }`
+- Method: POST `{ sid }`. The route loads the submission from Tally itself; the browser never sends answers
+- Returns: `{ grace: string }`; 400 without a sid, 404 for an unknown sid, 429 when rate limited, 500 on other failures
 - Model: `claude-sonnet-4-6`
-- Max tokens: 400
+- Max tokens: 500
 - API key: `process.env.ANTHROPIC_API_KEY`
 
 ### Anti-Abuse
 
-- Rate limit: 1 Grace per IP per 5 minutes
-- Implementation: in-memory Map for V1, Vercel KV for V2
-- Cache the Grace in localStorage so repeat visits don't regenerate
-- If the API call fails, show a fallback Grace (a generic but still meaningful version)
+- Only real submissions produce a Grace: the route takes a sid and loads the answers itself
+- Each Grace is generated once per submission and kept in Next's data cache (Vercel Data Cache), keyed by sid and `GRACE_VERSION`; bump the version when the prompt or model changes
+- The browser also keeps the Grace in localStorage (`grace-v2-${sid}`), so a revisit makes no request
+- Rate limit: 5 requests per IP per 60s, in memory per server instance (Vercel KV for cluster-wide limits is in the backlog)
+- If generation fails, the Grace box shows the error message
 
 ## Sharing and Export
 
@@ -488,11 +489,11 @@ The actual prompt will be tuned heavily during Week 13.
 
 - Canonical host: https://creativetrace.art (apex). `www` and the legacy Vercel URL redirect to it (Vercel domain settings).
 - Indexable: the landing page only. `/questionnaire` and `/result` are `noindex, follow`.
-- `robots.txt` allows all crawlers, AI search crawlers by name, and disallows `/api/grace` and `/api/tally-submission`. `/api/og` stays open for link previews.
+- `robots.txt` allows all crawlers, AI search crawlers by name, and disallows `/api/grace`. `/api/og` stays open for link previews.
 - `sitemap.xml` lists the landing page.
 - Landing page: search title "Creative Trace · Map the creative provenance of your art", a description under 160 characters, a canonical link, and schema.org `WebSite` + `WebApplication` JSON-LD naming the three makers, Parsons / The New School, and the source repository.
 - Footer names the symposium as "F(r)ictions: Creative Work in an Age of AI", linking the original listing and the archive page (https://www.aicreativelabor.com/project/frictions).
-- Footer is two groups. Credit: "Made by" the three makers, each with a Portfolio link, then "Together, we call ourselves the SPY Kids." Context, one line: "Created in Ethics of AI, Spring 2026, for F(r)ictions: Creative Work in an Age of AI at The New School · Archive · Project record ↗". The record link goes to https://shoro.space/records/creative-trace (`PROJECT_RECORD_URL` in `lib/site.ts`), by slug, and never prints a record number: shoro.space numbers records by date and renumbers them when an older one is added. Its accessible name is "Project record: Creative Trace on Shoro Roy's portfolio (opens in a new tab)". It is labelled as a record of the shared project rather than a team write-up or anyone's personal case study, and is hidden when the site runs inside another page's iframe (shoro.space embeds it on that same record). The three names, their order and their links are an equal credit and change only with all three makers' agreement.
+- Footer is two groups. Credit: "Made by" the three makers, each with a Portfolio link (names, LinkedIn and portfolio URLs come from `TEAM` in `lib/site.ts`, which also feeds the JSON-LD creators), then "Together, we call ourselves the SPY Kids." Context, one line: "Created in Ethics of AI, Spring 2026, for F(r)ictions: Creative Work in an Age of AI at The New School · Archive · Project record ↗". The record link goes to https://shoro.space/records/creative-trace (`PROJECT_RECORD_URL` in `lib/site.ts`), by slug, and never prints a record number: shoro.space numbers records by date and renumbers them when an older one is added. Its accessible name is "Project record: Creative Trace on Shoro Roy's portfolio (opens in a new tab)". It is labelled as a record of the shared project rather than a team write-up or anyone's personal case study, and is hidden when the site runs inside another page's iframe (shoro.space embeds it on that same record). The three names, their order and their links are an equal credit and change only with all three makers' agreement.
 
 ## Mobile Responsiveness
 
@@ -523,7 +524,7 @@ Fallbacks:
 
 ## Privacy
 
-V1: no accounts. Responses are stored by Tally (the form provider); the site keeps only the generated Grace, in the visitor's localStorage. Page-level, cookieless analytics run on every page (Vercel Web Analytics and Speed Insights; Umami planned). No submission content goes to analytics.
+V1: no accounts. Responses are stored by Tally (the form provider). The generated Grace is kept in Next's data cache on Vercel, keyed by submission ID, and in the visitor's localStorage. Page-level, cookieless analytics run on every page (Vercel Web Analytics and Speed Insights; Umami planned). No submission content goes to analytics.
 
 V2 (when shareable URLs ship): clear consent screen explaining that the response will be stored anonymously to enable URL sharing.
 

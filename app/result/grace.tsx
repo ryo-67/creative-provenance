@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useSyncExternalStore, type ReactNode } from 'react';
 
 // --- localStorage cache ---
 // Keyed by submission ID. Same sid → same Tally answers → same grace, so
@@ -7,7 +7,7 @@ import { Fragment, type ReactNode } from 'react';
 const cacheKey = (sid: string) => `grace-v2-${sid}`;
 
 export function readCachedGrace(sid: string | null): string | null {
-  if (typeof window === 'undefined' || !sid) return null;
+  if (!sid) return null;
   try {
     return localStorage.getItem(cacheKey(sid));
   } catch {
@@ -22,6 +22,14 @@ export function writeCachedGrace(sid: string, grace: string): void {
     // Storage full, disabled or private mode: the next visit just fetches
     // a fresh grace.
   }
+}
+
+const noSubscribe = () => () => {};
+
+// The cached grace for a sid, read after hydration (null on the server
+// and during hydration, so the two renders match).
+export function useCachedGrace(sid: string | null): string | null {
+  return useSyncExternalStore(noSubscribe, () => readCachedGrace(sid), () => null);
 }
 
 // --- Rendering ---

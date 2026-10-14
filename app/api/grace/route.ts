@@ -1,6 +1,19 @@
+import { unstable_cache } from 'next/cache';
 import { NextResponse } from 'next/server';
 import { describeError, errorMessage } from '@/lib/errors';
 import type { ProvenanceResponse } from '@/lib/schema';
+import { fetchAndMapSubmission, TallyNotFoundError } from '@/lib/tally';
+
+// POST { sid } → { grace }.
+//
+// The route takes a submission ID, not answers: it loads the submission
+// from Tally itself, so only real submissions can produce a grace and the
+// prompt input can't be tampered with. Each grace is generated once per
+// submission and kept in Next's data cache (Vercel's Data Cache in
+// production), so a result opened again, or on another device, costs no
+// second Claude call. Bump GRACE_VERSION whenever SYSTEM_PROMPT or MODEL
+// changes, so old graces aren't served for the new prompt.
+const GRACE_VERSION = 'v2';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-4-6';
@@ -56,8 +69,69 @@ interface AnthropicResponse {
 }
 
 interface GraceRequest {
-  submission?: Partial<ProvenanceResponse>;
+  sid?: unknown;
 }
+
+// Generate a grace with Claude. Throws on any failure, so a failed
+// attempt is never cached.
+async function generateGrace(submission: Partial<ProvenanceResponse>): Promise<string> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set');
+
+  const res = await fetch(ANTHROPIC_API_URL, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: MAX_TOKENS,
+      // The prompt is stable across users, so it carries a cache marker.
+      // At about 700 tokens it is under Sonnet 4.6's 1,024-token caching
+      // minimum, so today the marker does nothing; it starts saving once
+      // the prompt grows past that or the model's minimum drops.
+      system: [
+        {
+          type: 'text',
+          text: SYSTEM_PROMPT,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      messages: [
+        {
+          role: 'user',
+          content: JSON.stringify(submission, null, 2),
+        },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const errBody = (await res.text().catch(() => '')).slice(0, 500);
+    throw new Error(`Anthropic API error ${res.status}: ${errBody}`);
+  }
+
+  const json = (await res.json()) as AnthropicResponse;
+  const grace = json.content?.find((b) => b.type === 'text')?.text?.trim();
+  if (!grace) {
+    console.error(
+      '[grace] Anthropic returned no grace text. Raw content:',
+      JSON.stringify(json.content ?? null).slice(0, 500),
+    );
+    throw new Error('Anthropic returned no grace text');
+  }
+  return grace;
+}
+
+// Keyed by GRACE_VERSION and the sid (unstable_cache adds the arguments
+// to the key). The 'grace' tag lets revalidateTag('grace') clear them all.
+const graceForSubmission = unstable_cache(
+  async (sid: string) => generateGrace(await fetchAndMapSubmission(sid)),
+  ['grace', GRACE_VERSION],
+  { tags: ['grace'] },
+);
 
 // --- Rate limiting (per-IP, in-memory) ---
 // Sliding 60s window, 5 requests per IP. Backstop: trim the oldest half
@@ -98,15 +172,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
   }
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    console.error('[grace] missing env var: ANTHROPIC_API_KEY');
-    return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not set' },
-      { status: 500 },
-    );
-  }
-
   let body: GraceRequest;
   try {
     body = (await request.json()) as GraceRequest;
@@ -115,82 +180,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
-  const submission = body.submission;
-  if (!submission || typeof submission !== 'object') {
-    console.error('[grace] missing submission in request body');
+  const { sid } = body;
+  if (typeof sid !== 'string' || sid === '') {
+    console.error('[grace] missing sid in request body');
     return NextResponse.json(
-      { error: 'Missing submission in request body' },
+      { error: 'Missing sid in request body' },
       { status: 400 },
     );
   }
 
   try {
-    const res = await fetch(ANTHROPIC_API_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: MAX_TOKENS,
-        // The prompt is stable across users, so it carries a cache marker.
-        // At about 700 tokens it is under Sonnet 4.6's 1,024-token caching
-        // minimum, so today the marker does nothing; it starts saving once
-        // the prompt grows past that or the model's minimum drops.
-        system: [
-          {
-            type: 'text',
-            text: SYSTEM_PROMPT,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages: [
-          {
-            role: 'user',
-            content: JSON.stringify(submission, null, 2),
-          },
-        ],
-      }),
-    });
-
-    if (!res.ok) {
-      const errBody = await res.text().catch(() => '');
-      console.error(
-        '[grace] Anthropic API error %d: %s',
-        res.status,
-        errBody.slice(0, 500),
-      );
-      return NextResponse.json(
-        {
-          error: `Anthropic API error ${res.status}: ${errBody.slice(0, 500)}`,
-        },
-        { status: 500 },
-      );
-    }
-
-    const json = (await res.json()) as AnthropicResponse;
-    const grace =
-      json.content?.find((b) => b.type === 'text')?.text?.trim() ?? '';
-
-    if (!grace) {
-      console.error(
-        '[grace] Anthropic returned no grace text. Raw content:',
-        JSON.stringify(json.content ?? null).slice(0, 500),
-      );
-      return NextResponse.json(
-        { error: 'Anthropic returned no grace text' },
-        { status: 500 },
-      );
-    }
-
-    return NextResponse.json({ grace });
+    return NextResponse.json({ grace: await graceForSubmission(sid) });
   } catch (err) {
-    console.error('[grace] fetch threw:', describeError(err));
+    console.error('[grace] sid=%s failed: %s', sid, describeError(err));
     return NextResponse.json(
       { error: errorMessage(err, 'Unknown error') },
-      { status: 500 },
+      { status: err instanceof TallyNotFoundError ? 404 : 500 },
     );
   }
 }

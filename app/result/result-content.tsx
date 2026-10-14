@@ -1,20 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Download, Link as LinkIcon, Share } from 'lucide-react';
 import Tracemark from '@/components/Tracemark';
 import { errorMessage } from '@/lib/errors';
 import type { ProvenanceResponse } from '@/lib/schema';
 import { RESULT_SUBTITLE, SHARE_TEXT, SHARE_TITLE } from '@/lib/site';
 import { downloadTracemarkPNG } from '@/lib/tracemark/export-png';
-import { GraceLines, readCachedGrace, writeCachedGrace } from './grace';
+import { GraceLines, readCachedGrace, useCachedGrace, writeCachedGrace } from './grace';
 
-type Submission = Partial<ProvenanceResponse>;
-
-type FetchState =
+// The submission as the server loaded it (app/result/page.tsx). `loading`
+// is the streamed placeholder shown while Tally answers.
+export type SubmissionState =
   | { status: 'loading' }
-  | { status: 'ok'; data: Submission }
+  | { status: 'ok'; data: Partial<ProvenanceResponse> }
   | { status: 'error'; message: string; httpStatus?: number };
 
 // `idle` covers both "not yet started" and "fetch in flight" — the
@@ -52,8 +51,12 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<Fetched<T>
   }
 }
 
+// The page is server-rendered, so browser-only values are read with
+// useSyncExternalStore: the server and the hydrating client agree on the
+// fallback, then the browser value takes over without a mismatch.
+const noSubscribe = () => () => {};
+
 function detectPlatform(): SharePlatform {
-  if (typeof window === 'undefined') return 'desktop';
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
   if (/Android/i.test(ua)) return 'android';
@@ -71,7 +74,7 @@ function WhatToDoColumn({ title, body }: { title: string; body: string }) {
 
 // Development only: the sid and the mapped answers, for checking the
 // Tally mapping against a real submission.
-function DevPanel({ sid, state }: { sid: string | null; state: FetchState }) {
+function DevPanel({ sid, submission }: { sid: string | null; submission: SubmissionState }) {
   return (
     <section className="mt-16 space-y-4 rounded-lg border border-black/10 bg-surface p-4 text-xs">
       <div>
@@ -85,64 +88,46 @@ function DevPanel({ sid, state }: { sid: string | null; state: FetchState }) {
           Mapped ProvenanceResponse
         </h2>
         <pre className="overflow-x-auto whitespace-pre-wrap break-all">
-          {state.status === 'ok'
-            ? JSON.stringify(state.data, null, 2)
-            : `(${state.status})`}
+          {submission.status === 'ok'
+            ? JSON.stringify(submission.data, null, 2)
+            : `(${submission.status})`}
         </pre>
       </div>
     </section>
   );
 }
 
-export default function ResultContent() {
-  const searchParams = useSearchParams();
-  const sid = searchParams.get('sid');
-
-  const [state, setState] = useState<FetchState>(
-    sid
-      ? { status: 'loading' }
-      : { status: 'error', message: 'Missing sid query parameter' },
-  );
-  // Initial graceState reads localStorage so a cached grace appears
-  // immediately on revisit. The Suspense boundary above (fallback={null})
-  // means initializers only run on the client, so browser APIs are safe.
-  const [graceState, setGraceState] = useState<GraceState>(() => {
-    const cached = readCachedGrace(sid);
-    return cached ? { status: 'ok', grace: cached } : { status: 'idle' };
-  });
+export default function ResultContent({
+  sid,
+  submission,
+}: {
+  sid: string | null;
+  submission: SubmissionState;
+}) {
+  // A grace from an earlier visit shows at once; otherwise one is fetched.
+  const cachedGrace = useCachedGrace(sid);
+  const [graceState, setGraceState] = useState<GraceState>({ status: 'idle' });
   const [toast, setToast] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  const [platform] = useState<SharePlatform>(detectPlatform);
+  const platform = useSyncExternalStore<SharePlatform>(
+    noSubscribe,
+    detectPlatform,
+    () => 'desktop',
+  );
 
   const tracemarkRef = useRef<HTMLDivElement>(null);
+  const tracemarkReady = submission.status === 'ok';
 
   useEffect(() => {
-    if (!sid) return;
-    let cancelled = false;
-    fetchJson<Submission>(
-      `/api/tally-submission?sid=${encodeURIComponent(sid)}`,
-    ).then((result) => {
-      if (cancelled) return;
-      setState(
-        result.ok
-          ? { status: 'ok', data: result.body ?? {} }
-          : { status: 'error', message: result.message, httpStatus: result.httpStatus },
-      );
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [sid]);
-
-  useEffect(() => {
-    if (state.status !== 'ok' || !sid) return;
-    if (readCachedGrace(sid)) return;
+    // Read storage directly: during hydration `cachedGrace` is still the
+    // server's null, and a request started then would only be thrown away.
+    if (!sid || !tracemarkReady || readCachedGrace(sid)) return;
 
     let cancelled = false;
     fetchJson<{ grace?: string }>('/api/grace', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ submission: state.data }),
+      body: JSON.stringify({ sid }),
     }).then((result) => {
       if (cancelled) return;
       const grace = result.ok ? result.body?.grace : undefined;
@@ -159,7 +144,7 @@ export default function ResultContent() {
     return () => {
       cancelled = true;
     };
-  }, [state, sid]);
+  }, [sid, tracemarkReady]);
 
   useEffect(() => {
     if (!toast) return;
@@ -167,19 +152,19 @@ export default function ResultContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const tracemarkReady = state.status === 'ok';
-  const graceLoading = tracemarkReady && graceState.status === 'idle';
+  const grace = graceState.status === 'ok' ? graceState.grace : cachedGrace;
+  const graceLoading = tracemarkReady && !grace && graceState.status === 'idle';
   const shareLabel = platform === 'desktop' ? 'Copy link' : 'Share';
 
   const handleDownload = () => {
     const svg = tracemarkRef.current?.querySelector('svg');
-    if (!svg || !sid || state.status !== 'ok' || isDownloading) return;
+    if (!svg || !sid || submission.status !== 'ok' || isDownloading) return;
     setIsDownloading(true);
     // The PNG often finishes in under 300ms, which makes "Downloading..."
     // flash too fast to read. Hold the success path for at least 800ms;
     // errors skip the wait so the toast shows at once.
     const minDuration = new Promise<void>((resolve) => setTimeout(resolve, 800));
-    downloadTracemarkPNG(svg, state.data.seed?.types?.[0], `tracemark-${sid}.png`)
+    downloadTracemarkPNG(svg, submission.data.seed?.types?.[0], `tracemark-${sid}.png`)
       .then(() => minDuration)
       .catch(() => setToast('Could not download'))
       .finally(() => setIsDownloading(false));
@@ -221,14 +206,16 @@ export default function ResultContent() {
             aria-label="Tracemark"
             className="md:sticky md:top-8 md:w-fit md:flex-shrink-0 md:self-start"
           >
-            {/* The Tracemark always renders: before data arrives it shows
-                only its outlines, then the fills fade in. The buttons row
-                sits in the same `w-fit` wrapper so it spans exactly the
-                Tracemark's rendered width. */}
+            {/* The Tracemark always renders: while the submission loads it
+                shows only its outlines, then the filled mark streams in
+                and its fills fade in. The buttons row sits in the same
+                `w-fit` wrapper so it spans exactly the Tracemark's
+                rendered width. */}
             <div className="w-full max-w-full md:w-fit">
               <div ref={tracemarkRef}>
                 <Tracemark
-                  data={tracemarkReady ? state.data : {}}
+                  data={submission.status === 'ok' ? submission.data : {}}
+                  fadeIn
                   className="w-full md:w-auto md:max-h-[65vh]"
                 />
               </div>
@@ -260,13 +247,13 @@ export default function ResultContent() {
                     {shareLabel}
                   </button>
                 </div>
-              ) : state.status === 'error' ? (
+              ) : submission.status === 'error' ? (
                 <div
                   className="mt-6 flex h-12 w-full items-center justify-center text-sm text-danger"
                   aria-live="polite"
                 >
-                  Couldn’t load your submission: {state.message}
-                  {state.httpStatus ? ` (${state.httpStatus})` : ''}
+                  Couldn’t load your submission: {submission.message}
+                  {submission.httpStatus ? ` (${submission.httpStatus})` : ''}
                 </div>
               ) : (
                 <div
@@ -300,10 +287,8 @@ export default function ResultContent() {
                     Couldn’t compose your grace: {graceState.message}
                   </p>
                 )}
-                {graceState.status === 'ok' && (
-                  <GraceLines grace={graceState.grace} />
-                )}
-                {graceState.status === 'idle' && !tracemarkReady && (
+                {grace && <GraceLines grace={grace} />}
+                {!grace && graceState.status === 'idle' && !tracemarkReady && (
                   <p className="text-sm text-faint">
                     Waiting for your submission…
                   </p>
@@ -337,7 +322,7 @@ export default function ResultContent() {
         </section>
 
         {process.env.NODE_ENV !== 'production' && (
-          <DevPanel sid={sid} state={state} />
+          <DevPanel sid={sid} submission={submission} />
         )}
       </div>
 

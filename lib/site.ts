@@ -61,30 +61,39 @@ export const FRICTIONS = {
 // by date and renumbers them when an older one is added.
 export const PROJECT_RECORD_URL = 'https://shoro.space/records/creative-trace';
 
-// The three makers, as schema.org Persons. Shoro's @id matches the
-// Person node on shoro.space, so search engines can join the two sites.
-export const CREATORS = [
+// The three makers, in credit order. The footer and the structured data
+// below are both built from this list. The order and the equal credit
+// change only with all three makers' agreement.
+export const TEAM = [
   {
-    '@type': 'Person',
-    '@id': 'https://shoro.space/#person',
     name: 'Shoro Roy',
-    url: 'https://shoro.space',
-    sameAs: ['https://www.linkedin.com/in/royshoro/'],
+    linkedin: 'https://www.linkedin.com/in/royshoro/',
+    portfolio: 'https://shoro.space',
+    // The Person node shoro.space publishes, so search engines can join
+    // the two sites.
+    schemaId: 'https://shoro.space/#person',
   },
   {
-    '@type': 'Person',
     name: 'Paola Machuca Hernández',
-    sameAs: [
-      'https://www.linkedin.com/in/pmachuca/',
-      'https://www.behance.net/pmachucahdc16',
-    ],
+    linkedin: 'https://www.linkedin.com/in/pmachuca/',
+    portfolio: 'https://www.behance.net/pmachucahdc16',
   },
   {
-    '@type': 'Person',
     name: 'Yash Pawar',
-    sameAs: ['https://www.linkedin.com/in/yash-pawar-94913b121/'],
+    linkedin: 'https://www.linkedin.com/in/yash-pawar-94913b121/',
+    portfolio:
+      'https://drive.google.com/file/d/14z5NZuvuJO-m2JSc6l4Nv3llfhFfjmLV/view?usp=share_link',
   },
 ];
+
+// The makers as schema.org Persons.
+export const CREATORS = TEAM.map((person) => ({
+  '@type': 'Person',
+  ...('schemaId' in person && { '@id': person.schemaId }),
+  name: person.name,
+  url: person.portfolio,
+  sameAs: [person.linkedin],
+}));
 
 // Landing-page structured data: the site, and the tool as a free web
 // application made at Parsons / The New School.

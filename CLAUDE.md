@@ -82,15 +82,14 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   /questionnaire
     page.tsx                  # Tally embed (full-viewport iframe)
   /result
-    page.tsx                  # Server component: generateMetadata + Suspense
-    result-content.tsx        # Client: fetch, download, share, layout
+    page.tsx                  # Server: loads the submission once, metadata,
+                              # streams the filled page behind a skeleton
+    result-content.tsx        # Client: grace fetch, download, share, layout
     grace.tsx                 # Grace rendering + localStorage cache
     error-boundary.tsx        # Recovery UI if the result tree throws
   /api
     /grace
       route.ts                # Claude API proxy for Grace generation
-    /tally-submission
-      route.ts                # Fetches + maps Tally submission by sid
     /og
       route.tsx               # OG image dispatch: landing / sid / fallback
       cards.tsx               # The two 1200×630 card layouts (Satori)
@@ -103,7 +102,8 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   tally.ts                    # fetchAndMapSubmission + mapTallyToProvenance,
                               # TEXT_TO_SCHEMA maps, TallyNotFoundError
   site.ts                     # SITE_URL, site copy (name, tagline, share
-                              # text), metadataBase(), creators + JSON-LD
+                              # text), metadataBase(), TEAM (footer +
+                              # JSON-LD creators), JSON-LD
   errors.ts                   # errorMessage() / describeError()
   /tracemark
     spec.ts                   # Geometry, colors, answer → shape rules (pure)
@@ -200,7 +200,8 @@ The system prompt is inlined as the `SYSTEM_PROMPT` constant in `/app/api/grace/
 - Max tokens: 500
 - System prompt carries `cache_control: { type: "ephemeral" }`, but at about 700 tokens it is under Sonnet 4.6's 1,024-token minimum, so it isn't actually cached today (no error, just no cache entry). It starts caching if the prompt grows past the minimum.
 - Rate limiting: per-IP in-memory sliding window, 5 requests / 60s. Backstop: trim to half if the IP map exceeds 1000 entries.
-- Cache: client-side `localStorage`, key `grace-v2-${sid}`. Same sid → same answers → same grace, so we only ever pay for one Anthropic call per submission.
+- Request: `POST { sid }`. The route loads the submission from Tally itself (`fetchAndMapSubmission`), so only real submissions produce a Grace and the browser never sends answers.
+- Cache: each Grace is generated once per sid and kept in Next's data cache (`unstable_cache`, Vercel Data Cache in production), keyed by `GRACE_VERSION` + sid; failures are never cached. **Bump `GRACE_VERSION` in `app/api/grace/route.ts` whenever `SYSTEM_PROMPT` or `MODEL` changes.** The browser also keeps it in `localStorage` (`grace-v2-${sid}`), so a revisit makes no request.
 
 ## Sharing
 
@@ -229,7 +230,7 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 
 The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full-viewport iframe at `/questionnaire` via Tally's official embed.js script (loaded with `next/script`, `strategy="afterInteractive"`).
 
-**Submit flow:** Tally redirects to `/result?sid={submissionId}`. The result page calls `/api/tally-submission?sid=...`, which calls `fetchAndMapSubmission` from `lib/tally.ts`. That function fetches the full submission server-side from Tally's REST API (`https://api.tally.so/forms/RGZO7p/submissions/{sid}`, auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` using the form's known question UUIDs and per-question `TEXT_TO_SCHEMA` tables. If option text changes in Tally, update the matching constant in `lib/tally.ts`.
+**Submit flow:** Tally redirects to `/result?sid={submissionId}`. The result page (a server component) calls `fetchAndMapSubmission` from `lib/tally.ts`, wrapped in React `cache()` so the metadata and the page body share one call per request. That function fetches the full submission server-side from Tally's REST API (`https://api.tally.so/forms/RGZO7p/submissions/{sid}`, auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` using the form's known question UUIDs and per-question `TEXT_TO_SCHEMA` tables. If option text changes in Tally, update the matching constant in `lib/tally.ts`.
 
 **Text matching is normalize-then-match**: incoming Tally text is lowercased + collapsed (curly quotes / em dashes / curly ellipsis → ASCII) before comparing against table keys, so a single canonical key per option suffices — no straight-quote duplicates needed.
 
@@ -259,7 +260,7 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 
 - The canonical origin is `SITE_URL` in `lib/site.ts` (`https://creativetrace.art`, apex). The landing page declares itself canonical; canonical, sitemap and JSON-LD URLs never use `www` or `vercel.app`.
 - Only `/` is indexable. `/questionnaire` (a Tally iframe) and `/result` (personal submissions) carry `noindex, follow` and stay out of the sitemap. Don't block them in robots.txt: a crawler must fetch a page to read its noindex.
-- `/api/og` stays crawlable for link-preview bots; `/api/grace` and `/api/tally-submission` are disallowed.
+- `/api/og` stays crawlable for link-preview bots; `/api/grace` is disallowed.
 - The landing page carries schema.org `WebSite` + `WebApplication` JSON-LD from `siteJsonLd()`. Shoro's Person `@id` is `https://shoro.space/#person`, the same node shoro.space publishes; keep them matched.
 - Search title and description live in `lib/site.ts`. Keep the title under ~60 characters and the description under ~160.
 

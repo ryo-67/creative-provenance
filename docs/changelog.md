@@ -1,5 +1,27 @@
 # Changelog
 
+## Session 41 -- 2026-10-14 -- Result page loads on the server; Grace by sid; one team list
+- **Result page loads the submission on the server** (`app/result/page.tsx`). Before, the server fetched the submission from Tally for the page title, then the browser fetched it again through `/api/tally-submission` after hydrating: two Tally calls and an extra round trip before the mark could fill. Now `loadSubmission` (React `cache()` around `fetchAndMapSubmission`) runs once per request for both the metadata and the body.
+  - The page streams: a `Suspense` fallback renders the full layout with an outline-only Tracemark and "Making your mark…" at once, and the filled page replaces it when Tally answers.
+  - `Tracemark` gains a `fadeIn` prop so a mark that mounts already filled gets the same 500ms fill fade (`animate-fill-in`, keyframes in `globals.css`, `motion-safe:` so it's skipped with reduced motion). The landing hero doesn't use it.
+  - `ResultContent` now takes `sid` and `submission` as props. `/api/tally-submission` is deleted, and robots.txt no longer lists it.
+- **`/api/grace` takes `{ sid }`** instead of the answers. The route loads the submission from Tally itself, so only real submissions produce a Grace and nobody can send their own prompt input through our API key; the per-IP rate limit was the only guard before.
+  - Each Grace is generated once per sid and kept in Next's data cache (`unstable_cache`, keyed by `GRACE_VERSION` + sid, tag `grace`). Failures throw, so they're never cached.
+  - Responses: 400 without a sid, 404 for an unknown sid, 500 otherwise. Error messages are unchanged.
+  - **Bump `GRACE_VERSION` whenever the prompt or model changes.**
+- **Hydration-safe browser values.** The result page is server-rendered now, so the cached Grace (`useCachedGrace`) and the platform for the Share label are read with `useSyncExternalStore`. The Grace effect checks localStorage directly, so a revisit with a cached Grace makes no request.
+- **Footer and JSON-LD from one list.** `TEAM` in `lib/site.ts` (name, LinkedIn, portfolio) builds both the footer credit and `CREATORS`. Visible footer text is unchanged; the comparison script confirmed it against the previous build. Approved changes:
+  - Shoro's Portfolio link is now `https://shoro.space`, without the trailing slash, matching the search data.
+  - In the JSON-LD, Paola's Behance moves from `sameAs` to `url`, and Yash's Drive portfolio appears as his `url`.
+- **Verified locally** against a mock Tally and Anthropic server (the two API base URLs were pointed at it temporarily and reverted before commit):
+  - **Streaming**: first byte in 62ms, filled page when the mock answered at 1.5s, with one Tally call per page view.
+  - **Grace cache**: a second Grace request for the same sid made no second Claude call.
+  - **Errors**: an unknown sid shows "Couldn’t load your submission: … (404)", and `/result` without a sid still shows "Missing sid query parameter".
+  - **Browser**: the fill fade runs, the Grace renders with bold and ownership spacing, a revisit makes zero Grace requests, Download inlines the pattern, the Android user agent shows "Share", and there are no hydration warnings.
+  - Build, lint and tsc are clean.
+  - Note for testing: in a hidden or background tab, React 19 waits for an animation frame before swapping streamed content in, so the filled page appears when the tab is viewed. Real browsers do the same.
+- **Not verified**: the real Tally and Anthropic APIs, and Vercel's Data Cache. Check on a preview deploy with a real submission.
+
 ## Session 40 -- 2026-10-14 -- Analytics policy, schema header
 - **Analytics are allowed.** CLAUDE.md said "no analytics in V1" while the site has loaded Vercel Web Analytics and Speed Insights since 2026-04-30 (ryo-67/creative-provenance PR 5); Shoro confirmed analytics stay, and Umami is planned as the team pushes for more traffic. CLAUDE.md now lists analytics in the tech stack, and the anti-pattern became "don't send personal data or submission content to analytics, and no cookie-based tracking". `requirements.md` Privacy updated to match (it also said responses live in localStorage; they live in Tally). Backlog: the conflict entry is replaced by an Umami entry, including a note to mention analytics in the landing page's data-use note when it ships.
 - **`lib/schema.ts` header** rewritten: it still described `parseTallyParams` and URL-param parsing, deleted in Session 12. Comment only, as a one-time exception to the file lock, approved by Shoro. Types unchanged.
