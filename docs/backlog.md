@@ -84,9 +84,29 @@ Current per-instance in-memory Map is sufficient for symposium-scale traffic but
 
 ## Technical debt
 
-### Shared Tracemark constants file
+### One Tally fetch per result view
 
-`app/api/og/route.tsx` duplicates every color, cell layout, and patch geometry constant from `components/Tracemark.tsx`. Extract into `lib/tracemark-constants.ts` so both import from one source. Eliminates drift if any value changes.
+A result view calls Tally twice: once in `generateMetadata` (`app/result/page.tsx`) and once from the client through `/api/tally-submission`, both with `cache: 'no-store'`. A shared link adds a third call from `/api/og`. Options: let `fetchSubmission` cache successful responses (Next only stores 200s, so an early 404 isn't kept), or pass the server's result into the client and drop the client fetch. The first keeps personal submission data in Vercel's data cache; the second changes the skeleton fade. Both need a decision, not just a refactor.
+
+### Grace from a sid, not from client JSON
+
+`/api/grace` builds its prompt from whatever JSON the browser posts, so the per-IP rate limit is its only guard. It could take `{ sid }` and call `fetchAndMapSubmission` itself, which also opens a server-side grace cache keyed by sid. Changes the route's contract.
+
+### Bundle the seed patterns with the OG route
+
+`/api/og` fetches `/patterns/*.svg` from its own deployment over HTTP. On a preview deploy behind Vercel Authentication that fetch fails quietly and Patch 1 renders solid. A generated `PatternPath[]` module per seed (from `public/patterns`, with a check that it's current) would remove the fetch and the regex parse. Adds a build step.
+
+### Footer names from one list
+
+`app/layout.tsx` types out the three names and their LinkedIn and portfolio URLs, and `CREATORS` in `lib/site.ts` repeats the names and LinkedIn URLs. One `TEAM` list could feed both. Left alone because the footer is the shared credit and its rendered text has to stay exactly as the three makers agreed.
+
+### Analytics vs the V1 rule
+
+`app/layout.tsx` mounts `@vercel/analytics` and `@vercel/speed-insights`, while CLAUDE.md's anti-patterns say not to add analytics in V1. One of the two is out of date; the team should decide which.
+
+### Stale header in lib/schema.ts
+
+The file's header comment still describes `parseTallyParams` and URL-param parsing, deleted in Session 12. The file is locked, so it needs the owner's sign-off even for a comment.
 
 ### Grace cache key versioning
 
@@ -100,7 +120,7 @@ Key is `grace-v2-${sid}`. Each system prompt change requires a manual bump. Cons
 
 ### Patch 8 direction bar stroke
 
-The Patch 8 direction-execution bar (filled `#567550` sage) renders without top/bottom stroke. Every other filled element in the Tracemark has a black stroke. Fix: in Patch8Strokes, add two horizontal `<line>` elements at the bar's top and bottom y coordinates (y=60 and y=120, spanning x1=0 to x2=barWidth), rendered BEFORE the column dividers so the verticals continue uninterrupted through the bar region. No left/right strokes — those would double up with column dividers. Patch8Strokes will need the same `value` prop as Patch8Fills to derive barWidth.
+The Patch 8 direction-execution bar (filled `#567550` sage) renders without top/bottom stroke. Every other filled element in the Tracemark has a black stroke. Fix: in `strokeElements` case 8 (`lib/tracemark/shapes.tsx`), add two horizontal `<line>` elements at the bar's top and bottom y coordinates (y=60 and y=120, spanning x1=0 to x2=barWidth), rendered BEFORE the column dividers so the verticals continue uninterrupted through the bar region. No left/right strokes — those would double up with column dividers. Use `directionBarWidth()` from `spec.ts` for the width; the change reaches the live mark and the OG image together.
 
 ### Replace placeholder illustrations
 

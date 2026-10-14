@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { SITE_NAME } from '@/lib/site';
 
 // Minimal site header: project wordmark linking back to the landing page.
 // Imported only by non-landing routes — the landing page already has
@@ -12,7 +13,7 @@ export default function SiteHeader() {
         href="/"
         className="text-base text-foreground no-underline hover:underline"
       >
-        Creative Trace
+        {SITE_NAME}
       </Link>
     </header>
   );

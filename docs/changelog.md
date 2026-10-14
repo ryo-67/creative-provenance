@@ -1,5 +1,32 @@
 # Changelog
 
+## Session 39 -- 2026-10-14 -- Code cleanup: one Tracemark, smaller files
+A cleanup pass over the whole codebase: no feature and no visible change. Four parallel reviews (reuse, simplification, efficiency, structure) found the same core problem, and this session fixed it.
+
+- **One definition of the Tracemark** (`lib/tracemark/`). The OG route carried a hand-made second copy of every color, cell table and patch rule, plus a second copy of the landing samples; the PNG download and the OG route each had their own pattern parser.
+  - `spec.ts` holds the geometry, colors and answer → shape rules (pure data).
+  - `shapes.tsx` builds each patch's fill and stroke elements as plain elements, so both React and Satori can use them.
+  - `patterns.ts` loads and parses seed patterns for the OG image and the download.
+  - `samples.ts` holds the hero, OG-landing and OG-fallback samples.
+  - `export-png.ts` is the download, moved out of the result page. It now takes the seed from the data instead of regex-reading the pattern's filename back out of the DOM.
+- **Smaller files.** `components/Tracemark.tsx` went from 712 lines to about 90: the 16 `PatchNFills`/`PatchNStrokes` components are gone. `app/api/og/route.tsx` went from 1,076 lines to about 80; its two card layouts live in `cards.tsx`, with one `Wordmark` instead of two copies. `app/result/result-content.tsx` lost the pattern and PNG code, the Grace rendering and cache moved to `app/result/grace.tsx`, and both fetches share one `fetchJson` helper. `lib/tally.ts`: `mapOne` reuses `mapMany`, the reference-bucket lookup goes through the same normalized lookup as every other option, per-question plumbing is three small helpers, and a 404 is a `TallyNotFoundError` instead of an Error with a `status` stuck on.
+- **Landing hero renders each mark once.** Mobile (12 marks) and desktop (16) used to be two grids, one hidden, so 12 marks were in the HTML twice. One grid now; the landing HTML went from 784 KB to 467 KB.
+- **Shared copy and helpers.** `SITE_TAGLINE`, `SHARE_TITLE`, `SHARE_TEXT` and `RESULT_SUBTITLE` in `lib/site.ts`; `SITE_NAME` replaces typed-out "Creative Trace"; `TALLY_FORM_ID` is exported once; `lib/errors.ts` replaces twelve copies of the error-to-string expression. The OG route uses `metadataBase()` instead of its own copy of the host rule.
+- **Dead code removed**: an unused fetch state, an `illustration` prop no caller passed, a server check inside a click handler, a `navigator` cast, unused interface fields.
+- **Small differences, all outside the visible output**:
+  - The native share sheet's text gains the period that the link preview already had ("See the creative provenance of my work.").
+  - A pattern that fails to load on a warm OG instance is now retried on the next request instead of being remembered as missing.
+  - Log lines read `[pattern] …` and `unmapped reference bucket option: …`.
+  - A 200 from `/api/grace` with no grace text shows "No grace returned" instead of "HTTP 200".
+- **Corrected a docs claim**: the Grace system prompt (~700 tokens) is under Sonnet 4.6's 1,024-token caching minimum, so its `cache_control` marker has never cached anything. The comment and CLAUDE.md now say so. The request is unchanged.
+- **Verified the output is identical**, against a baseline captured from `main` before the change:
+  - **Landing page**: the 16 hero Tracemark SVGs are byte-identical inside the `<svg>` tag. Every visible mark has the same position and size as production at 375, 768 and 1280px.
+  - **OG images**: `/api/og?landing=1`, `/api/og` and `/api/og?sid=<unloadable>` are byte-identical PNGs.
+  - **Tally mapping**: the old and new `mapTallyToProvenance`, compiled side by side, give identical output on six fixture envelopes (curly and straight quotes, unknown options, clamping, all three envelope shapes). Only the bucket log wording differs.
+  - **Result page**: with mocked data in the browser, the submission loads, the Grace renders (bold, ownership spacing) and caches, and Download produces a 1296×1296 PNG with the pattern inlined and the "Downloading..." state.
+  - Build, lint and tsc are clean.
+- **Not done, logged in the backlog**: one Tally fetch per result view, Grace keyed by sid, bundling patterns into the OG route, a single team list for the footer, the analytics-vs-V1-rule conflict, and the stale `lib/schema.ts` header.
+
 ## Session 38 -- 2026-10-13 -- Footer: the record link drops its number
 - **Why**: shoro.space numbers records by date and renumbers them whenever an older record is added (Shoro's decision, "dynamic for now"). Anything outside shoro.space that prints a record number goes stale, so nothing here prints one. Session 37 shipped "Project record" plus the number in the visible text and the accessible name.
 - **`app/layout.tsx`**: the link reads "Project record ↗". Accessible name "Project record: Creative Trace on Shoro Roy's portfolio (opens in a new tab)". Placement, styling, `framed:hidden` and the href are unchanged.

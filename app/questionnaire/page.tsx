@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { SITE_NAME } from '@/lib/site';
+import { TALLY_FORM_ID } from '@/lib/tally';
 
 // The page is a Tally iframe: nothing on it for a crawler to read, and
 // indexing it would only compete with the landing page.
@@ -12,7 +14,7 @@ export const metadata: Metadata = {
 // with no fill, so the browser's page bg showed through — on OS dark
 // mode the form became unreadable (light text on dark page bg). Tally's
 // own white background is the right default.
-const TALLY_FORM_URL = 'https://tally.so/r/RGZO7p';
+const TALLY_FORM_URL = `https://tally.so/r/${TALLY_FORM_ID}`;
 
 export default function QuestionnairePage() {
   return (
@@ -24,7 +26,7 @@ export default function QuestionnairePage() {
         height="100%"
         marginHeight={0}
         marginWidth={0}
-        title="Creative Trace"
+        title={SITE_NAME}
         className="h-full w-full border-0"
       />
       <Script

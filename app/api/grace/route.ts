@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { describeError, errorMessage } from '@/lib/errors';
 import type { ProvenanceResponse } from '@/lib/schema';
 
 const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
@@ -54,6 +55,10 @@ interface AnthropicResponse {
   content?: AnthropicTextBlock[];
 }
 
+interface GraceRequest {
+  submission?: Partial<ProvenanceResponse>;
+}
+
 // --- Rate limiting (per-IP, in-memory) ---
 // Sliding 60s window, 5 requests per IP. Backstop: trim the oldest half
 // of the map if it exceeds 1000 entries so it can't grow unbounded.
@@ -102,16 +107,11 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { submission?: Partial<ProvenanceResponse> };
+  let body: GraceRequest;
   try {
-    body = (await request.json()) as {
-      submission?: Partial<ProvenanceResponse>;
-    };
+    body = (await request.json()) as GraceRequest;
   } catch (err) {
-    console.error(
-      '[grace] invalid JSON body:',
-      err instanceof Error ? err.message : String(err),
-    );
+    console.error('[grace] invalid JSON body:', errorMessage(err));
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
@@ -135,8 +135,10 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         model: MODEL,
         max_tokens: MAX_TOKENS,
-        // The system prompt is long and stable across users; mark it cacheable
-        // so repeat traffic only pays for the user-specific JSON tokens.
+        // The prompt is stable across users, so it carries a cache marker.
+        // At about 700 tokens it is under Sonnet 4.6's 1,024-token caching
+        // minimum, so today the marker does nothing; it starts saving once
+        // the prompt grows past that or the model's minimum drops.
         system: [
           {
             type: 'text',
@@ -185,11 +187,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ grace });
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error(
-      '[grace] fetch threw:',
-      err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
+    console.error('[grace] fetch threw:', describeError(err));
+    return NextResponse.json(
+      { error: errorMessage(err, 'Unknown error') },
+      { status: 500 },
     );
-    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

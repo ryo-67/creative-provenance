@@ -9,6 +9,18 @@ export const SITE_URL = 'https://creativetrace.art';
 
 export const SITE_NAME = 'Creative Trace';
 
+// The one-line pitch under the wordmark, on the landing page and in
+// both OG cards.
+export const SITE_TAGLINE = 'Map the full chain of influences behind your work.';
+
+// What a person sees when they share their result: the link preview's
+// title and description, and the native share sheet.
+export const SHARE_TITLE = 'My Creative Trace';
+export const SHARE_TEXT = 'See the creative provenance of my work.';
+
+// Under "Your Tracemark" on the result page, and its meta description.
+export const RESULT_SUBTITLE = 'A visual map of everything that shaped this piece.';
+
 // Search-result title for the landing page. Leads with the name, then
 // the phrase people search for. Kept under ~60 characters so Google
 // shows it whole.

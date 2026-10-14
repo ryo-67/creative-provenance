@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
-import { fetchAndMapSubmission } from '@/lib/tally';
+import { describeError, errorMessage } from '@/lib/errors';
+import { fetchAndMapSubmission, TallyNotFoundError } from '@/lib/tally';
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const sid = searchParams.get('sid');
-
+  const sid = new URL(request.url).searchParams.get('sid');
   if (!sid) {
     return NextResponse.json(
       { error: 'Missing sid query parameter' },
@@ -13,22 +12,12 @@ export async function GET(request: Request) {
   }
 
   try {
-    const mapped = await fetchAndMapSubmission(sid);
-    return NextResponse.json(mapped);
+    return NextResponse.json(await fetchAndMapSubmission(sid));
   } catch (err) {
-    const status =
-      typeof err === 'object' &&
-      err !== null &&
-      'status' in err &&
-      (err as { status?: unknown }).status === 404
-        ? 404
-        : 500;
-    const message = err instanceof Error ? err.message : 'Unknown error';
-    console.error(
-      '[tally-submission] sid=%s failed:',
-      sid,
-      err instanceof Error ? `${err.message}\n${err.stack}` : String(err),
+    console.error('[tally-submission] sid=%s failed:', sid, describeError(err));
+    return NextResponse.json(
+      { error: errorMessage(err, 'Unknown error') },
+      { status: err instanceof TallyNotFoundError ? 404 : 500 },
     );
-    return NextResponse.json({ error: message }, { status });
   }
 }

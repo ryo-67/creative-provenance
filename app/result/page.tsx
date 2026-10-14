@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import SiteHeader from '@/components/SiteHeader';
+import { errorMessage } from '@/lib/errors';
+import { RESULT_SUBTITLE, SHARE_TEXT, SHARE_TITLE, SITE_NAME } from '@/lib/site';
 import { fetchAndMapSubmission } from '@/lib/tally';
 import ResultContent from './result-content';
 import ResultErrorBoundary from './error-boundary';
@@ -31,7 +33,7 @@ export async function generateMetadata({
       console.error(
         '[result/metadata] fetchAndMapSubmission failed for sid=%s: %s',
         sid,
-        err instanceof Error ? err.message : String(err),
+        errorMessage(err),
       );
     }
   }
@@ -39,6 +41,7 @@ export async function generateMetadata({
   const title = pieceDescription
     ? `Tracemark for ${pieceDescription}`
     : 'Your Tracemark';
+  const ogImage = sid ? `/api/og?sid=${sid}` : undefined;
 
   return {
     title,
@@ -46,19 +49,19 @@ export async function generateMetadata({
     // is an empty shell. Keep them all out of search; follow stays on so
     // crawlers still reach the landing page through the header link.
     robots: { index: false, follow: true },
-    description: 'A visual map of everything that shaped this piece.',
+    description: RESULT_SUBTITLE,
     openGraph: {
-      title: 'My Creative Trace',
-      description: 'See the creative provenance of my work.',
-      siteName: 'Creative Trace',
+      title: SHARE_TITLE,
+      description: SHARE_TEXT,
+      siteName: SITE_NAME,
       type: 'website',
-      images: sid ? [{ url: `/api/og?sid=${sid}` }] : undefined,
+      images: ogImage ? [{ url: ogImage }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'My Creative Trace',
-      description: 'See the creative provenance of my work.',
-      images: sid ? [`/api/og?sid=${sid}`] : undefined,
+      title: SHARE_TITLE,
+      description: SHARE_TEXT,
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }
