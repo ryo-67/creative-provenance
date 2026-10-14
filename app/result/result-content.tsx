@@ -1,69 +1,17 @@
 'use client';
 
-import {
-  Fragment,
-  useEffect,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Download, Link as LinkIcon, Share } from 'lucide-react';
 import Tracemark from '@/components/Tracemark';
+import { errorMessage } from '@/lib/errors';
 import type { ProvenanceResponse } from '@/lib/schema';
+import { RESULT_SUBTITLE, SHARE_TEXT, SHARE_TITLE } from '@/lib/site';
+import { downloadTracemarkPNG } from '@/lib/tracemark/export-png';
+import { GraceLines, readCachedGrace, useCachedGrace, writeCachedGrace } from './grace';
 
-// --- localStorage grace cache ---
-// Keyed by submission ID. Same sid → same Tally answers → same grace, so we
-// only ever pay for one Anthropic call per submission.
-
-function readCachedGrace(sid: string | null): string | null {
-  if (typeof window === 'undefined' || !sid) return null;
-  try {
-    return localStorage.getItem(`grace-v2-${sid}`);
-  } catch {
-    return null;
-  }
-}
-
-function writeCachedGrace(sid: string, grace: string): void {
-  try {
-    localStorage.setItem(`grace-v2-${sid}`, grace);
-  } catch {
-    // localStorage full / disabled / private mode — silent fail; user just
-    // gets a fresh fetch on the next visit.
-  }
-}
-
-// Parse **markdown bold** spans into emphasized inline text. The grace runs
-// in muted #666; bolded subjects use semibold weight + the darker #37352F
-// body color so they pop without shouting.
-function renderGraceLine(line: string): ReactNode[] {
-  const parts: ReactNode[] = [];
-  const regex = /\*\*([^*]+)\*\*/g;
-  let lastIndex = 0;
-  let match: RegExpExecArray | null;
-  let key = 0;
-  while ((match = regex.exec(line)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(
-        <Fragment key={key++}>{line.slice(lastIndex, match.index)}</Fragment>,
-      );
-    }
-    parts.push(
-      <strong key={key++} className="font-semibold text-foreground">
-        {match[1]}
-      </strong>,
-    );
-    lastIndex = regex.lastIndex;
-  }
-  if (lastIndex < line.length) {
-    parts.push(<Fragment key={key++}>{line.slice(lastIndex)}</Fragment>);
-  }
-  return parts;
-}
-
-type FetchState =
-  | { status: 'idle' }
+// The submission as the server loaded it (app/result/page.tsx). `loading`
+// is the streamed placeholder shown while Tally answers.
+export type SubmissionState =
   | { status: 'loading' }
   | { status: 'ok'; data: Partial<ProvenanceResponse> }
   | { status: 'error'; message: string; httpStatus?: number };
@@ -81,339 +29,122 @@ type SharePlatform = 'ios' | 'android' | 'desktop';
 const GRACE_INTRO =
   'You just named everything that fed this piece. A grace is what you say before a meal, when you pause to acknowledge what was given.';
 
-// --- Pattern path inlining for the download ---
-//
-// Cross-reference: app/api/og/route.tsx ships an identical helper.
-// Both the OG renderer (Satori) and the canvas-based download share
-// the same root cause — neither resolves <image href> refs to external
-// SVG files, so Patch 1 falls back to solid color. The fix is the
-// same: fetch the pattern at runtime, regex-extract its <path>
-// elements, inline them as <path> children. If the path-extraction
-// regex or the oversize/offset transform changes here, mirror it in
-// app/api/og/route.tsx.
+// Fetch JSON from one of our API routes. HTTP and network failures both
+// come back as { ok: false } with the route's `error` message if it sent
+// one.
+type Fetched<T> =
+  | { ok: true; body: T | null }
+  | { ok: false; message: string; httpStatus?: number };
 
-interface PatternPath {
-  d: string;
-  stroke?: string;
-  strokeWidth?: string;
-  strokeMiterlimit?: string;
-  fill?: string;
-}
-
-const PATTERN_CACHE = new Map<string, PatternPath[]>();
-
-async function getPatternPaths(
-  fileName: string,
-): Promise<PatternPath[] | null> {
-  const cached = PATTERN_CACHE.get(fileName);
-  if (cached) return cached;
-
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<Fetched<T>> {
   try {
-    const res = await fetch(`/patterns/pattern-${fileName}.svg`);
-    if (!res.ok) return null;
-    const text = await res.text();
-
-    // Strip <defs>...</defs> first — pattern files put a clipPath rect
-    // in there that we don't want picked up as a renderable element.
-    const stripped = text.replace(/<defs[\s\S]*?<\/defs>/g, '');
-
-    const paths: PatternPath[] = [];
-    const pathRegex = /<path\b([^>]*?)\/?>/g;
-    let m: RegExpExecArray | null;
-    while ((m = pathRegex.exec(stripped)) !== null) {
-      const attrs = m[1];
-      const d = /\bd="([^"]*)"/.exec(attrs)?.[1];
-      if (!d) continue;
-      paths.push({
-        d,
-        stroke: /\bstroke="([^"]*)"/.exec(attrs)?.[1],
-        strokeWidth: /\bstroke-width="([^"]*)"/.exec(attrs)?.[1],
-        strokeMiterlimit: /\bstroke-miterlimit="([^"]*)"/.exec(attrs)?.[1],
-        fill: /\bfill="([^"]*)"/.exec(attrs)?.[1],
-      });
-    }
-
-    if (paths.length === 0) return null;
-    PATTERN_CACHE.set(fileName, paths);
-    return paths;
+    const res = await fetch(url, init);
+    const body = (await res.json().catch(() => null)) as (T & { error?: string }) | null;
+    if (res.ok) return { ok: true, body };
+    return {
+      ok: false,
+      message: body?.error || `HTTP ${res.status}`,
+      httpStatus: res.status,
+    };
   } catch (err) {
-    console.warn(
-      '[download] pattern fetch failed for pattern-%s.svg: %s',
-      fileName,
-      err instanceof Error ? err.message : String(err),
-    );
-    return null;
+    return { ok: false, message: errorMessage(err, 'Unknown error') };
   }
 }
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-const XLINK_NS = 'http://www.w3.org/1999/xlink';
+// The page is server-rendered, so browser-only values are read with
+// useSyncExternalStore: the server and the hydrating client agree on the
+// fallback, then the browser value takes over without a mismatch.
+const noSubscribe = () => () => {};
 
-// Find the Patch 1 <image href="/patterns/..."> in the cloned SVG and
-// swap it for a <g> of inlined <path> elements. The transform mirrors
-// the OG renderer: translate(-2.11,-2.11) scale(184.22/180 ≈ 1.02344)
-// places the pattern's built-in 6px border (path coord 2.06) on
-// Patch 1's boundary stroke center. shape-rendering="geometricPrecision"
-// re-enables anti-aliasing for the curved paths (the parent SVG uses
-// crispEdges, which would jag the cubic Beziers).
-async function inlinePatternForDownload(
-  cloned: SVGSVGElement,
-): Promise<void> {
-  const patternImage = Array.from(cloned.querySelectorAll('image')).find(
-    (img) => {
-      const href =
-        img.getAttribute('href') ??
-        img.getAttributeNS(XLINK_NS, 'href') ??
-        '';
-      return href.includes('/patterns/');
-    },
-  );
-  if (!patternImage) return;
-
-  const href =
-    patternImage.getAttribute('href') ??
-    patternImage.getAttributeNS(XLINK_NS, 'href') ??
-    '';
-  const fileName = /pattern-([^./]+)\.svg/.exec(href)?.[1];
-  if (!fileName) return;
-
-  const paths = await getPatternPaths(fileName);
-  if (!paths) return;
-
-  const g = document.createElementNS(SVG_NS, 'g');
-  g.setAttribute('transform', 'translate(-2.11,-2.11) scale(1.02344)');
-  g.setAttribute('shape-rendering', 'geometricPrecision');
-  for (const path of paths) {
-    const p = document.createElementNS(SVG_NS, 'path');
-    p.setAttribute('d', path.d);
-    if (path.stroke) p.setAttribute('stroke', path.stroke);
-    if (path.strokeWidth) p.setAttribute('stroke-width', path.strokeWidth);
-    if (path.strokeMiterlimit)
-      p.setAttribute('stroke-miterlimit', path.strokeMiterlimit);
-    p.setAttribute('fill', path.fill ?? 'none');
-    g.appendChild(p);
-  }
-  patternImage.parentNode?.replaceChild(g, patternImage);
+function detectPlatform(): SharePlatform {
+  const ua = navigator.userAgent;
+  if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'desktop';
 }
 
-function WhatToDoColumn({
-  title,
-  body,
-  illustration,
-}: {
-  title: string;
-  body: string;
-  illustration?: string;
-}) {
+function WhatToDoColumn({ title, body }: { title: string; body: string }) {
   return (
     <div className="flex-1">
-      {illustration && (
-        <div className="flex aspect-video items-center justify-center">
-          {/* Inline SVG illustration — see app/page.tsx for the
-              rationale on <img> vs next/image. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={illustration}
-            alt=""
-            className="h-full w-full"
-            aria-hidden
-          />
-        </div>
-      )}
-      <h3 className={`text-base font-medium ${illustration ? 'mt-4' : ''}`}>
-        {title}
-      </h3>
+      <h3 className="text-base font-medium">{title}</h3>
       <p className="mt-1 text-sm leading-relaxed text-muted">{body}</p>
     </div>
   );
 }
 
-function GraceLines({ grace }: { grace: string }) {
-  const lines = grace
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-  // The "ownership + Sit with that" closing is the last two lines; bump
-  // top spacing on the second-to-last line so it visibly steps away from
-  // the body of thank-yous.
-  const ownershipIndex = lines.length - 2;
+// Development only: the sid and the mapped answers, for checking the
+// Tally mapping against a real submission.
+function DevPanel({ sid, submission }: { sid: string | null; submission: SubmissionState }) {
   return (
-    <div className="space-y-4 text-sm leading-[1.8] text-muted md:space-y-5">
-      {lines.map((line, i) => (
-        <p key={i} className={i === ownershipIndex ? 'pt-5 md:pt-6' : ''}>
-          {renderGraceLine(line)}
-        </p>
-      ))}
-    </div>
+    <section className="mt-16 space-y-4 rounded-lg border border-black/10 bg-surface p-4 text-xs">
+      <div>
+        <h2 className="mb-2 font-mono uppercase tracking-wide text-faint">sid</h2>
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all">
+          {sid ?? '(none)'}
+        </pre>
+      </div>
+      <div>
+        <h2 className="mb-2 font-mono uppercase tracking-wide text-faint">
+          Mapped ProvenanceResponse
+        </h2>
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all">
+          {submission.status === 'ok'
+            ? JSON.stringify(submission.data, null, 2)
+            : `(${submission.status})`}
+        </pre>
+      </div>
+    </section>
   );
 }
 
-// Render the SVG inside `wrapper` to a 1296×1296 PNG (1080 Tracemark + 10%
-// white padding) and trigger a download.
-async function downloadTracemarkPNG(
-  wrapper: HTMLElement,
-  sid: string,
-): Promise<void> {
-  const svg = wrapper.querySelector('svg');
-  if (!svg) return;
-
-  // Clone so we don't mutate what's on screen, and ensure xmlns is present
-  // for standalone serialization.
-  const cloned = svg.cloneNode(true) as SVGSVGElement;
-  if (!cloned.getAttribute('xmlns')) {
-    cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-  }
-
-  // Inline Patch 1's pattern: canvas drawImage doesn't load <image href>
-  // refs to external SVG files, so without this Patch 1 would download
-  // as solid medium color. Failure here is non-fatal — the download
-  // proceeds without the pattern (Patch 1 stays solid).
-  await inlinePatternForDownload(cloned);
-
-  const svgString = new XMLSerializer().serializeToString(cloned);
-  const svgBlob = new Blob([svgString], {
-    type: 'image/svg+xml;charset=utf-8',
-  });
-  const svgUrl = URL.createObjectURL(svgBlob);
-
-  try {
-    const img = new Image();
-    await new Promise<void>((resolve, reject) => {
-      img.onload = () => resolve();
-      img.onerror = () => reject(new Error('Failed to load SVG'));
-      img.src = svgUrl;
-    });
-
-    const TRACEMARK_SIZE = 1080;
-    const PADDING = TRACEMARK_SIZE * 0.1; // 108
-    const CANVAS_SIZE = TRACEMARK_SIZE + PADDING * 2; // 1296
-    const canvas = document.createElement('canvas');
-    canvas.width = CANVAS_SIZE;
-    canvas.height = CANVAS_SIZE;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    ctx.drawImage(img, PADDING, PADDING, TRACEMARK_SIZE, TRACEMARK_SIZE);
-
-    const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(resolve, 'image/png');
-    });
-    if (!blob) return;
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `tracemark-${sid}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  } finally {
-    URL.revokeObjectURL(svgUrl);
-  }
-}
-
-export default function ResultContent() {
-  const searchParams = useSearchParams();
-  const sid = searchParams.get('sid');
-  const isDev = process.env.NODE_ENV !== 'production';
-
-  const [state, setState] = useState<FetchState>(
-    sid
-      ? { status: 'loading' }
-      : { status: 'error', message: 'Missing sid query parameter' },
-  );
-  // Initial graceState reads localStorage so a cached grace appears
-  // immediately on revisit. The Suspense boundary above (fallback={null})
-  // means this initializer only runs on the client, so localStorage is safe.
-  const [graceState, setGraceState] = useState<GraceState>(() => {
-    const cached = readCachedGrace(sid);
-    return cached ? { status: 'ok', grace: cached } : { status: 'idle' };
-  });
+export default function ResultContent({
+  sid,
+  submission,
+}: {
+  sid: string | null;
+  submission: SubmissionState;
+}) {
+  // A grace from an earlier visit shows at once; otherwise one is fetched.
+  const cachedGrace = useCachedGrace(sid);
+  const [graceState, setGraceState] = useState<GraceState>({ status: 'idle' });
   const [toast, setToast] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
-  // Detect platform once at mount. The Suspense fallback above means this
-  // initializer only runs on the client, so navigator.userAgent is safe.
-  const [platform] = useState<SharePlatform>(() => {
-    if (typeof window === 'undefined') return 'desktop';
-    const ua = navigator.userAgent;
-    if (/iPhone|iPad|iPod/i.test(ua)) return 'ios';
-    if (/Android/i.test(ua)) return 'android';
-    return 'desktop';
-  });
+  const platform = useSyncExternalStore<SharePlatform>(
+    noSubscribe,
+    detectPlatform,
+    () => 'desktop',
+  );
 
   const tracemarkRef = useRef<HTMLDivElement>(null);
+  const tracemarkReady = submission.status === 'ok';
 
   useEffect(() => {
-    if (!sid) return;
-    let cancelled = false;
-    fetch(`/api/tally-submission?sid=${encodeURIComponent(sid)}`)
-      .then(async (res) => {
-        const body = (await res.json().catch(() => null)) as
-          | Partial<ProvenanceResponse>
-          | { error?: string }
-          | null;
-        if (cancelled) return;
-        if (!res.ok) {
-          const message =
-            (body && 'error' in body && body.error) || `HTTP ${res.status}`;
-          setState({ status: 'error', message, httpStatus: res.status });
-          return;
-        }
-        setState({
-          status: 'ok',
-          data: (body ?? {}) as Partial<ProvenanceResponse>,
-        });
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setState({
-          status: 'error',
-          message: err instanceof Error ? err.message : 'Unknown error',
-        });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [sid]);
-
-  useEffect(() => {
-    if (state.status !== 'ok' || !sid) return;
-    if (readCachedGrace(sid)) return;
+    // Read storage directly: during hydration `cachedGrace` is still the
+    // server's null, and a request started then would only be thrown away.
+    if (!sid || !tracemarkReady || readCachedGrace(sid)) return;
 
     let cancelled = false;
-    fetch('/api/grace', {
+    fetchJson<{ grace?: string }>('/api/grace', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ submission: state.data }),
-    })
-      .then(async (res) => {
-        const body = (await res.json().catch(() => null)) as
-          | { grace?: string; error?: string }
-          | null;
-        if (cancelled) return;
-        if (!res.ok || !body?.grace) {
-          setGraceState({
-            status: 'error',
-            message: body?.error || `HTTP ${res.status}`,
-          });
-          return;
-        }
-        writeCachedGrace(sid, body.grace);
-        setGraceState({ status: 'ok', grace: body.grace });
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
+      body: JSON.stringify({ sid }),
+    }).then((result) => {
+      if (cancelled) return;
+      const grace = result.ok ? result.body?.grace : undefined;
+      if (!grace) {
         setGraceState({
           status: 'error',
-          message: err instanceof Error ? err.message : 'Unknown error',
+          message: result.ok ? 'No grace returned' : result.message,
         });
-      });
+        return;
+      }
+      writeCachedGrace(sid, grace);
+      setGraceState({ status: 'ok', grace });
+    });
     return () => {
       cancelled = true;
     };
-  }, [state, sid]);
+  }, [sid, tracemarkReady]);
 
   useEffect(() => {
     if (!toast) return;
@@ -421,44 +152,32 @@ export default function ResultContent() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const graceLoading =
-    state.status === 'ok' && graceState.status === 'idle';
-  const tracemarkReady = state.status === 'ok';
+  const grace = graceState.status === 'ok' ? graceState.grace : cachedGrace;
+  const graceLoading = tracemarkReady && !grace && graceState.status === 'idle';
   const shareLabel = platform === 'desktop' ? 'Copy link' : 'Share';
 
   const handleDownload = () => {
-    if (!tracemarkRef.current || !sid || isDownloading) return;
+    const svg = tracemarkRef.current?.querySelector('svg');
+    if (!svg || !sid || submission.status !== 'ok' || isDownloading) return;
     setIsDownloading(true);
-    // Minimum-duration loading state. The PNG pipeline often completes
-    // in <300ms on warm caches, which makes the "Downloading..." label
-    // flash too quickly to register. Gate the success path behind 800ms
-    // so the feedback reads as intentional. Errors bypass the gate so
-    // the toast appears immediately on failure.
-    const minDuration = new Promise<void>((resolve) =>
-      setTimeout(resolve, 800),
-    );
-    downloadTracemarkPNG(tracemarkRef.current, sid)
+    // The PNG often finishes in under 300ms, which makes "Downloading..."
+    // flash too fast to read. Hold the success path for at least 800ms;
+    // errors skip the wait so the toast shows at once.
+    const minDuration = new Promise<void>((resolve) => setTimeout(resolve, 800));
+    downloadTracemarkPNG(svg, submission.data.seed?.types?.[0], `tracemark-${sid}.png`)
       .then(() => minDuration)
       .catch(() => setToast('Could not download'))
       .finally(() => setIsDownloading(false));
   };
 
   const handleShare = async () => {
-    if (typeof window === 'undefined') return;
     const url = window.location.href;
-    const navAny = navigator as Navigator & {
-      share?: (data: ShareData) => Promise<void>;
-    };
-    if (typeof navAny.share === 'function') {
+    if (typeof navigator.share === 'function') {
       try {
-        await navAny.share({
-          title: 'My Creative Trace',
-          text: 'See the creative provenance of my work',
-          url,
-        });
+        await navigator.share({ title: SHARE_TITLE, text: SHARE_TEXT, url });
         return;
       } catch {
-        // user cancelled or share failed; fall through to clipboard
+        // Cancelled or failed: fall through to copying the link.
       }
     }
     try {
@@ -477,7 +196,7 @@ export default function ResultContent() {
             Your Tracemark
           </h1>
           <p className="mt-2 text-xl font-normal text-muted md:text-2xl">
-            A visual map of everything that shaped this piece.
+            {RESULT_SUBTITLE}
           </p>
         </header>
 
@@ -487,16 +206,16 @@ export default function ResultContent() {
             aria-label="Tracemark"
             className="md:sticky md:top-8 md:w-fit md:flex-shrink-0 md:self-start"
           >
-            {/* Tracemark renders directly on the white page background.
-                The download function reads the inner SVG via querySelector.
-                The Tracemark always renders — pre-load it shows the empty
-                grid (all base colors) as a skeleton; once data arrives it
-                fills in. The buttons row sits in the same `w-fit` wrapper
-                so it spans exactly the Tracemark's rendered width. */}
+            {/* The Tracemark always renders: while the submission loads it
+                shows only its outlines, then the filled mark streams in
+                and its fills fade in. The buttons row sits in the same
+                `w-fit` wrapper so it spans exactly the Tracemark's
+                rendered width. */}
             <div className="w-full max-w-full md:w-fit">
               <div ref={tracemarkRef}>
                 <Tracemark
-                  data={tracemarkReady ? state.data : {}}
+                  data={submission.status === 'ok' ? submission.data : {}}
+                  fadeIn
                   className="w-full md:w-auto md:max-h-[65vh]"
                 />
               </div>
@@ -528,13 +247,13 @@ export default function ResultContent() {
                     {shareLabel}
                   </button>
                 </div>
-              ) : state.status === 'error' ? (
+              ) : submission.status === 'error' ? (
                 <div
                   className="mt-6 flex h-12 w-full items-center justify-center text-sm text-danger"
                   aria-live="polite"
                 >
-                  Couldn’t load your submission: {state.message}
-                  {state.httpStatus ? ` (${state.httpStatus})` : ''}
+                  Couldn’t load your submission: {submission.message}
+                  {submission.httpStatus ? ` (${submission.httpStatus})` : ''}
                 </div>
               ) : (
                 <div
@@ -558,24 +277,22 @@ export default function ResultContent() {
               </p>
 
               <div className="border-l-[3px] border-black bg-surface-warm p-4 md:p-6">
-              {graceLoading && (
-                <p className="text-sm text-faint" aria-live="polite">
-                  Composing your grace…
-                </p>
-              )}
-              {graceState.status === 'error' && (
-                <p className="text-sm text-danger" aria-live="polite">
-                  Couldn’t compose your grace: {graceState.message}
-                </p>
-              )}
-              {graceState.status === 'ok' && (
-                <GraceLines grace={graceState.grace} />
-              )}
-              {graceState.status === 'idle' && state.status !== 'ok' && (
-                <p className="text-sm text-faint">
-                  Waiting for your submission…
-                </p>
-              )}
+                {graceLoading && (
+                  <p className="text-sm text-faint" aria-live="polite">
+                    Composing your grace…
+                  </p>
+                )}
+                {graceState.status === 'error' && (
+                  <p className="text-sm text-danger" aria-live="polite">
+                    Couldn’t compose your grace: {graceState.message}
+                  </p>
+                )}
+                {grace && <GraceLines grace={grace} />}
+                {!grace && graceState.status === 'idle' && !tracemarkReady && (
+                  <p className="text-sm text-faint">
+                    Waiting for your submission…
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -604,27 +321,8 @@ export default function ResultContent() {
           </div>
         </section>
 
-        {isDev && (
-          <section className="mt-16 space-y-4 rounded-lg border border-black/10 bg-surface p-4 text-xs">
-            <div>
-              <h2 className="mb-2 font-mono uppercase tracking-wide text-faint">
-                sid
-              </h2>
-              <pre className="overflow-x-auto whitespace-pre-wrap break-all">
-                {sid ?? '(none)'}
-              </pre>
-            </div>
-            <div>
-              <h2 className="mb-2 font-mono uppercase tracking-wide text-faint">
-                Mapped ProvenanceResponse
-              </h2>
-              <pre className="overflow-x-auto whitespace-pre-wrap break-all">
-                {state.status === 'ok'
-                  ? JSON.stringify(state.data, null, 2)
-                  : `(${state.status})`}
-              </pre>
-            </div>
-          </section>
+        {process.env.NODE_ENV !== 'production' && (
+          <DevPanel sid={sid} submission={submission} />
         )}
       </div>
 
@@ -640,4 +338,3 @@ export default function ResultContent() {
     </main>
   );
 }
-

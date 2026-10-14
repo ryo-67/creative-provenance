@@ -55,18 +55,31 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
 - **Hosting**: Vercel free tier — deployed at https://creativetrace.art/, the canonical host (apex, no www). `www` and the old https://creative-provenance.vercel.app/ URL 308 to it at the Vercel domain level (fixed 2026-10-12, see `/docs/bugs.md`)
 - **Storage** (V1): localStorage for grace cache; no backend persistence
 - **Storage** (V2, future): Supabase free tier for shareable URLs
-- **Image Export**: canvas-based SVG-to-PNG with inline pattern paths (in `result-content.tsx`)
+- **Image Export**: canvas-based SVG-to-PNG with inline pattern paths (`lib/tracemark/export-png.ts`)
 - **Sharing**: Web Share API (mobile native share sheet) + clipboard fallback
+- **Analytics**: Vercel Web Analytics + Speed Insights (`app/layout.tsx`). Umami is planned as traffic to the site grows. Keep analytics cookieless and free of personal data: no names, emails, piece descriptions or answers in events
 
 ## Architectural Principles
 
 1. **Mobile responsiveness is mandatory.** The site must work on iOS Safari and Android Chrome. Test early, test often.
 2. **Data schema is the source of truth.** All components read from and write to a single typed `ProvenanceResponse` shape. Do not duplicate state.
 3. **Soft proportions, not hard percentages.** No sliders that imply numerical measurement. Use 2D positioning, drag-to-stack, presence/absence.
-4. **The Tracemark is a deterministic 18×18 SVG grid.** Same answers produce the same mark. Component: `components/Tracemark.tsx`.
+4. **The Tracemark is a deterministic 18×18 SVG grid.** Same answers produce the same mark. Spec and shapes: `lib/tracemark/`; component: `components/Tracemark.tsx`.
 5. **No browser storage in artifacts beyond localStorage.** Do not use sessionStorage or cookies for V1.
 6. **API key never client-side.** Claude API calls go through a Next.js API route that proxies the request.
 7. **Minimal dependencies.** Each new package needs justification. Default to "we can build this without a library."
+
+## Code Quality
+
+All code in this repo is maintainable, human-readable and clean. Like documentation, this is non-negotiable: code that works but fails these checks is not done.
+
+- **Readable without the author.** Clear names, short functions that do one thing, and plain control flow over clever one-liners. Comments say *why* (a constraint, a decision, a workaround), not what the next line does.
+- **One source of truth.** Shared data and logic live in one module and are imported everywhere they're needed (colors and geometry in `lib/tracemark/spec.ts`, copy in `lib/site.ts`, color tokens in `app/globals.css`). Never copy constants or logic between files; a "keep these in sync" comment means something should be extracted.
+- **Use what exists.** Reach for existing helpers (`lib/errors.ts`, `lib/site.ts`, `lib/tracemark/`, the Tailwind tokens) before writing new ones, and match the surrounding code's style.
+- **Focused files.** One concern per file. Split a file when it mixes layout, data and I/O, or grows past what a reader can hold in their head.
+- **No leftovers.** Remove dead code, unused props and exports, debugging logs and stale comments in the same change that makes them obsolete.
+- **Simple over general.** No abstraction for a single caller, no options nobody uses, no speculative flexibility.
+- **Refactors keep behavior.** A cleanup changes no output unless the change says so. When it touches rendering, prove it (for example, diff the Tracemark SVG or byte-compare the OG PNGs before and after).
 
 ## File Structure
 
@@ -81,25 +94,38 @@ The project addresses a specific gap in the AI-creativity refusal landscape: exi
   /questionnaire
     page.tsx                  # Tally embed (full-viewport iframe)
   /result
-    page.tsx                  # Server component: generateMetadata + Suspense
-    result-content.tsx        # Client: fetch, grace, download, share
+    page.tsx                  # Server: loads the submission once, metadata,
+                              # streams the filled page behind a skeleton
+    result-content.tsx        # Client: grace fetch, download, share, layout
+    grace.tsx                 # Grace rendering + localStorage cache
+    error-boundary.tsx        # Recovery UI if the result tree throws
   /api
     /grace
       route.ts                # Claude API proxy for Grace generation
-    /tally-submission
-      route.ts                # Fetches + maps Tally submission by sid
     /og
-      route.tsx               # OG image renderer (edge, Satori)
+      route.tsx               # OG image dispatch: landing / sid / fallback
+      cards.tsx               # The two 1200×630 card layouts (Satori)
+      patterns.ts             # Seed pattern SVGs bundled into the edge route
 /components
-  Tracemark.tsx               # 18×18 SVG grid: 9 patches, skeleton mode
+  Tracemark.tsx               # Live mark: arranges shapes, skeleton fade
   SiteHeader.tsx              # Minimal wordmark header for non-landing routes
   FramedHistory.tsx           # Framed in an iframe: same-origin links replace history
 /lib
   schema.ts                   # ProvenanceResponse type + Zod (LOCKED)
-  tally.ts                    # fetchSubmission + mapTallyToProvenance +
-                              # fetchAndMapSubmission + TEXT_TO_SCHEMA maps
-  site.ts                     # SITE_URL, search title/description,
-                              # metadataBase(), creators + JSON-LD
+  tally.ts                    # fetchAndMapSubmission + mapTallyToProvenance,
+                              # TEXT_TO_SCHEMA maps, TallyNotFoundError
+  site.ts                     # SITE_URL, site copy (name, tagline, share
+                              # text), metadataBase(), TEAM (footer +
+                              # JSON-LD creators), JSON-LD
+  errors.ts                   # errorMessage() / describeError()
+  /tracemark
+    spec.ts                   # Geometry, colors, answer → shape rules (pure)
+    shapes.tsx                # Per-patch SVG elements, shared by the live
+                              # mark and the OG image
+    patterns.ts               # Seed pattern SVG → inline path data; browser
+                              # loader for the PNG download
+    samples.ts                # Hero, OG landing and OG fallback samples
+    export-png.ts             # Download as PNG (browser only)
 /public
   /patterns                   # 12 seed pattern SVGs
 /docs
@@ -157,9 +183,13 @@ The Tracemark is a 9-patch SVG grid arranged in three horizontal bands of 180px 
 - Patch 8: direction-vs-execution bar (Q8, 1–10)
 - Patch 9: collaborators (Q9, 8-cell grid)
 
-Implementation: `components/Tracemark.tsx`. Each patch is split into a `PatchNFills` component (rendered inside an opacity-controlled group) and a `PatchNStrokes` component (always visible). Skeleton mode: when `data` is empty, fills are hidden; only strokes show. When data arrives, fills transition to opacity 1 over 500ms — same SVG geometry, no layout shift.
+Implementation: the mark is defined once in `lib/tracemark/`. `spec.ts` holds the geometry, colors and the rules that turn answers into shapes (pure data, no React). `shapes.tsx` turns a `ProvenanceResponse` into each patch's fill and stroke elements. They are plain functions returning plain `<rect>`/`<polygon>`/`<line>` elements, never components, because Satori serializes `<svg>` children by type and doesn't call components or unwrap Fragments.
 
-The Tracemark is also rendered server-side at `/api/og` (Satori) and inlined into the canvas-based PNG download (in `result-content.tsx`). Both reuse the patch geometry but inline pattern paths instead of `<image href>` refs because neither Satori nor canvas `drawImage` resolves external SVG image references — see the cross-reference comments in `app/api/og/route.tsx` and `result-content.tsx`.
+Two renderers arrange those shapes:
+- `components/Tracemark.tsx` (the live mark) puts every patch's fills in one opacity-controlled group and the strokes outside it. Skeleton mode: when `data` is empty, fills are hidden; only strokes show. When data arrives, fills transition to opacity 1 over 500ms — same SVG geometry, no layout shift. Patch 1's pattern is a live `<image href>`.
+- `app/api/og/cards.tsx` (Satori) draws each patch's fills then strokes, with Patch 1's pattern inlined as `<path>`s.
+
+The PNG download (`lib/tracemark/export-png.ts`) clones the live SVG and swaps the pattern `<image>` for inlined paths. Satori and canvas `drawImage` both ignore external `<image href>` refs, so both parse pattern files with `parsePatternPaths` in `lib/tracemark/patterns.ts`. The OG route reads the 12 files from its own bundle (`app/api/og/patterns.ts`, static `new URL('…', import.meta.url)` entries that resolve to edge assets, no HTTP); the download fetches them from `/patterns` in the browser. A new seed pattern needs an entry in both `SEED_PATTERN` (`spec.ts`) and `app/api/og/patterns.ts`. Any change to a color, a cell, or an answer rule goes in `spec.ts` and reaches all three.
 
 ## Grace Generation
 
@@ -182,9 +212,10 @@ The system prompt is inlined as the `SYSTEM_PROMPT` constant in `/app/api/grace/
 - Endpoint: `https://api.anthropic.com/v1/messages`
 - Auth: `x-api-key: ${process.env.ANTHROPIC_API_KEY}` + `anthropic-version: 2023-06-01`
 - Max tokens: 500
-- System prompt is marked `cache_control: { type: "ephemeral" }` so repeat traffic only pays for the user-specific JSON tokens.
+- System prompt carries `cache_control: { type: "ephemeral" }`, but at about 700 tokens it is under Sonnet 4.6's 1,024-token minimum, so it isn't actually cached today (no error, just no cache entry). It starts caching if the prompt grows past the minimum.
 - Rate limiting: per-IP in-memory sliding window, 5 requests / 60s. Backstop: trim to half if the IP map exceeds 1000 entries.
-- Cache: client-side `localStorage`, key `grace-v2-${sid}`. Same sid → same answers → same grace, so we only ever pay for one Anthropic call per submission.
+- Request: `POST { sid }`. The route loads the submission from Tally itself (`fetchAndMapSubmission`), so only real submissions produce a Grace and the browser never sends answers.
+- Cache: no backend persistence. The route keeps recent Graces in its own memory (a Map per server instance, 1 hour, at most 500, like the rate limiter), so people opening a freshly shared result usually read the maker's Grace instead of triggering new ones. Best effort: another instance or a later visit generates afresh. Nothing is written to disk or a database. The browser keeps the Grace in `localStorage` (`grace-v2-${sid}`), so a revisit makes no request.
 
 ## Sharing
 
@@ -213,7 +244,7 @@ Do not build per-platform share buttons for V1. The native share sheet covers th
 
 The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full-viewport iframe at `/questionnaire` via Tally's official embed.js script (loaded with `next/script`, `strategy="afterInteractive"`).
 
-**Submit flow:** Tally redirects to `/result?sid={submissionId}`. The result page calls `/api/tally-submission?sid=...`, which calls `fetchAndMapSubmission` from `lib/tally.ts`. That function fetches the full submission server-side from Tally's REST API (`https://api.tally.so/forms/RGZO7p/submissions/{sid}`, auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` using the form's known question UUIDs and per-question `TEXT_TO_SCHEMA` tables. If option text changes in Tally, update the matching constant in `lib/tally.ts`.
+**Submit flow:** Tally redirects to `/result?sid={submissionId}`. The result page (a server component) calls `fetchAndMapSubmission` from `lib/tally.ts`, wrapped in React `cache()` so the metadata and the page body share one call per request. That function fetches the full submission server-side from Tally's REST API (`https://api.tally.so/forms/RGZO7p/submissions/{sid}`, auth via `TALLY_API_KEY`) and runs `mapTallyToProvenance` using the form's known question UUIDs and per-question `TEXT_TO_SCHEMA` tables. If option text changes in Tally, update the matching constant in `lib/tally.ts`.
 
 **Text matching is normalize-then-match**: incoming Tally text is lowercased + collapsed (curly quotes / em dashes / curly ellipsis → ASCII) before comparing against table keys, so a single canonical key per option suffices — no straight-quote duplicates needed.
 
@@ -243,7 +274,7 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 
 - The canonical origin is `SITE_URL` in `lib/site.ts` (`https://creativetrace.art`, apex). The landing page declares itself canonical; canonical, sitemap and JSON-LD URLs never use `www` or `vercel.app`.
 - Only `/` is indexable. `/questionnaire` (a Tally iframe) and `/result` (personal submissions) carry `noindex, follow` and stay out of the sitemap. Don't block them in robots.txt: a crawler must fetch a page to read its noindex.
-- `/api/og` stays crawlable for link-preview bots; `/api/grace` and `/api/tally-submission` are disallowed.
+- `/api/og` stays crawlable for link-preview bots; `/api/grace` is disallowed.
 - The landing page carries schema.org `WebSite` + `WebApplication` JSON-LD from `siteJsonLd()`. Shoro's Person `@id` is `https://shoro.space/#person`, the same node shoro.space publishes; keep them matched.
 - Search title and description live in `lib/site.ts`. Keep the title under ~60 characters and the description under ~160.
 
@@ -266,7 +297,7 @@ Do not:
 - Let component state and `ProvenanceResponse` diverge
 - Hardcode API keys anywhere in committed code
 - Skip mobile testing on the assumption that desktop responsive design covers it
-- Add analytics or tracking pixels in V1
+- Send personal data or submission content (answers, piece descriptions, the Grace) to analytics, or add cookie-based tracking. Page-level, cookieless analytics (Vercel, Umami) are fine
 - Add accounts, auth, or login in V1
 - Collapse Q3's distinct reference categories back into broad buckets — the granularity is intentional
 - Use technical/categorical language in question copy — voice should be evocative and personal

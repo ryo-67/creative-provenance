@@ -1,5 +1,96 @@
 # Changelog
 
+## Session 44 -- 2026-10-14 -- Code quality rule; preview verified with a real submission
+- **CLAUDE.md: new "Code Quality" section.** Shoro's rule going forward: all code is maintainable, human-readable and clean, and code that works but fails it isn't done. Written as concrete checks drawn from Session 39's cleanup:
+  - readable without the author;
+  - one source of truth, with no copied constants or logic;
+  - use existing helpers;
+  - focused files;
+  - no leftovers;
+  - simple over general;
+  - refactors keep behavior, and rendering refactors prove it.
+- **Preview verified against the real Tally and Anthropic APIs**, with a real submission (sid `VpzJvE6`, "a painting about humanity"):
+  - **Tracemark**: the preview's server-rendered mark is identical to production's client-rendered mark for the same submission. They differ only in how the browser vs the server writes inline styles (`opacity: 1;` vs `opacity:1`); after normalizing that, the SHA-256 of the SVG markup matches. Production was loaded with a placeholder Grace in localStorage, so the comparison made no API call, and the placeholder was removed afterwards.
+  - **OG images**: `/api/og?sid=VpzJvE6`, `?landing=1` and `?sid=doesnotexist` are byte-identical PNGs on production and the preview, with the patterns now read from the edge bundle on Vercel.
+  - **Result page**:
+    - the title reads "Tracemark for a painting about humanity";
+    - the real Grace generated in 7.1s and reads in the system prompt's voice;
+    - a reload makes zero Grace requests;
+    - Download gives a 1296×1296 PNG with the pattern inlined;
+    - `?sid=doesnotexist` shows "Couldn’t load your submission: Tally submission doesnotexist not found (404)";
+    - no sid shows "Missing sid query parameter";
+    - no hydration warnings.
+  - **In-memory Grace cache**: after the browser's copy was cleared, the server returned the identical Grace in 86ms, with no Claude call.
+  - **Real iOS Safari and Android Chrome were not tested.** Shoro chose to merge without them. Server-side changes behave the same on every device; the phone-side risks reviewed were low (Safari sizing of the single hero grid, iOS download behavior, the share sheet).
+- **Merged to `main`** (production) on 2026-10-14, and the branch was deleted.
+
+## Session 43 -- 2026-10-14 -- Grace cache moves into memory
+- **Why**: Session 41 cached each Grace in Next's data cache (Vercel Data Cache). That is backend persistence, which CLAUDE.md rules out for V1, and Graces can name the maker's mentors and collaborators.
+- **`app/api/grace/route.ts`**: `unstable_cache` and `GRACE_VERSION` are gone. Recent Graces live in a `Map` in the route's memory, like the rate limiter: per server instance, kept 1 hour, at most 500 (oldest dropped first), never written to disk or a database. People opening a result soon after it's shared usually land on the same warm instance and read the maker's Grace instead of triggering new ones; a different instance or a later visit generates afresh. The route still takes only `{ sid }` and loads the answers from Tally itself.
+- **Verified** against the mock Tally/Anthropic server (URLs pointed at it temporarily, then reverted): a repeat request for a sid made no Tally or Claude call; a new sid made one; an unknown sid still returns 404. Build, lint, tsc clean.
+- **Docs**: CLAUDE.md (Grace cache), requirements (anti-abuse, privacy), backlog. New backlog entry: whether viewers of a shared result should get a Grace at all, since it's written in the maker's voice.
+- **Pushed for preview, not merged.** Sessions 39–43 live on branch `cleanup-and-result-server`. The checklist to verify it against the real Tally and Anthropic APIs before merging is in `docs/backlog.md` → "In progress (resume here)".
+
+## Session 42 -- 2026-10-14 -- OG route reads seed patterns from its own bundle
+- **`app/api/og/patterns.ts`** (new): the 12 seed pattern SVGs as static `new URL('../../../public/patterns/…', import.meta.url)` entries. The bundler copies each file into the edge function, and at runtime the URL resolves to an edge asset (`blob:server/edge/assets/…` in the build output), not a network address: the same mechanism `next/og` documents for fonts. The OG route reads patterns from there instead of fetching `/patterns/*.svg` from its own site over HTTP.
+- **Why**: the self-fetch could fail on preview deploys behind Vercel login and needed a server on `localhost:3000` locally (Patch 1 silently went solid otherwise); production depended on the site's own domain answering. No copied data and no build step: the SVGs in `public/patterns` stay the only source.
+- **`lib/tracemark/patterns.ts`**: `loadPatternPaths` is now browser-only (the PNG download), so its `origin` parameter is gone; the OG route no longer needs `metadataBase()`.
+- **Verified**: with nothing serving patterns to the OG route, `/api/og` and `/api/og?landing=1` render PNGs byte-identical to the Session 39 baseline (patterns included). All 12 files appear under `.next/server/edge/assets/`. Build, lint, tsc clean.
+- **Maintenance note** (CLAUDE.md): a new seed pattern needs an entry in both `SEED_PATTERN` and `app/api/og/patterns.ts`.
+
+## Session 41 -- 2026-10-14 -- Result page loads on the server; Grace by sid; one team list
+- **Result page loads the submission on the server** (`app/result/page.tsx`). Before, the server fetched the submission from Tally for the page title, then the browser fetched it again through `/api/tally-submission` after hydrating: two Tally calls and an extra round trip before the mark could fill. Now `loadSubmission` (React `cache()` around `fetchAndMapSubmission`) runs once per request for both the metadata and the body.
+  - The page streams: a `Suspense` fallback renders the full layout with an outline-only Tracemark and "Making your mark…" at once, and the filled page replaces it when Tally answers.
+  - `Tracemark` gains a `fadeIn` prop so a mark that mounts already filled gets the same 500ms fill fade (`animate-fill-in`, keyframes in `globals.css`, `motion-safe:` so it's skipped with reduced motion). The landing hero doesn't use it.
+  - `ResultContent` now takes `sid` and `submission` as props. `/api/tally-submission` is deleted, and robots.txt no longer lists it.
+- **`/api/grace` takes `{ sid }`** instead of the answers. The route loads the submission from Tally itself, so only real submissions produce a Grace and nobody can send their own prompt input through our API key; the per-IP rate limit was the only guard before.
+  - Each Grace is generated once per sid and kept in Next's data cache (`unstable_cache`, keyed by `GRACE_VERSION` + sid, tag `grace`). Failures throw, so they're never cached.
+  - Responses: 400 without a sid, 404 for an unknown sid, 500 otherwise. Error messages are unchanged.
+  - **Bump `GRACE_VERSION` whenever the prompt or model changes.**
+- **Hydration-safe browser values.** The result page is server-rendered now, so the cached Grace (`useCachedGrace`) and the platform for the Share label are read with `useSyncExternalStore`. The Grace effect checks localStorage directly, so a revisit with a cached Grace makes no request.
+- **Footer and JSON-LD from one list.** `TEAM` in `lib/site.ts` (name, LinkedIn, portfolio) builds both the footer credit and `CREATORS`. Visible footer text is unchanged; the comparison script confirmed it against the previous build. Approved changes:
+  - Shoro's Portfolio link is now `https://shoro.space`, without the trailing slash, matching the search data.
+  - In the JSON-LD, Paola's Behance moves from `sameAs` to `url`, and Yash's Drive portfolio appears as his `url`.
+- **Verified locally** against a mock Tally and Anthropic server (the two API base URLs were pointed at it temporarily and reverted before commit):
+  - **Streaming**: first byte in 62ms, filled page when the mock answered at 1.5s, with one Tally call per page view.
+  - **Grace cache**: a second Grace request for the same sid made no second Claude call.
+  - **Errors**: an unknown sid shows "Couldn’t load your submission: … (404)", and `/result` without a sid still shows "Missing sid query parameter".
+  - **Browser**: the fill fade runs, the Grace renders with bold and ownership spacing, a revisit makes zero Grace requests, Download inlines the pattern, the Android user agent shows "Share", and there are no hydration warnings.
+  - Build, lint and tsc are clean.
+  - Note for testing: in a hidden or background tab, React 19 waits for an animation frame before swapping streamed content in, so the filled page appears when the tab is viewed. Real browsers do the same.
+- **Not verified**: the real Tally and Anthropic APIs, and Vercel's Data Cache. Check on a preview deploy with a real submission.
+
+## Session 40 -- 2026-10-14 -- Analytics policy, schema header
+- **Analytics are allowed.** CLAUDE.md said "no analytics in V1" while the site has loaded Vercel Web Analytics and Speed Insights since 2026-04-30 (ryo-67/creative-provenance PR 5); Shoro confirmed analytics stay, and Umami is planned as the team pushes for more traffic. CLAUDE.md now lists analytics in the tech stack, and the anti-pattern became "don't send personal data or submission content to analytics, and no cookie-based tracking". `requirements.md` Privacy updated to match (it also said responses live in localStorage; they live in Tally). Backlog: the conflict entry is replaced by an Umami entry, including a note to mention analytics in the landing page's data-use note when it ships.
+- **`lib/schema.ts` header** rewritten: it still described `parseTallyParams` and URL-param parsing, deleted in Session 12. Comment only, as a one-time exception to the file lock, approved by Shoro. Types unchanged.
+
+## Session 39 -- 2026-10-14 -- Code cleanup: one Tracemark, smaller files
+A cleanup pass over the whole codebase: no feature and no visible change. Four parallel reviews (reuse, simplification, efficiency, structure) found the same core problem, and this session fixed it.
+
+- **One definition of the Tracemark** (`lib/tracemark/`). The OG route carried a hand-made second copy of every color, cell table and patch rule, plus a second copy of the landing samples; the PNG download and the OG route each had their own pattern parser.
+  - `spec.ts` holds the geometry, colors and answer → shape rules (pure data).
+  - `shapes.tsx` builds each patch's fill and stroke elements as plain elements, so both React and Satori can use them.
+  - `patterns.ts` loads and parses seed patterns for the OG image and the download.
+  - `samples.ts` holds the hero, OG-landing and OG-fallback samples.
+  - `export-png.ts` is the download, moved out of the result page. It now takes the seed from the data instead of regex-reading the pattern's filename back out of the DOM.
+- **Smaller files.** `components/Tracemark.tsx` went from 712 lines to about 90: the 16 `PatchNFills`/`PatchNStrokes` components are gone. `app/api/og/route.tsx` went from 1,076 lines to about 80; its two card layouts live in `cards.tsx`, with one `Wordmark` instead of two copies. `app/result/result-content.tsx` lost the pattern and PNG code, the Grace rendering and cache moved to `app/result/grace.tsx`, and both fetches share one `fetchJson` helper. `lib/tally.ts`: `mapOne` reuses `mapMany`, the reference-bucket lookup goes through the same normalized lookup as every other option, per-question plumbing is three small helpers, and a 404 is a `TallyNotFoundError` instead of an Error with a `status` stuck on.
+- **Landing hero renders each mark once.** Mobile (12 marks) and desktop (16) used to be two grids, one hidden, so 12 marks were in the HTML twice. One grid now; the landing HTML went from 784 KB to 467 KB.
+- **Shared copy and helpers.** `SITE_TAGLINE`, `SHARE_TITLE`, `SHARE_TEXT` and `RESULT_SUBTITLE` in `lib/site.ts`; `SITE_NAME` replaces typed-out "Creative Trace"; `TALLY_FORM_ID` is exported once; `lib/errors.ts` replaces twelve copies of the error-to-string expression. The OG route uses `metadataBase()` instead of its own copy of the host rule.
+- **Dead code removed**: an unused fetch state, an `illustration` prop no caller passed, a server check inside a click handler, a `navigator` cast, unused interface fields.
+- **Small differences, all outside the visible output**:
+  - The native share sheet's text gains the period that the link preview already had ("See the creative provenance of my work.").
+  - A pattern that fails to load on a warm OG instance is now retried on the next request instead of being remembered as missing.
+  - Log lines read `[pattern] …` and `unmapped reference bucket option: …`.
+  - A 200 from `/api/grace` with no grace text shows "No grace returned" instead of "HTTP 200".
+- **Corrected a docs claim**: the Grace system prompt (~700 tokens) is under Sonnet 4.6's 1,024-token caching minimum, so its `cache_control` marker has never cached anything. The comment and CLAUDE.md now say so. The request is unchanged.
+- **Verified the output is identical**, against a baseline captured from `main` before the change:
+  - **Landing page**: the 16 hero Tracemark SVGs are byte-identical inside the `<svg>` tag. Every visible mark has the same position and size as production at 375, 768 and 1280px.
+  - **OG images**: `/api/og?landing=1`, `/api/og` and `/api/og?sid=<unloadable>` are byte-identical PNGs.
+  - **Tally mapping**: the old and new `mapTallyToProvenance`, compiled side by side, give identical output on six fixture envelopes (curly and straight quotes, unknown options, clamping, all three envelope shapes). Only the bucket log wording differs.
+  - **Result page**: with mocked data in the browser, the submission loads, the Grace renders (bold, ownership spacing) and caches, and Download produces a 1296×1296 PNG with the pattern inlined and the "Downloading..." state.
+  - Build, lint and tsc are clean.
+- **Not done, logged in the backlog**: one Tally fetch per result view, Grace keyed by sid, bundling patterns into the OG route, a single team list for the footer, the analytics-vs-V1-rule conflict, and the stale `lib/schema.ts` header.
+
 ## Session 38 -- 2026-10-13 -- Footer: the record link drops its number
 - **Why**: shoro.space numbers records by date and renumbers them whenever an older record is added (Shoro's decision, "dynamic for now"). Anything outside shoro.space that prints a record number goes stale, so nothing here prints one. Session 37 shipped "Project record" plus the number in the visible text and the accessible name.
 - **`app/layout.tsx`**: the link reads "Project record ↗". Accessible name "Project record: Creative Trace on Shoro Roy's portfolio (opens in a new tab)". Placement, styling, `framed:hidden` and the href are unchanged.

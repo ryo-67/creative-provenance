@@ -1,9 +1,10 @@
 // Tally → ProvenanceResponse bridge.
 //
-// `/result?sid={submissionId}` is the entry point. fetchSubmission() pulls
-// the raw submission server-side via the Tally REST API; mapTallyToProvenance()
-// uses the form's known questionId UUIDs (and a per-question text → schema
-// literal table) to extract each answer.
+// fetchAndMapSubmission(sid) is the entry point, used by the result
+// page, /api/grace and /api/og. It pulls the raw
+// submission from the Tally REST API, then mapTallyToProvenance() reads
+// each answer by the form's question IDs and turns option text into
+// schema literals.
 //
 // This mapping is pinned to the current Tally form (RGZO7p). If a question
 // is renamed, reordered, or its option text edited in Tally, update the
@@ -22,7 +23,7 @@ import type {
   TrainingDataAwareness,
 } from './schema';
 
-const TALLY_FORM_ID = 'RGZO7p';
+export const TALLY_FORM_ID = 'RGZO7p';
 const TALLY_API_BASE = 'https://api.tally.so';
 
 interface TallyResponseItem {
@@ -35,7 +36,6 @@ interface TallyResponseItem {
 
 interface TallyInnerSubmission {
   id?: string;
-  formId?: string;
   submittedAt?: string;
   createdAt?: string;
   responses?: TallyResponseItem[];
@@ -48,10 +48,13 @@ interface TallyInnerSubmission {
 interface TallySubmission extends TallyInnerSubmission {
   submission?: TallyInnerSubmission;
   submissions?: TallyInnerSubmission[];
-  questions?: unknown[];
 }
 
-export async function fetchSubmission(
+// Thrown when Tally has no submission with that ID, so callers can
+// answer 404 instead of 500.
+export class TallyNotFoundError extends Error {}
+
+async function fetchSubmission(
   submissionId: string,
 ): Promise<TallySubmission> {
   const apiKey = process.env.TALLY_API_KEY;
@@ -69,9 +72,7 @@ export async function fetchSubmission(
   });
 
   if (res.status === 404) {
-    const err = new Error(`Tally submission ${submissionId} not found`);
-    (err as Error & { status: number }).status = 404;
-    throw err;
+    throw new TallyNotFoundError(`Tally submission ${submissionId} not found`);
   }
   if (!res.ok) {
     const body = await res.text().catch(() => '');
@@ -108,8 +109,7 @@ const QUESTION_IDS = {
 // matching constant.
 //
 // Right-side values are schema literals from lib/schema.ts (do not modify
-// the schema). Several values were corrected from the user-supplied list
-// to match the schema's actual union members.
+// the schema).
 //
 // `null` = a valid Tally selection that intentionally maps to nothing in
 // our schema (e.g. "Nobody — just me"). Any text not in the table logs a
@@ -244,7 +244,9 @@ const REFERENCE_MATRIX_TO_SCHEMA: Record<string, ReferenceTileId> = {
   '496962f8-96c2-49b6-9501-5b74dc9700a0': 'ai-moodboards',
 };
 
-const REFERENCE_BUCKET_TO_WEIGHT: Record<string, 0.2 | 0.5 | 0.85> = {
+type References = ProvenanceResponse['references'];
+
+const REFERENCE_BUCKET_TO_WEIGHT: Record<string, References[number]['weight']> = {
   Barely: 0.2,
   'A little': 0.5,
   'A lot': 0.85,
@@ -329,7 +331,9 @@ function normalizedLookup<T>(
   return { found: false, value: null };
 }
 
-function mapMany<T extends string>(
+// Option texts → schema literals. Unknown texts are logged and skipped;
+// texts that map to null are dropped quietly.
+function mapMany<T>(
   texts: string[],
   table: Record<string, T | null>,
   context: string,
@@ -348,33 +352,24 @@ function mapMany<T extends string>(
   return out;
 }
 
-function mapOne<T extends string>(
+function mapOne<T>(
   text: string | undefined,
   table: Record<string, T | null>,
   context: string,
 ): T | undefined {
-  if (text === undefined) return undefined;
-  const result = normalizedLookup(text, table);
-  if (!result.found) {
-    console.warn(
-      `[tally] unmapped ${context} option: ${JSON.stringify(text)}`,
-    );
-    return undefined;
-  }
-  return result.value ?? undefined;
+  return text === undefined ? undefined : mapMany([text], table, context)[0];
+}
+
+// Tally's 1–10 scales, rounded and clamped.
+function scaleOf10(value: number): number {
+  return Math.min(10, Math.max(1, Math.round(value)));
 }
 
 // --- Combined fetch + map (server-side; works in Node and edge runtimes) ---
 //
-// The single entry point both /api/tally-submission and the OG image
-// renderer call. Pulls the submission from Tally and pipes it through
-// mapTallyToProvenance.
-//
-// Errors propagate (we don't swallow): the API route's own try/catch
-// preserves the 404 vs 500 distinction it already had, and the OG
-// renderer wraps the call in its own try/catch to fall back to
-// SAMPLE_DATA. Doing it this way lets one helper serve both call sites
-// without flattening "submission missing" into "any other failure".
+// Errors propagate: the result page and /api/grace turn
+// TallyNotFoundError into a 404, and the OG image falls back to a
+// sample mark.
 //
 // Edge-runtime safe: only uses fetch, process.env, and console.warn.
 
@@ -409,23 +404,21 @@ export function mapTallyToProvenance(
   if (ts) out.createdAt = ts;
   out.version = '1.0.0';
 
-  // Q1 — piece description (NVk1pG) + medium (qB6142, single-select array).
-  const description = asString(findAnswer(responses, QUESTION_IDS.piece));
-  const mediumText = asStringArray(
-    findAnswer(responses, QUESTION_IDS.medium),
-  )[0];
-  const medium = mapOne(mediumText, MEDIUM_TEXT_TO_SCHEMA, 'medium');
+  const answer = (q: keyof typeof QUESTION_IDS) =>
+    findAnswer(responses, QUESTION_IDS[q]);
+  const choices = (q: keyof typeof QUESTION_IDS) => asStringArray(answer(q));
+  // Single-select questions still arrive as a one-element array.
+  const choice = (q: keyof typeof QUESTION_IDS) => choices(q)[0];
+
+  // Q1 — the piece (free text) and its medium.
   out.piece = {
-    description: description ?? '',
-    medium: medium ?? 'other',
+    description: asString(answer('piece')) ?? '',
+    medium: mapOne(choice('medium'), MEDIUM_TEXT_TO_SCHEMA, 'medium') ?? 'other',
   };
 
-  // Q2 — seed (QrLlKg, single-select array → wrap in single-element array).
-  // Defensive fallback: if Tally sends a non-empty seed text that isn't in
-  // SEED_TEXT_TO_SCHEMA, mapOne already console.warns the unmapped text;
-  // we then map to 'other' so the pattern overlay still picks something
-  // sane instead of leaving seed undefined.
-  const seedText = asStringArray(findAnswer(responses, QUESTION_IDS.seed))[0];
+  // Q2 — seed. Unknown but non-empty text (already warned about) falls
+  // back to 'other', so Patch 1 still gets a pattern.
+  const seedText = choice('seed');
   const seedType: SeedType | undefined =
     mapOne(seedText, SEED_TEXT_TO_SCHEMA, 'seed') ??
     (seedText ? 'other' : undefined);
@@ -433,18 +426,10 @@ export function mapTallyToProvenance(
     out.seed = { types: [seedType] };
   }
 
-  // Q3 — references (91VjNG, matrix object: { rowUUID: [bucketText] }).
-  const matrixAnswer = findAnswer(responses, QUESTION_IDS.references);
-  if (
-    matrixAnswer &&
-    typeof matrixAnswer === 'object' &&
-    !Array.isArray(matrixAnswer)
-  ) {
-    const matrix = matrixAnswer as Record<string, unknown>;
-    const references: Array<{
-      id: ReferenceTileId;
-      weight: 0.2 | 0.5 | 0.85;
-    }> = [];
+  // Q3 — references, a matrix: { rowUUID: [bucketText] }.
+  const matrix = answer('references');
+  if (matrix && typeof matrix === 'object' && !Array.isArray(matrix)) {
+    const references: References = [];
     for (const [uuid, value] of Object.entries(matrix)) {
       const id = REFERENCE_MATRIX_TO_SCHEMA[uuid];
       if (!id) {
@@ -453,61 +438,30 @@ export function mapTallyToProvenance(
       }
       const bucketText = asStringArray(value)[0];
       if (!bucketText) continue;
-      const weight =
-        REFERENCE_BUCKET_TO_WEIGHT[bucketText] ??
-        REFERENCE_BUCKET_TO_WEIGHT[
-          Object.keys(REFERENCE_BUCKET_TO_WEIGHT).find(
-            (k) => normalize(k) === normalize(bucketText),
-          ) ?? ''
-        ];
-      if (weight === undefined) {
-        console.warn(
-          `[tally] unmapped reference bucket: ${JSON.stringify(bucketText)}`,
-        );
-        continue;
-      }
-      references.push({ id, weight });
+      const weight = mapOne(bucketText, REFERENCE_BUCKET_TO_WEIGHT, 'reference bucket');
+      if (weight !== undefined) references.push({ id, weight });
     }
     out.references = references;
   }
 
-  // Q4 — teachers (eA4W5q, multi-select).
-  const teacherTexts = asStringArray(
-    findAnswer(responses, QUESTION_IDS.teachers),
-  );
-  out.teachers = mapMany(teacherTexts, TEACHER_TEXT_TO_SCHEMA, 'teacher');
+  // Q4 — teachers.
+  out.teachers = mapMany(choices('teachers'), TEACHER_TEXT_TO_SCHEMA, 'teacher');
 
-  // Q5 — ghost (WoyVJJ, free text).
-  const ghostText = asString(findAnswer(responses, QUESTION_IDS.ghost));
+  // Q5 — the ghost (free text).
+  const ghostText = asString(answer('ghost'));
   out.ghost = ghostText
     ? { present: true, description: ghostText }
     : { present: false };
 
-  // Q6 — aiHelpers (axVqO9, multi-select; "None of these" → empty array).
-  const helperTexts = asStringArray(
-    findAnswer(responses, QUESTION_IDS.aiHelpers),
-  );
-  out.aiHelpers = mapMany(helperTexts, AI_HELPER_TEXT_TO_SCHEMA, 'aiHelper');
+  // Q6 — AI helpers ("None of these" → empty).
+  out.aiHelpers = mapMany(choices('aiHelpers'), AI_HELPER_TEXT_TO_SCHEMA, 'aiHelper');
 
-  // Q7 — AI as generator (gate 6koEDe; if "Yes", branch fields are present).
-  const aiUsedText = asStringArray(
-    findAnswer(responses, QUESTION_IDS.aiUsed),
-  )[0];
-  const aiUsed = aiUsedText === 'Yes';
-  if (aiUsed) {
-    const kindTexts = asStringArray(
-      findAnswer(responses, QUESTION_IDS.aiKinds),
-    );
-    const kinds = mapMany(kindTexts, AI_KIND_TEXT_TO_SCHEMA, 'aiKind');
-    const stageText = asStringArray(
-      findAnswer(responses, QUESTION_IDS.aiStage),
-    )[0];
-    const stage = mapOne(stageText, AI_STAGE_TEXT_TO_SCHEMA, 'aiStage');
-    const awarenessText = asStringArray(
-      findAnswer(responses, QUESTION_IDS.aiAwareness),
-    )[0];
+  // Q7 — AI as generator. The follow-ups only exist after a "Yes".
+  if (choice('aiUsed') === 'Yes') {
+    const kinds = mapMany(choices('aiKinds'), AI_KIND_TEXT_TO_SCHEMA, 'aiKind');
+    const stage = mapOne(choice('aiStage'), AI_STAGE_TEXT_TO_SCHEMA, 'aiStage');
     const trainingDataAwareness = mapOne(
-      awarenessText,
+      choice('aiAwareness'),
       AI_AWARENESS_TEXT_TO_SCHEMA,
       'aiAwareness',
     );
@@ -521,35 +475,25 @@ export function mapTallyToProvenance(
     out.aiGenerator = { used: false };
   }
 
-  // Q8 — direction vs. execution (B1NWE7, integer 1-10).
-  const directionVal = asNumber(
-    findAnswer(responses, QUESTION_IDS.directionExecution),
-  );
-  if (directionVal !== undefined) {
-    out.directionExecution = Math.min(
-      10,
-      Math.max(1, Math.round(directionVal)),
-    );
+  // Q8 — direction vs. execution, 1–10.
+  const direction = asNumber(answer('directionExecution'));
+  if (direction !== undefined) {
+    out.directionExecution = scaleOf10(direction);
   }
 
-  // Q9 — collaborators (kAqBb6, multi-select; "Nobody — just me" → empty array).
-  const collabTexts = asStringArray(
-    findAnswer(responses, QUESTION_IDS.collaborators),
-  );
+  // Q9 — collaborators ("Nobody — just me" → empty).
   out.collaborators = mapMany(
-    collabTexts,
+    choices('collaborators'),
     COLLABORATOR_TEXT_TO_SCHEMA,
     'collaborator',
   );
 
-  // Q10 — felt ownership (vBk5XA, integer 1-10) + optional why (KobKpM, text).
-  const ownershipVal = asNumber(
-    findAnswer(responses, QUESTION_IDS.feltOwnership),
-  );
-  const why = asString(findAnswer(responses, QUESTION_IDS.ownershipWhy));
-  if (ownershipVal !== undefined) {
+  // Q10 — felt ownership, 1–10, and an optional why.
+  const ownership = asNumber(answer('feltOwnership'));
+  const why = asString(answer('ownershipWhy'));
+  if (ownership !== undefined) {
     out.ownership = {
-      feltOwnership: Math.min(10, Math.max(1, Math.round(ownershipVal))),
+      feltOwnership: scaleOf10(ownership),
       ...(why ? { why } : {}),
     };
   }

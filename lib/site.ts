@@ -9,6 +9,18 @@ export const SITE_URL = 'https://creativetrace.art';
 
 export const SITE_NAME = 'Creative Trace';
 
+// The one-line pitch under the wordmark, on the landing page and in
+// both OG cards.
+export const SITE_TAGLINE = 'Map the full chain of influences behind your work.';
+
+// What a person sees when they share their result: the link preview's
+// title and description, and the native share sheet.
+export const SHARE_TITLE = 'My Creative Trace';
+export const SHARE_TEXT = 'See the creative provenance of my work.';
+
+// Under "Your Tracemark" on the result page, and its meta description.
+export const RESULT_SUBTITLE = 'A visual map of everything that shaped this piece.';
+
 // Search-result title for the landing page. Leads with the name, then
 // the phrase people search for. Kept under ~60 characters so Google
 // shows it whole.
@@ -49,30 +61,39 @@ export const FRICTIONS = {
 // by date and renumbers them when an older one is added.
 export const PROJECT_RECORD_URL = 'https://shoro.space/records/creative-trace';
 
-// The three makers, as schema.org Persons. Shoro's @id matches the
-// Person node on shoro.space, so search engines can join the two sites.
-export const CREATORS = [
+// The three makers, in credit order. The footer and the structured data
+// below are both built from this list. The order and the equal credit
+// change only with all three makers' agreement.
+export const TEAM = [
   {
-    '@type': 'Person',
-    '@id': 'https://shoro.space/#person',
     name: 'Shoro Roy',
-    url: 'https://shoro.space',
-    sameAs: ['https://www.linkedin.com/in/royshoro/'],
+    linkedin: 'https://www.linkedin.com/in/royshoro/',
+    portfolio: 'https://shoro.space',
+    // The Person node shoro.space publishes, so search engines can join
+    // the two sites.
+    schemaId: 'https://shoro.space/#person',
   },
   {
-    '@type': 'Person',
     name: 'Paola Machuca Hernández',
-    sameAs: [
-      'https://www.linkedin.com/in/pmachuca/',
-      'https://www.behance.net/pmachucahdc16',
-    ],
+    linkedin: 'https://www.linkedin.com/in/pmachuca/',
+    portfolio: 'https://www.behance.net/pmachucahdc16',
   },
   {
-    '@type': 'Person',
     name: 'Yash Pawar',
-    sameAs: ['https://www.linkedin.com/in/yash-pawar-94913b121/'],
+    linkedin: 'https://www.linkedin.com/in/yash-pawar-94913b121/',
+    portfolio:
+      'https://drive.google.com/file/d/14z5NZuvuJO-m2JSc6l4Nv3llfhFfjmLV/view?usp=share_link',
   },
 ];
+
+// The makers as schema.org Persons.
+export const CREATORS = TEAM.map((person) => ({
+  '@type': 'Person',
+  ...('schemaId' in person && { '@id': person.schemaId }),
+  name: person.name,
+  url: person.portfolio,
+  sameAs: [person.linkedin],
+}));
 
 // Landing-page structured data: the site, and the tool as a free web
 // application made at Parsons / The New School.

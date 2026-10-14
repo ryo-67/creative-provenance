@@ -2,6 +2,16 @@
 
 Ideas, deferred features, and out-of-scope items that surfaced during development. Items here are not commitments -- they're the parking lot.
 
+## Open threads (resume here)
+
+### Parked: privacy wording on the landing page
+
+The "How is your data used?" note (`app/page.tsx`) names Tally and Anthropic only. Decide whether it should also mention the page-level analytics (Vercel now, Umami planned) and that a Grace is held briefly in server memory (up to an hour, never stored). Visitor-facing copy, so Shoro approves the wording. Related: the Umami entry under Technical debt.
+
+### Other open threads
+- Should viewers of a shared result get a Grace? Product question (Technical debt below).
+- Yash's Portfolio link asks signed-out visitors to log in (`docs/bugs.md`, Open). Waiting on Yash for a public link.
+
 ## V2 Features
 - Re-implement reflective custom UI in Next.js (sub-step flows, spatial drag canvas for Q3, position-dot 2D field for Q8/Q10). Built and removed in Sessions 1–11; lives in git history. The Tally embed in V1 is a faster path to symposium; the original ambition was a hand-crafted, contemplative interaction that Tally cannot match.
 - Email-the-result functionality
@@ -84,9 +94,13 @@ Current per-instance in-memory Map is sufficient for symposium-scale traffic but
 
 ## Technical debt
 
-### Shared Tracemark constants file
+### Should viewers of a shared result get a Grace?
 
-`app/api/og/route.tsx` duplicates every color, cell layout, and patch geometry constant from `components/Tracemark.tsx`. Extract into `lib/tracemark-constants.ts` so both import from one source. Eliminates drift if any value changes.
+The Grace is written in the maker's voice ("I feel this piece is…"), but today anyone who opens a shared result link gets one generated for them (unless the route still has the maker's in memory), with different wording from the one the maker read. Options: show viewers a "Read the grace" button that generates on demand; mark the maker's first arrival (e.g. a parameter in Tally's redirect URL) and only auto-generate then; or keep the maker's Grace somewhere viewers can read it, which needs a privacy decision (V1 keeps no backend persistence). Saves Claude calls as a side effect. A product decision first.
+
+### Umami analytics
+
+Planned alongside Vercel Web Analytics as the team pushes for more traffic. Keep it cookieless and page-level: no answers, piece descriptions or Graces in events. When it ships, add a line about it to the landing page's "How is your data used?" note, which today only mentions Tally and Anthropic.
 
 ### Grace cache key versioning
 
@@ -100,7 +114,7 @@ Key is `grace-v2-${sid}`. Each system prompt change requires a manual bump. Cons
 
 ### Patch 8 direction bar stroke
 
-The Patch 8 direction-execution bar (filled `#567550` sage) renders without top/bottom stroke. Every other filled element in the Tracemark has a black stroke. Fix: in Patch8Strokes, add two horizontal `<line>` elements at the bar's top and bottom y coordinates (y=60 and y=120, spanning x1=0 to x2=barWidth), rendered BEFORE the column dividers so the verticals continue uninterrupted through the bar region. No left/right strokes — those would double up with column dividers. Patch8Strokes will need the same `value` prop as Patch8Fills to derive barWidth.
+The Patch 8 direction-execution bar (filled `#567550` sage) renders without top/bottom stroke. Every other filled element in the Tracemark has a black stroke. Fix: in `strokeElements` case 8 (`lib/tracemark/shapes.tsx`), add two horizontal `<line>` elements at the bar's top and bottom y coordinates (y=60 and y=120, spanning x1=0 to x2=barWidth), rendered BEFORE the column dividers so the verticals continue uninterrupted through the bar region. No left/right strokes — those would double up with column dividers. Use `directionBarWidth()` from `spec.ts` for the width; the change reaches the live mark and the OG image together.
 
 ### Replace placeholder illustrations
 

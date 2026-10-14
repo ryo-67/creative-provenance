@@ -1,44 +1,42 @@
 import type { Metadata } from 'next';
-import { Suspense } from 'react';
+import { cache, Suspense } from 'react';
 import SiteHeader from '@/components/SiteHeader';
-import { fetchAndMapSubmission } from '@/lib/tally';
-import ResultContent from './result-content';
+import { errorMessage } from '@/lib/errors';
+import { RESULT_SUBTITLE, SHARE_TEXT, SHARE_TITLE, SITE_NAME } from '@/lib/site';
+import { fetchAndMapSubmission, TallyNotFoundError } from '@/lib/tally';
+import ResultContent, { type SubmissionState } from './result-content';
 import ResultErrorBoundary from './error-boundary';
 
-// Server-side metadata so the OG / Twitter card meta tags reach the
-// document head before the client component hydrates. The OG image
-// itself lives at /api/og?sid=… (regular route handler — the
-// app/result/opengraph-image.tsx file convention was broken because
-// Next 16 doesn't pass searchParams to that convention).
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Promise<{ sid?: string }>;
-}): Promise<Metadata> {
-  const params = await searchParams;
-  const sid = params.sid;
+type Props = { searchParams: Promise<{ sid?: string }> };
 
-  // Title can name the piece. Pulls directly via fetchAndMapSubmission
-  // instead of self-fetching /api/tally-submission — internal HTTP hops
-  // are flaky on Vercel (auth, edge↔node mismatch, deployment URL
-  // races) and silently turn into 500s.
-  let pieceDescription = '';
-  if (sid) {
-    try {
-      const fetched = await fetchAndMapSubmission(sid);
-      pieceDescription = fetched.piece?.description ?? '';
-    } catch (err) {
-      console.error(
-        '[result/metadata] fetchAndMapSubmission failed for sid=%s: %s',
-        sid,
-        err instanceof Error ? err.message : String(err),
-      );
-    }
+// One Tally call per request: the metadata and the page body share it.
+// Errors become a state the page can show, logged once here.
+const loadSubmission = cache(async (sid: string): Promise<SubmissionState> => {
+  try {
+    return { status: 'ok', data: await fetchAndMapSubmission(sid) };
+  } catch (err) {
+    console.error('[result] loading sid=%s failed: %s', sid, errorMessage(err));
+    return {
+      status: 'error',
+      message: errorMessage(err, 'Unknown error'),
+      httpStatus: err instanceof TallyNotFoundError ? 404 : 500,
+    };
   }
+});
+
+// The title names the piece, and the OG / Twitter tags point at the
+// share image (/api/og?sid=…, a regular route handler: Next 16 doesn't
+// pass searchParams to the opengraph-image file convention).
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+  const { sid } = await searchParams;
+  const submission = sid ? await loadSubmission(sid) : null;
+  const pieceDescription =
+    submission?.status === 'ok' ? (submission.data.piece?.description ?? '') : '';
 
   const title = pieceDescription
     ? `Tracemark for ${pieceDescription}`
     : 'Your Tracemark';
+  const ogImage = sid ? `/api/og?sid=${sid}` : undefined;
 
   return {
     title,
@@ -46,31 +44,48 @@ export async function generateMetadata({
     // is an empty shell. Keep them all out of search; follow stays on so
     // crawlers still reach the landing page through the header link.
     robots: { index: false, follow: true },
-    description: 'A visual map of everything that shaped this piece.',
+    description: RESULT_SUBTITLE,
     openGraph: {
-      title: 'My Creative Trace',
-      description: 'See the creative provenance of my work.',
-      siteName: 'Creative Trace',
+      title: SHARE_TITLE,
+      description: SHARE_TEXT,
+      siteName: SITE_NAME,
       type: 'website',
-      images: sid ? [{ url: `/api/og?sid=${sid}` }] : undefined,
+      images: ogImage ? [{ url: ogImage }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'My Creative Trace',
-      description: 'See the creative provenance of my work.',
-      images: sid ? [`/api/og?sid=${sid}`] : undefined,
+      title: SHARE_TITLE,
+      description: SHARE_TEXT,
+      images: ogImage ? [ogImage] : undefined,
     },
   };
 }
 
-export default function ResultPage() {
+async function LoadedResult({ sid }: { sid: string }) {
+  return <ResultContent sid={sid} submission={await loadSubmission(sid)} />;
+}
+
+// The page streams: the layout with an outline-only Tracemark goes out
+// at once, and the filled page replaces it when Tally answers.
+export default async function ResultPage({ searchParams }: Props) {
+  const { sid } = await searchParams;
   return (
     <>
       <SiteHeader />
       <ResultErrorBoundary>
-        <Suspense fallback={null}>
-          <ResultContent />
-        </Suspense>
+        {sid ? (
+          <Suspense
+            key={sid}
+            fallback={<ResultContent sid={sid} submission={{ status: 'loading' }} />}
+          >
+            <LoadedResult sid={sid} />
+          </Suspense>
+        ) : (
+          <ResultContent
+            sid={null}
+            submission={{ status: 'error', message: 'Missing sid query parameter' }}
+          />
+        )}
       </ResultErrorBoundary>
     </>
   );

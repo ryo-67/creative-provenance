@@ -38,6 +38,14 @@
   --color-surface: var(--surface);
   --color-surface-warm: var(--surface-warm);
   --font-sans: var(--font-inter);
+
+  /* A Tracemark's fills fading in (components/Tracemark.tsx, fadeIn). */
+  --animate-fill-in: fill-in 500ms ease-out;
+  @keyframes fill-in {
+    from {
+      opacity: 0;
+    }
+  }
 }
 
 /* Set on <html> by an inline script in app/layout.tsx when the site

@@ -48,16 +48,18 @@ app/
   questionnaire/          # Tally embed
   result/                 # Tracemark + Grace result page
   api/grace/              # Claude API proxy
-  api/tally-submission/   # Tally REST fetch + mapping
-  api/og/                 # OG image renderer
+  api/og/                 # OG image route + card layouts
   robots.ts               # robots.txt
   sitemap.ts              # sitemap.xml
 components/
-  Tracemark.tsx           # SVG grid visualization
+  Tracemark.tsx           # The live Tracemark
 lib/
   schema.ts              # ProvenanceResponse type + Zod
   tally.ts               # Tally API integration + mapping
-  site.ts                # Canonical URL, search copy, JSON-LD
+  site.ts                # Canonical URL, site copy, JSON-LD
+  errors.ts              # Error → string helpers
+  tracemark/             # The mark's spec, shapes, patterns, samples,
+                         # PNG export (shared by every renderer)
 public/patterns/          # 12 seed pattern SVGs
 docs/                     # Project documentation
 ```
