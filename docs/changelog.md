@@ -9,6 +9,19 @@
   - no leftovers;
   - simple over general;
   - refactors keep behavior, and rendering refactors prove it.
+- **Preview verified against the real Tally and Anthropic APIs**, with a real submission (sid `VpzJvE6`, "a painting about humanity"):
+  - **Tracemark**: the preview's server-rendered mark is identical to production's client-rendered mark for the same submission. They differ only in how the browser vs the server writes inline styles (`opacity: 1;` vs `opacity:1`); after normalizing that, the SHA-256 of the SVG markup matches. Production was loaded with a placeholder Grace in localStorage, so the comparison made no API call, and the placeholder was removed afterwards.
+  - **OG images**: `/api/og?sid=VpzJvE6`, `?landing=1` and `?sid=doesnotexist` are byte-identical PNGs on production and the preview, with the patterns now read from the edge bundle on Vercel.
+  - **Result page**:
+    - the title reads "Tracemark for a painting about humanity";
+    - the real Grace generated in 7.1s and reads in the system prompt's voice;
+    - a reload makes zero Grace requests;
+    - Download gives a 1296×1296 PNG with the pattern inlined;
+    - `?sid=doesnotexist` shows "Couldn’t load your submission: Tally submission doesnotexist not found (404)";
+    - no sid shows "Missing sid query parameter";
+    - no hydration warnings.
+  - **In-memory Grace cache**: after the browser's copy was cleared, the server returned the identical Grace in 86ms, with no Claude call.
+  - **Not yet done**: real iOS Safari and Android Chrome.
 
 ## Session 43 -- 2026-10-14 -- Grace cache moves into memory
 - **Why**: Session 41 cached each Grace in Next's data cache (Vercel Data Cache). That is backend persistence, which CLAUDE.md rules out for V1, and Graces can name the maker's mentors and collaborators.

@@ -14,18 +14,18 @@ Sessions 39–43, pushed for a Vercel preview on 2026-10-14 and **not merged to 
 - the footer and JSON-LD built from `TEAM`;
 - the analytics and schema-header docs.
 
-It was tested locally against fakes for Tally and Anthropic, never against the real APIs. Before merging:
+Steps 1–4 passed on 2026-10-14 against the real APIs with sid `VpzJvE6` (details in the changelog, Session 44). What's left: **step 5, real devices, then step 6, merge.**
 
-1. **Get a real sid.** Tally's redirect after submit goes to production (`creativetrace.art/result?sid=…`), not to the preview. Submit the form once, copy the `sid` from that URL, and open `<preview URL>/result?sid=<sid>` by hand. The preview is behind Vercel login, so open it signed in to Vercel.
-2. **Result page**:
+1. ✅ **Get a real sid.** Tally's redirect after submit goes to production (`creativetrace.art/result?sid=…`), not to the preview. Submit the form once, copy the `sid` from that URL, and open `<preview URL>/result?sid=<sid>` by hand. The preview is behind Vercel login, so open it signed in to Vercel.
+2. ✅ **Result page**:
    - the outline-only mark shows first, then the filled mark fades in;
    - the tab title reads "Tracemark for …";
    - the Grace appears (one real Claude call);
    - reloading shows the same Grace without a new request;
    - Download gives a PNG with the Patch 1 pattern;
    - Copy link / Share work.
-3. **OG image**: `<preview URL>/api/og?sid=<sid>` shows that submission's mark with its pattern (patterns now come from the edge bundle), and `/api/og?landing=1` shows five marks with patterns.
-4. **Errors**: `<preview URL>/result?sid=doesnotexist` shows "Couldn’t load your submission: … (404)", and `/result` with no sid shows "Missing sid query parameter".
+3. ✅ **OG image**: `<preview URL>/api/og?sid=<sid>` shows that submission's mark with its pattern (patterns now come from the edge bundle), and `/api/og?landing=1` shows five marks with patterns.
+4. ✅ **Errors**: `<preview URL>/result?sid=doesnotexist` shows "Couldn’t load your submission: … (404)", and `/result` with no sid shows "Missing sid query parameter".
 5. **Real devices**: iOS Safari and Android Chrome (CLAUDE.md workflow).
 6. **Merge**: merge to `main` (that deploys production), then delete this entry and the remote branch.
 
