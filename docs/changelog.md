@@ -54,6 +54,7 @@ Four parallel reviews (reuse, simplification, efficiency, structure) of the whol
     - no sid shows "Missing sid query parameter";
     - no hydration warnings.
   - The production comparison used a placeholder Grace in localStorage (no API call), removed afterwards.
+- **Merged to `main`** (production) on 2026-10-14; branch deleted.
 - **Visible or behavioral differences**:
   - **Dead inline `transition` removed.** The Tracemark's inline `transition: opacity 500ms` is gone. It was dead: since Session 41 no mark changes from empty to filled in place, and `fadeIn` does the fade. Pixels are unchanged.
   - **OG pattern failures are caught.** A failed bundled-pattern read in the OG route now draws Patch 1 solid instead of failing the image (the pre-bundle behavior).
