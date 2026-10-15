@@ -489,8 +489,9 @@ The actual prompt will be tuned heavily during Week 13.
 
 - Canonical host: https://creativetrace.art (apex). `www` and the legacy Vercel URL redirect to it (Vercel domain settings).
 - Indexable: the landing page only. `/questionnaire` and `/result` are `noindex, follow`.
-- `robots.txt` allows all crawlers, AI search crawlers by name, and disallows `/api/grace`. `/api/og` stays open for link previews.
+- `robots.txt` allows all crawlers and AI search and assistant crawlers by name, and disallows `/api/grace`. AI training crawlers (GPTBot, ClaudeBot, Google-Extended, Applebot-Extended, CCBot, Meta-ExternalAgent, Bytespider, cohere-training-data-crawler, PanguBot, Diffbot, omgili, omgilibot) are disallowed from the whole site. `/api/og` stays open for link previews.
 - `sitemap.xml` lists the landing page.
+- `llms.txt` (`app/llms.txt/route.ts`) is a Markdown summary for AI assistants: what the tool asks and makes, what it is not, the data-use note, the makers, where it was made and shown, and key links. Every fact comes from `lib/site.ts`.
 - Landing page: search title "Creative Trace · AI disclosure for art, beyond yes or no" and a description under 160 characters that opens with "Disclose AI use in your art" (the words artists search with; nobody searches "creative provenance") and ends "Free, made at Parsons." Open Graph and Twitter titles use the same search title. A canonical link, and schema.org `WebSite` + `WebApplication` JSON-LD naming the three makers, Parsons / The New School, and the source repository.
 - Every page carries `<meta name="author">` and `<link rel="author">` for each maker, pointing at their portfolio (from `TEAM`).
 - Footer names the symposium as "F(r)ictions: Creative Work in an Age of AI", linking the original listing and the archive page (https://www.aicreativelabor.com/project/frictions).

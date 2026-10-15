@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import HeroGrid from '@/components/HeroGrid';
-import { SITE_NAME, SITE_TAGLINE, siteJsonLd } from '@/lib/site';
+import { DATA_USE, SITE_NAME, SITE_TAGLINE, siteJsonLd } from '@/lib/site';
 
 // The landing page names itself canonical, so the www host and the
 // legacy vercel.app URL point search engines back to creativetrace.art.
@@ -116,13 +116,7 @@ export default function Home() {
           <h2 className="mt-16 mb-2 text-base font-medium text-muted">
             How is your data used?
           </h2>
-          <p className="text-sm leading-relaxed text-faint">
-            Your questionnaire responses are stored by Tally, our form
-            provider. To generate your Grace, your responses are sent to
-            Anthropic’s Claude. Your data is not used for model training,
-            advertising, or any purpose beyond generating your Tracemark. We
-            do not collect your name, email, or any contact information.
-          </p>
+          <p className="text-sm leading-relaxed text-faint">{DATA_USE}</p>
         </div>
       </div>
     </main>
