@@ -27,15 +27,19 @@ export const RESULT_SUBTITLE = 'A visual map of everything that shaped this piec
 // iframe. `follow` stays on so crawlers still reach the landing page.
 export const NOINDEX = { index: false, follow: true };
 
-// Search-result title for the landing page. Leads with the name, then
-// the phrase people search for. Kept under ~60 characters so Google
-// shows it whole.
-export const SITE_TITLE = 'Creative Trace · Map the creative provenance of your art';
+// Search-result and link-preview title for the landing page. Leads with
+// the name, then the words artists search with ("AI disclosure",
+// "disclose AI use in my art"); nobody searches "creative provenance".
+// "Beyond yes or no" is the difference from every other AI label. Kept
+// under ~60 characters so Google shows it whole.
+export const SITE_TITLE = 'Creative Trace · AI disclosure for art, beyond yes or no';
 
-// Search-result and link-preview description. Kept under ~160
-// characters so Google shows it whole.
+// Search-result and link-preview description. Opens with the search
+// phrase, says what the tool credits, and ends on who made it, for
+// visitors arriving from a portfolio. Kept under ~160 characters so
+// Google shows it whole.
 export const SITE_DESCRIPTION =
-  'Answer ten questions about one piece of your art. Get a Tracemark, a visual mark of its creative provenance, and a Grace naming everything that fed it.';
+  'Disclose AI use in your art without a yes-or-no label. Ten questions credit the people, references, tools and AI behind one piece. Free, made at Parsons.';
 
 // The landing page's link-preview image (app/api/og) and its size, also
 // the size of every OG card.
@@ -126,7 +130,7 @@ export function siteJsonLd() {
         inLanguage: 'en',
         dateCreated: '2026-04',
         keywords:
-          'creative provenance, attribution, AI in art, creative labor, artists',
+          'AI disclosure, AI in art, AI-assisted art, art attribution, crediting influences, creative provenance, creative labor, artists',
         creator: TEAM.map((person) => ({
           '@type': 'Person',
           ...('schemaId' in person && { '@id': person.schemaId }),
