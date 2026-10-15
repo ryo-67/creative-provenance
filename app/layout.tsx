@@ -11,6 +11,7 @@ import {
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
+  TEAM,
 } from '@/lib/site';
 import './globals.css';
 
@@ -29,8 +30,11 @@ export const metadata: Metadata = {
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
+  // <meta name="author"> and <link rel="author"> per maker, so the
+  // site points back to each portfolio.
+  authors: TEAM.map((person) => ({ name: person.name, url: person.portfolio })),
   openGraph: {
-    title: SITE_NAME,
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     siteName: SITE_NAME,
     locale: 'en_US',
@@ -39,7 +43,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: SITE_NAME,
+    title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: [LANDING_OG_IMAGE],
   },

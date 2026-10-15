@@ -285,7 +285,8 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 - Only `/` is indexable. `/questionnaire` (a Tally iframe) and `/result` (personal submissions) carry `noindex, follow` and stay out of the sitemap. Don't block them in robots.txt: a crawler must fetch a page to read its noindex.
 - `/api/og` stays crawlable for link-preview bots; `/api/grace` is disallowed.
 - The landing page carries schema.org `WebSite` + `WebApplication` JSON-LD from `siteJsonLd()`. Shoro's Person `@id` is `https://shoro.space/#person`, the same node shoro.space publishes; keep them matched.
-- Search title and description live in `lib/site.ts`. Keep the title under ~60 characters and the description under ~160.
+- Search title and description live in `lib/site.ts`. Keep the title under ~60 characters and the description under ~160. Write them in the words artists search with ("disclose AI use in my art", "AI disclosure"), not project vocabulary ("creative provenance", "Tracemark", "Grace") that nobody searches.
+- Every page names the three makers with `<meta name="author">` / `<link rel="author">` (the root layout's `authors`, from `TEAM`).
 
 ## Accessibility Floor
 

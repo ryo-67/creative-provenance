@@ -1,5 +1,16 @@
 # Changelog
 
+## Session 47 -- 2026-10-15 -- Search copy for real search terms, author tags
+Session 36 shipped the title, description and structured data, but the copy was built around "creative provenance", a phrase nobody searches. Venue rules and artist guides talk about **disclosing AI use**, AI disclosure statements and AI-assisted work, so the copy now leads with those words.
+
+- **Search title** (`SITE_TITLE` in `lib/site.ts`): "Creative Trace · AI disclosure for art, beyond yes or no" (56 characters, was "Creative Trace · Map the creative provenance of your art"). "Beyond yes or no" is what sets it apart from binary AI labels.
+- **Description** (`SITE_DESCRIPTION`): "Disclose AI use in your art without a yes-or-no label. Ten questions credit the people, references, tools and AI behind one piece. Free, made at Parsons." (153 characters). It drops the Tracemark and Grace names, which mean nothing to someone searching, and ends on who made it for visitors coming from a portfolio. The JSON-LD reuses it.
+- **Link previews**: `og:title` and `twitter:title` use the search title instead of the bare "Creative Trace", so a link shared from a portfolio or LinkedIn says what the site does. Shared results keep "My Creative Trace".
+- **Portfolio**: the root layout adds `authors` from `TEAM`, so every page renders `<meta name="author">` and `<link rel="author">` for each maker, pointing at their portfolio.
+- **JSON-LD keywords**: adds AI disclosure, AI-assisted art, art attribution, crediting influences.
+- Unchanged: the landing page's visible copy and tagline, the OG card image, `/result` share copy.
+- Verified with `VERCEL_ENV=production next build && next start`: `/` renders the new title, description, og/twitter titles, author tags and canonical; `/questionnaire` and `/result` keep `noindex, follow` and their own titles. Build, lint and tsc clean.
+
 ## Session 46 -- 2026-10-14 -- Shared button styles
 - **`button-outline` and `button-solid`** (Tailwind `@utility` in `app/globals.css`) replace four hand-written class strings: the landing CTA, the error page's "Start a new trace", and Download and Share on the result page. Call sites keep only display, padding and layout.
 - **One visible change:** the Share button now inverts to black on hover, like every other outline button (it used to tint to `bg-black/5`). At rest all four buttons are identical: computed styles (size, padding, border, font, colors, gap) match production.
