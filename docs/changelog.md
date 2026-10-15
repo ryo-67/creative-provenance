@@ -9,7 +9,8 @@ Session 36 shipped the title, description and structured data, but the copy was 
 - **Portfolio**: the root layout adds `authors` from `TEAM`, so every page renders `<meta name="author">` and `<link rel="author">` for each maker, pointing at their portfolio.
 - **JSON-LD keywords**: adds AI disclosure, AI-assisted art, art attribution, crediting influences.
 - Unchanged: the landing page's visible copy and tagline, the OG card image, `/result` share copy.
-- Verified with `VERCEL_ENV=production next build && next start`: `/` renders the new title, description, og/twitter titles, author tags and canonical; `/questionnaire` and `/result` keep `noindex, follow` and their own titles. Build, lint and tsc clean.
+- Verified with `VERCEL_ENV=production next build && next start`: `/` renders the new title, description, og/twitter titles, author tags and canonical; `/questionnaire` and `/result` keep `noindex, follow` and their own titles. Build, lint and tsc clean. The Vercel preview deploy served the same tags.
+- **Merged to `main`** (production) on 2026-10-15; branch deleted.
 
 ## Session 46 -- 2026-10-14 -- Shared button styles
 - **`button-outline` and `button-solid`** (Tailwind `@utility` in `app/globals.css`) replace four hand-written class strings: the landing CTA, the error page's "Start a new trace", and Download and Share on the result page. Call sites keep only display, padding and layout.
