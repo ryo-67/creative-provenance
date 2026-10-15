@@ -89,6 +89,9 @@ All code in this repo is maintainable, human-readable and clean. Like documentat
   page.tsx                    # Landing page, canonical, JSON-LD
   robots.ts                   # robots.txt (AI crawlers named; data APIs disallowed)
   sitemap.ts                  # sitemap.xml (landing page only)
+  /llms.txt
+    route.ts                  # llms.txt: Markdown summary for AI assistants,
+                              # built from lib/site.ts
   globals.css                 # Tailwind 4 imports, color tokens, framed: variant
   icon.svg                    # Favicon (pattern-obsession)
   /questionnaire
@@ -122,8 +125,9 @@ All code in this repo is maintainable, human-readable and clean. Like documentat
     form.ts                   # The form as data: question IDs, option text
     map.ts                    # Answers → schema literals
   site.ts                     # SITE_URL, site copy (name, tagline, share
-                              # text), metadataBase(), TEAM (footer +
-                              # JSON-LD creators), JSON-LD
+                              # text, data use), metadataBase(), TEAM
+                              # (footer + JSON-LD creators), school,
+                              # course, repo URL, JSON-LD
   errors.ts                   # errorMessage() / describeError()
   use-browser-value.ts        # Read browser-only values without hydration
                               # mismatches (useSyncExternalStore)
@@ -284,6 +288,7 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 - The canonical origin is `SITE_URL` in `lib/site.ts` (`https://creativetrace.art`, apex). The landing page declares itself canonical; canonical, sitemap and JSON-LD URLs never use `www` or `vercel.app`.
 - Only `/` is indexable. `/questionnaire` (a Tally iframe) and `/result` (personal submissions) carry `noindex, follow` and stay out of the sitemap. Don't block them in robots.txt: a crawler must fetch a page to read its noindex.
 - `/api/og` stays crawlable for link-preview bots; `/api/grace` is disallowed.
+- `/llms.txt` summarizes the site for AI assistants. It reads every fact from `lib/site.ts`; when a maker, link or the description changes there, it follows.
 - The landing page carries schema.org `WebSite` + `WebApplication` JSON-LD from `siteJsonLd()`. Shoro's Person `@id` is `https://shoro.space/#person`, the same node shoro.space publishes; keep them matched.
 - Search title and description live in `lib/site.ts`. Keep the title under ~60 characters and the description under ~160. Write them in the words artists search with ("disclose AI use in my art", "AI disclosure"), not project vocabulary ("creative provenance", "Tracemark", "Grace") that nobody searches.
 - Every page names the three makers with `<meta name="author">` / `<link rel="author">` (the root layout's `authors`, from `TEAM`).

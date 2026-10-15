@@ -70,6 +70,19 @@ export const FRICTIONS = {
   date: '2026-05-01',
 };
 
+// Where Creative Trace was made. The JSON-LD and llms.txt name the
+// school; the footer and llms.txt name the course.
+export const SCHOOL = 'Parsons School of Design, The New School';
+export const COURSE = 'Ethics of AI, Spring 2026';
+
+// The public source code, linked from the JSON-LD and llms.txt.
+export const SOURCE_REPO_URL = 'https://github.com/ryo-67/creative-provenance';
+
+// What happens to a person's answers, on the landing page and in
+// llms.txt.
+export const DATA_USE =
+  'Your questionnaire responses are stored by Tally, our form provider. To generate your Grace, your responses are sent to Anthropic’s Claude. Your data is not used for model training, advertising, or any purpose beyond generating your Tracemark. We do not collect your name, email, or any contact information.';
+
 // Creative Trace's entry on shoro.space. It is a record of the shared
 // project, filed on Shoro's portfolio, not a team write-up. Link by
 // slug and never print its record number: shoro.space numbers records
@@ -140,7 +153,7 @@ export function siteJsonLd() {
         })),
         sourceOrganization: {
           '@type': 'CollegeOrUniversity',
-          name: 'Parsons School of Design, The New School',
+          name: SCHOOL,
         },
         subjectOf: {
           '@type': 'Event',
@@ -162,7 +175,7 @@ export function siteJsonLd() {
         },
         isBasedOn: {
           '@type': 'SoftwareSourceCode',
-          codeRepository: 'https://github.com/ryo-67/creative-provenance',
+          codeRepository: SOURCE_REPO_URL,
         },
         isPartOf: { '@id': `${SITE_URL}/#website` },
       },

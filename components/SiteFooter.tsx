@@ -3,7 +3,7 @@
 // came from.
 
 import { Fragment, type ReactNode } from 'react';
-import { FRICTIONS, PROJECT_RECORD_URL, TEAM } from '@/lib/site';
+import { COURSE, FRICTIONS, PROJECT_RECORD_URL, TEAM } from '@/lib/site';
 
 // Every footer link carries a light underline at rest (--line), so it
 // reads as a link without relying on color alone; hover darkens the
@@ -65,7 +65,7 @@ export default function SiteFooter() {
           .
         </p>
         <p className="mt-4">
-          Created in Ethics of AI, Spring 2026, for{' '}
+          Created in {COURSE}, for{' '}
           <FooterLink href={FRICTIONS.url}>{FRICTIONS.name}</FooterLink>
           {' at The New School · '}
           <FooterLink href={FRICTIONS.archive}>Archive</FooterLink>

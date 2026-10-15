@@ -1,5 +1,10 @@
 # Changelog
 
+## Session 48 -- 2026-10-15 -- llms.txt
+- **`app/llms.txt/route.ts`** (new): `/llms.txt` serves a Markdown summary of the site for AI assistants and answer engines, in the llmstxt.org shape: the name, the search description as a one-line summary, what the questionnaire asks, what the Tracemark and the Grace are, what the tool is not (a refusal tool or an AI detector), the data-use note, links to the landing page and the questionnaire, the three makers with their portfolios and LinkedIn, the course, school and symposium, and links to the project record, the source code and the symposium archive. Static, `text/plain`. It was 404 before.
+- **One source for its facts** (`lib/site.ts`): `SCHOOL`, `COURSE`, `SOURCE_REPO_URL` and `DATA_USE` move here from string literals in the JSON-LD, the footer and the landing page, which now import them. No visible change: the landing page's text and JSON-LD match production exactly.
+- Verified with `VERCEL_ENV=production next build && next start`: `/llms.txt` returns 200 `text/plain; charset=utf-8` with every link absolute on `https://creativetrace.art`. Build, lint and tsc clean.
+
 ## Session 47 -- 2026-10-15 -- Search copy for real search terms, author tags
 Session 36 shipped the title, description and structured data, but the copy was built around "creative provenance", a phrase nobody searches. Venue rules and artist guides talk about **disclosing AI use**, AI disclosure statements and AI-assisted work, so the copy now leads with those words.
 
