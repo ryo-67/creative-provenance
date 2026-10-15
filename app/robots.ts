@@ -17,7 +17,9 @@ const AI_SEARCH_CRAWLERS = [
 // artists' consent and credit doesn't hand its own pages to training
 // pipelines. Google-Extended and Applebot-Extended are opt-out tokens,
 // not separate bots: blocking them keeps pages out of Gemini and Apple
-// model training without touching Google Search or Applebot.
+// model training without touching Google Search or Applebot. Diffbot
+// and omgili / omgilibot (Webz.io) don't train their own models here;
+// they sell crawled pages as AI training data, which comes to the same.
 const AI_TRAINING_CRAWLERS = [
   'GPTBot',
   'ClaudeBot',
@@ -26,6 +28,11 @@ const AI_TRAINING_CRAWLERS = [
   'CCBot',
   'Meta-ExternalAgent',
   'Bytespider',
+  'cohere-training-data-crawler',
+  'PanguBot',
+  'Diffbot',
+  'omgili',
+  'omgilibot',
 ];
 
 // The grace route is private plumbing. /api/og stays crawlable:
