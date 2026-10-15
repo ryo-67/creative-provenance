@@ -87,7 +87,8 @@ All code in this repo is maintainable, human-readable and clean. Like documentat
 /app
   layout.tsx                  # Root layout, site metadata, framed script
   page.tsx                    # Landing page, canonical, JSON-LD
-  robots.ts                   # robots.txt (AI crawlers named; data APIs disallowed)
+  robots.ts                   # robots.txt (AI search crawlers allowed,
+                              # AI training crawlers blocked)
   sitemap.ts                  # sitemap.xml (landing page only)
   /llms.txt
     route.ts                  # llms.txt: Markdown summary for AI assistants,
@@ -288,6 +289,7 @@ The questionnaire is a Tally form (https://tally.so/r/RGZO7p) embedded as a full
 - The canonical origin is `SITE_URL` in `lib/site.ts` (`https://creativetrace.art`, apex). The landing page declares itself canonical; canonical, sitemap and JSON-LD URLs never use `www` or `vercel.app`.
 - Only `/` is indexable. `/questionnaire` (a Tally iframe) and `/result` (personal submissions) carry `noindex, follow` and stay out of the sitemap. Don't block them in robots.txt: a crawler must fetch a page to read its noindex.
 - `/api/og` stays crawlable for link-preview bots; `/api/grace` is disallowed.
+- AI search and assistant crawlers (OAI-SearchBot, ChatGPT-User, Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User) are allowed by name. AI training crawlers (GPTBot, ClaudeBot, Google-Extended, Applebot-Extended, CCBot, Meta-ExternalAgent, Bytespider) are disallowed from the whole site. Keep it that way: a new AI crawler goes in one list or the other by whether it trains models.
 - `/llms.txt` summarizes the site for AI assistants. It reads every fact from `lib/site.ts`; when a maker, link or the description changes there, it follows.
 - The landing page carries schema.org `WebSite` + `WebApplication` JSON-LD from `siteJsonLd()`. Shoro's Person `@id` is `https://shoro.space/#person`, the same node shoro.space publishes; keep them matched.
 - Search title and description live in `lib/site.ts`. Keep the title under ~60 characters and the description under ~160. Write them in the words artists search with ("disclose AI use in my art", "AI disclosure"), not project vocabulary ("creative provenance", "Tracemark", "Grace") that nobody searches.

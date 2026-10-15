@@ -489,7 +489,7 @@ The actual prompt will be tuned heavily during Week 13.
 
 - Canonical host: https://creativetrace.art (apex). `www` and the legacy Vercel URL redirect to it (Vercel domain settings).
 - Indexable: the landing page only. `/questionnaire` and `/result` are `noindex, follow`.
-- `robots.txt` allows all crawlers, AI search crawlers by name, and disallows `/api/grace`. `/api/og` stays open for link previews.
+- `robots.txt` allows all crawlers and AI search and assistant crawlers by name, and disallows `/api/grace`. AI training crawlers (GPTBot, ClaudeBot, Google-Extended, Applebot-Extended, CCBot, Meta-ExternalAgent, Bytespider) are disallowed from the whole site. `/api/og` stays open for link previews.
 - `sitemap.xml` lists the landing page.
 - `llms.txt` (`app/llms.txt/route.ts`) is a Markdown summary for AI assistants: what the tool asks and makes, what it is not, the data-use note, the makers, where it was made and shown, and key links. Every fact comes from `lib/site.ts`.
 - Landing page: search title "Creative Trace · AI disclosure for art, beyond yes or no" and a description under 160 characters that opens with "Disclose AI use in your art" (the words artists search with; nobody searches "creative provenance") and ends "Free, made at Parsons." Open Graph and Twitter titles use the same search title. A canonical link, and schema.org `WebSite` + `WebApplication` JSON-LD naming the three makers, Parsons / The New School, and the source repository.
